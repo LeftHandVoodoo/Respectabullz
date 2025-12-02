@@ -1,4 +1,4 @@
-![1764711490576](image/README/1764711490576.png)![1764711498342](image/README/1764711498342.png)![1764711505755](image/README/1764711505755.png)![1764711506669](image/README/1764711506669.png)![1764711510614](image/README/1764711510614.png)<p align="center">
+<p align="center">
 
   <img src="assets/Logo_Vintage.png" alt="Project Logo" width="220">
 
