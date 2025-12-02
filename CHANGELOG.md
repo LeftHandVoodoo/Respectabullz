@@ -5,6 +5,21 @@ All notable changes to Respectabullz will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2024-12-02
+
+### Added
+
+- Tauri application icons (icon.ico and icon.png) generated from logo
+- Development helper scripts for running Tauri with proper PATH configuration
+- Version bump script for maintaining consistent versioning across all files
+
+### Fixed
+
+- Missing dependency: Added @radix-ui/react-scroll-area package
+- Tauri plugin configuration updated for Tauri 2.x compatibility
+- Created capabilities file for Tauri 2.x permissions system
+- Version bump script converted to ES modules for compatibility
+
 ## [0.1.0] - 2024-12-02
 
 ### Added
@@ -66,14 +81,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Toast notifications for user feedback
 - Responsive design with mobile considerations
 - Project logo added to repository and README
-- Tauri application icons (icon.ico and icon.png) generated from logo
-- Development helper scripts for running Tauri with proper PATH configuration
-- Version bump script for maintaining consistent versioning across all files
-
-### Fixed
-
-- Missing dependency: Added @radix-ui/react-scroll-area package
-- Tauri plugin configuration updated for Tauri 2.x compatibility
-- Created capabilities file for Tauri 2.x permissions system
-- Version bump script converted to ES modules for compatibility
 
