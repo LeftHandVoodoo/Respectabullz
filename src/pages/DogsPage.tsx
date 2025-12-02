@@ -22,8 +22,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useDogs } from '@/hooks/useDogs';
 import { DogFormDialog } from '@/components/dogs/DogFormDialog';
-import { calculateAge, formatDate } from '@/lib/utils';
-import type { Dog, DogStatus, DogSex } from '@/types';
+import { calculateAge } from '@/lib/utils';
+import type { DogStatus } from '@/types';
 
 const statusColors: Record<DogStatus, 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'> = {
   active: 'success',

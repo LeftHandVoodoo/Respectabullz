@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useHeatCycles } from '@/hooks/useHeatCycles';
+import type { HeatCycle } from '@/types';
 import { useDogs } from '@/hooks/useDogs';
 import { HeatCycleFormDialog } from '@/components/heat-cycles/HeatCycleFormDialog';
 import { formatDate } from '@/lib/utils';
@@ -24,7 +25,7 @@ export function HeatCyclesPage() {
 
   const females = dogs?.filter((d) => d.sex === 'F' && d.status === 'active') || [];
 
-  const isActive = (cycle: (typeof heatCycles)[0]) => {
+  const isActive = (cycle: HeatCycle) => {
     return !cycle.endDate;
   };
 

@@ -452,7 +452,7 @@ export async function deleteMedicalRecord(id: string): Promise<boolean> {
 
 export async function getHeatCycles(bitchId?: string): Promise<HeatCycle[]> {
   const db = loadDb();
-  let cycles = bitchId 
+  const cycles = bitchId 
     ? db.heatCycles.filter(h => h.bitchId === bitchId)
     : db.heatCycles;
   
@@ -508,7 +508,7 @@ export async function deleteHeatCycle(id: string): Promise<boolean> {
 
 export async function getTransports(dogId?: string): Promise<Transport[]> {
   const db = loadDb();
-  let transports = dogId 
+  const transports = dogId 
     ? db.transports.filter(t => t.dogId === dogId)
     : db.transports;
   

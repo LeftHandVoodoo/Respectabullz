@@ -28,7 +28,7 @@ const pageTitles: Record<string, string> = {
 
 export function Header() {
   const location = useLocation();
-  const { setTheme, theme } = useTheme();
+  const { setTheme } = useTheme();
 
   const getTitle = () => {
     // Check for exact match first

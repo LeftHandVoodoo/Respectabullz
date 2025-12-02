@@ -5,6 +5,20 @@ All notable changes to Respectabullz will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2024-12-02
+
+### Added
+
+- ESLint configuration for ESLint v9 with TypeScript and React support
+- Related Litter field in Expense form dialog
+
+### Fixed
+
+- Type errors in HeatCyclesPage and LittersPage (incorrect type inference)
+- Removed 10 unused imports/variables across multiple files
+- Empty interface declarations in Input and Textarea components
+- Changed `let` to `const` for non-reassigned variables in db.ts
+
 ## [0.1.1] - 2024-12-02
 
 ### Added

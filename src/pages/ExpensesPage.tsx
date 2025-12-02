@@ -1,11 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Plus, Search, Filter, Download } from 'lucide-react';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   PieChart,

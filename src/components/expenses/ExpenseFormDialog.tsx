@@ -188,6 +188,28 @@ export function ExpenseFormDialog({
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label>Related Litter</Label>
+              <Select
+                value={watch('relatedLitterId') || 'none'}
+                onValueChange={(value) =>
+                  setValue('relatedLitterId', value === 'none' ? '' : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {litters?.map((litter) => (
+                    <SelectItem key={litter.id} value={litter.id}>
+                      {litter.nickname || litter.code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">

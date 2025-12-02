@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { useLitters } from '@/hooks/useLitters';
 import { LitterFormDialog } from '@/components/litters/LitterFormDialog';
 import { formatDate } from '@/lib/utils';
+import type { Litter } from '@/types';
 
 export function LittersPage() {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export function LittersPage() {
     );
   });
 
-  const getStatus = (litter: typeof litters[0]) => {
+  const getStatus = (litter: Litter) => {
     if (litter.whelpDate) return { label: 'Whelped', variant: 'success' as const };
     if (litter.dueDate && new Date(litter.dueDate) > new Date()) {
       return { label: 'Expecting', variant: 'warning' as const };

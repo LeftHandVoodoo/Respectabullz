@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
-import type { Dog, CreateDogInput, UpdateDogInput } from '@/types';
+import type { CreateDogInput, UpdateDogInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 
 export function useDogs() {
