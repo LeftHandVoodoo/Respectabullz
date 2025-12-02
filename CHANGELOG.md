@@ -65,4 +65,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - React Query for data fetching and caching
 - Toast notifications for user feedback
 - Responsive design with mobile considerations
+- Project logo added to repository and README
 

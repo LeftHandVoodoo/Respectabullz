@@ -1,3 +1,9 @@
+<p align="center">
+
+  <img src="assets/Logo_Vintage.png" alt="Project Logo" width="220">
+
+</p>
+
 # Respectabullz - Breeder Management Application
 
 A comprehensive desktop application for managing dog breeding operations, built with Tauri, React, TypeScript, and SQLite.
