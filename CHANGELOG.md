@@ -7,29 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-01-15
+
 ### Added
 
 - Contract Auto-Fill System for streamlined sales process
   - ContractFormDialog with multi-section form (Breeder, Buyer, Puppy, Sale Terms)
   - Auto-populates fields from client intake and dog records
   - Breeder settings section in Settings page (kennel name, address, phone, email, registration, etc.)
-  - docxtemplater integration for Word document generation
+  - JSON-based contract template system using `docx` library for Word document generation
   - Price-to-words conversion for contract amounts
   - ContractPreview component with print support
   - Conversion flow: Inquiries → Contract Form → Sale Form
   - Template placeholder guide (contacts/CONTRACT_TEMPLATE_GUIDE.md)
+  - Contracts automatically saved to `%APPDATA%/com.respectabullz.app/contracts/`
 - useBreederSettings hook for managing breeder/kennel information
 - useContract hook for document generation
 - contractUtils.ts with document generation utilities
 - BreederSettings and ContractData TypeScript interfaces
 - Sire/Dam relations included in client interest queries for contract generation
 - View Contract button in SaleFormDialog when contract path is set
+- Alert UI component for notifications and warnings
 
 ### Changed
 
 - InquiriesPage now shows ContractFormDialog before SaleFormDialog during conversion
 - SaleFormDialog contract path field now includes open button and helper text
 - Contract generation now renders from `contacts/contract_template_respectabullz.json` using the `docx` library for pixel-perfect output; removed the old docxtemplater implementation and unused dependencies
+- Updated all documentation to reflect contract generation system
 
 ## [0.3.0] - 2025-12-02
 
