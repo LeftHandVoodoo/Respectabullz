@@ -299,18 +299,22 @@ deleteExpense(id: string): Promise<boolean>
 ## Client Operations
 
 ### getClients
-Retrieves all clients with their sales.
+Retrieves all clients with their sales and interests.
 
 ```typescript
 getClients(): Promise<Client[]>
 ```
 
+**Returns:** Array of Client objects with populated sales (including puppies) and interests.
+
 ### getClient
-Retrieves a single client with sales history.
+Retrieves a single client with sales history and interests.
 
 ```typescript
 getClient(id: string): Promise<Client | null>
 ```
+
+**Returns:** Client object with populated sales (including puppies and transport) and interests, or null if not found.
 
 ### createClient
 Creates a client.
@@ -338,20 +342,53 @@ deleteClient(id: string): Promise<boolean>
 ## Sale Operations
 
 ### getSales
-Retrieves all sales with dog and client info.
+Retrieves all sales with puppies, client, and transport info.
 
 ```typescript
 getSales(): Promise<Sale[]>
 ```
 
-### createSale
-Creates a sale record.
+**Returns:** Array of Sale objects with populated puppies, client, transport, and converted interests.
+
+### getSale
+Retrieves a single sale with full details.
 
 ```typescript
-createSale(input: Omit<Sale, 'id' | 'createdAt' | 'updatedAt' | 'dog' | 'client'>): Promise<Sale>
+getSale(id: string): Promise<Sale | null>
 ```
 
-**Side Effects:** Sets the dog's status to 'sold'.
+**Returns:** Sale object with populated puppies, client, transport, and converted interests, or null if not found.
+
+### createSale
+Creates a sale record with multiple puppies.
+
+```typescript
+createSale(input: CreateSaleInput): Promise<Sale>
+```
+
+**Parameters:**
+- `input.clientId`: Client ID
+- `input.saleDate`: Sale date
+- `input.price`: Total sale price
+- `input.puppies`: Array of { dogId, price } objects
+- Additional optional fields: depositAmount, depositDate, shippedDate, receivedDate, isLocalPickup, paymentStatus, warrantyInfo, registrationTransferDate, transportId, contractPath, notes
+
+**Side Effects:** 
+- Creates SalePuppy records for each puppy
+- Sets each puppy's status to 'sold'
+
+### updateSale
+Updates a sale record.
+
+```typescript
+updateSale(id: string, input: UpdateSaleInput): Promise<Sale | null>
+```
+
+**Parameters:**
+- `id`: Sale ID
+- `input`: Partial sale data, including optional `puppies` array to update puppy list
+
+**Side Effects:** Updates SalePuppy records and dog statuses as needed.
 
 ### deleteSale
 Deletes a sale record.
@@ -360,7 +397,107 @@ Deletes a sale record.
 deleteSale(id: string): Promise<boolean>
 ```
 
-**Side Effects:** Reverts the dog's status to 'active'.
+**Side Effects:** 
+- Deletes associated SalePuppy records
+- Reverts each puppy's status to 'active'
+- Clears convertedToSaleId from related ClientInterest records
+
+### addPuppyToSale
+Adds a puppy to an existing sale.
+
+```typescript
+addPuppyToSale(saleId: string, dogId: string, price: number): Promise<SalePuppy | null>
+```
+
+### removePuppyFromSale
+Removes a puppy from a sale.
+
+```typescript
+removePuppyFromSale(saleId: string, dogId: string): Promise<boolean>
+```
+
+**Side Effects:** Reverts the puppy's status to 'active'.
+
+### updatePuppyPrice
+Updates the price of a puppy within a sale.
+
+```typescript
+updatePuppyPrice(saleId: string, dogId: string, price: number): Promise<SalePuppy | null>
+```
+
+---
+
+## Client Interest Operations
+
+### getClientInterests
+Retrieves all client interests with client, dog, and sale info.
+
+```typescript
+getClientInterests(): Promise<ClientInterest[]>
+```
+
+### getClientInterest
+Retrieves a single client interest.
+
+```typescript
+getClientInterest(id: string): Promise<ClientInterest | null>
+```
+
+### getInterestsByClient
+Retrieves all interests for a specific client.
+
+```typescript
+getInterestsByClient(clientId: string): Promise<ClientInterest[]>
+```
+
+### getInterestsByDog
+Retrieves all interests for a specific dog/puppy.
+
+```typescript
+getInterestsByDog(dogId: string): Promise<ClientInterest[]>
+```
+
+### createClientInterest
+Creates a new client interest record.
+
+```typescript
+createClientInterest(input: CreateClientInterestInput): Promise<ClientInterest>
+```
+
+**Parameters:**
+- `input.clientId`: Client ID
+- `input.dogId`: Dog/puppy ID
+- `input.interestDate`: Date interest was expressed
+- `input.contactMethod`: Contact method ('phone', 'email', 'website', 'social_media', 'referral', 'other')
+- `input.status`: Status ('interested', 'contacted', 'scheduled_visit', 'converted', 'lost')
+- `input.notes`: Optional notes
+
+### updateClientInterest
+Updates a client interest record.
+
+```typescript
+updateClientInterest(id: string, input: UpdateClientInterestInput): Promise<ClientInterest | null>
+```
+
+### deleteClientInterest
+Deletes a client interest record.
+
+```typescript
+deleteClientInterest(id: string): Promise<boolean>
+```
+
+### convertInterestToSale
+Converts a client interest to a sale.
+
+```typescript
+convertInterestToSale(interestId: string, saleInput: CreateSaleInput): Promise<{ sale: Sale; interest: ClientInterest } | null>
+```
+
+**Side Effects:**
+- Creates a new Sale with SalePuppy records
+- Updates the interest status to 'converted'
+- Links the interest to the sale via convertedToSaleId
+- Sets puppy statuses to 'sold'
 
 ---
 

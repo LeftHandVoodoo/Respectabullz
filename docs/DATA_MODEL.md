@@ -14,8 +14,17 @@ The database uses SQLite with a normalized relational schema. All entities use C
 ┌─────────────────────────────────────────────────────────────────┐
 │                                                                 │
 │    ┌──────────┐         ┌──────────┐         ┌──────────┐      │
-│    │  Client  │◄────────┤   Sale   ├────────►│   Dog    │      │
-│    └──────────┘         └──────────┘         └────┬─────┘      │
+│    │  Client  │◄────────┤   Sale   │         │   Dog    │      │
+│    └────┬─────┘         └────┬─────┘         └────┬─────┘      │
+│         │                    │                     │            │
+│         │                    │                     │            │
+│         │              ┌─────▼─────┐              │            │
+│         │              │SalePuppy  │◄─────────────┘            │
+│         │              └───────────┘                            │
+│         │                    │                                  │
+│         │              ┌──────▼──────┐                          │
+│         └─────────────►ClientInterest│                          │
+│                    └──────────────┘                            │
 │                                                   │            │
 │         ┌─────────────────────────────────────────┤            │
 │         │                 │                       │            │
@@ -73,8 +82,7 @@ The central entity representing individual dogs and puppies.
 **Relationships:**
 - Self-referential: sire, dam (parents), offspring
 - Belongs to: Litter (birth litter)
-- Has many: VaccinationRecord, WeightEntry, MedicalRecord, HeatCycle, Transport, DogPhoto, PedigreeEntry
-- Has one: Sale
+- Has many: VaccinationRecord, WeightEntry, MedicalRecord, HeatCycle, Transport, DogPhoto, PedigreeEntry, SalePuppy, ClientInterest
 
 ### Litter
 Represents a breeding event and resulting puppies.
@@ -179,7 +187,7 @@ Detailed events within a heat cycle.
 ## Logistics Entities
 
 ### Transport
-Shipping and transport records.
+Shipping and transport records. Can be linked to sales for tracking delivery.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -201,6 +209,11 @@ Shipping and transport records.
 | expenseId | String? | FK to Expense |
 | createdAt | DateTime | Record creation |
 | updatedAt | DateTime | Last update |
+
+**Relationships:**
+- Belongs to: Dog
+- Has one: Expense (optional)
+- Has one: Sale (optional, via Sale.transportId)
 
 ## Financial Entities
 
@@ -252,22 +265,71 @@ Buyer/customer information.
 | createdAt | DateTime | Record creation |
 | updatedAt | DateTime | Last update |
 
+**Relationships:**
+- Has many: Sale, ClientInterest
+
 ### Sale
-Records of dog sales.
+Records of dog sales. Supports multiple puppies per sale via SalePuppy junction table.
 
 | Field | Type | Description |
 |-------|------|-------------|
 | id | String (CUID) | Primary key |
-| dogId | String (unique) | FK to Dog |
 | clientId | String | FK to Client |
 | saleDate | DateTime | Sale date |
-| price | Float | Sale price |
+| price | Float | Total sale price |
 | depositAmount | Float? | Deposit paid |
 | depositDate | DateTime? | Deposit date |
+| shippedDate | DateTime? | Date puppy was shipped |
+| receivedDate | DateTime? | Date client received puppy |
+| isLocalPickup | Boolean | Local pickup (no shipping) |
+| paymentStatus | String | 'deposit_only', 'partial', 'paid_in_full', 'refunded' |
+| warrantyInfo | String? | Warranty/health guarantee details |
+| registrationTransferDate | DateTime? | Registration transfer date |
+| transportId | String? | FK to Transport (optional) |
 | contractPath | String? | Path to contract |
 | notes | String? | Notes |
 | createdAt | DateTime | Record creation |
 | updatedAt | DateTime | Last update |
+
+**Relationships:**
+- Belongs to: Client
+- Has many: SalePuppy (puppies in this sale), ClientInterest (converted interests)
+- Has one: Transport (optional)
+
+### SalePuppy
+Junction table linking puppies to sales. Allows multiple puppies per sale.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| saleId | String | FK to Sale |
+| dogId | String | FK to Dog |
+| price | Float | Individual puppy price |
+| createdAt | DateTime | Record creation |
+
+**Relationships:**
+- Belongs to: Sale, Dog
+- Unique constraint: (saleId, dogId)
+
+### ClientInterest
+Tracks client inquiries and interests before sale conversion.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| clientId | String | FK to Client |
+| dogId | String | FK to Dog (puppy interested in) |
+| interestDate | DateTime | Date interest was expressed |
+| contactMethod | String | 'phone', 'email', 'website', 'social_media', 'referral', 'other' |
+| status | String | 'interested', 'contacted', 'scheduled_visit', 'converted', 'lost' |
+| notes | String? | Notes about the interest |
+| convertedToSaleId | String? | FK to Sale (if converted) |
+| createdAt | DateTime | Record creation |
+| updatedAt | DateTime | Last update |
+
+**Relationships:**
+- Belongs to: Client, Dog
+- Has one: Sale (if converted)
 
 ## Pedigree Entities
 
@@ -345,11 +407,15 @@ The following fields are indexed for query performance:
 
 ## Data Integrity Rules
 
-1. **Cascade Deletes**: Deleting a Dog cascades to related records (vaccinations, weights, medical, heat cycles, transports, photos, pedigree)
+1. **Cascade Deletes**: 
+   - Deleting a Dog cascades to related records (vaccinations, weights, medical, heat cycles, transports, photos, pedigree, sale puppies, client interests)
+   - Deleting a Sale cascades to SalePuppy records
+   - Deleting a Client cascades to ClientInterest records
 2. **Unique Constraints**: 
    - Litter.code must be unique
    - Setting.key must be unique
-   - Sale.dogId must be unique (one sale per dog)
+   - SalePuppy (saleId, dogId) must be unique (puppy can only be in sale once)
    - PedigreeEntry (dogId, generation, position) must be unique
-3. **Status Updates**: Creating a Sale automatically sets Dog.status to 'sold'
+3. **Status Updates**: Creating a Sale with puppies automatically sets each Dog.status to 'sold'
+4. **Interest Conversion**: Converting a ClientInterest to a Sale updates the interest status to 'converted' and links it to the sale
 

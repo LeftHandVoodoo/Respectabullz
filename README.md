@@ -17,6 +17,9 @@ A comprehensive desktop application for managing dog breeding operations, built 
 - **Transport Management**: Track shipping/transport with shipper details and costs
 - **Expense Tracking**: Comprehensive financial tracking with reports and CSV export
 - **Client Management**: Track buyers and sales with contact information
+- **Client Inquiries**: Track client interests and inquiries before sales conversion
+- **Multi-Puppy Sales**: Support for selling multiple puppies in a single transaction
+- **Sales Pipeline**: Track interest status, payment status, shipping, and delivery
 - **Reports & Analytics**: Charts and insights for your breeding operation
 - **Data Backup**: Export and import database backups
 
@@ -78,6 +81,8 @@ respectabullz/
 │   │   ├── dogs/        # Dog-related components
 │   │   ├── litters/     # Litter components
 │   │   ├── health/      # Health tracking components
+│   │   ├── inquiries/   # Client interest/inquiry components
+│   │   ├── sales/       # Sale form components
 │   │   └── ...
 │   ├── hooks/           # React Query hooks
 │   ├── lib/             # Utilities and database
@@ -100,7 +105,10 @@ The application uses a normalized SQLite database with the following main entiti
 - **MedicalRecord**: General health records
 - **Transport**: Shipping/transport logs
 - **Expense**: Financial tracking
-- **Client/Sale**: Customer and sales records
+- **Client**: Customer information
+- **ClientInterest**: Client inquiries and interest tracking
+- **Sale**: Sales records with multi-puppy support
+- **SalePuppy**: Junction table for puppies in sales
 - **PedigreeEntry**: Deep lineage tracking
 
 ## Development
