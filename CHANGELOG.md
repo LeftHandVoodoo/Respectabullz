@@ -7,21 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-12-02
+
 ### Added
 
-- Edit and delete buttons for all record types across the application - 14:19
+- Edit and delete buttons for all record types across the application
   - Expenses: Edit/delete buttons in expenses table with confirmation dialogs
   - Transport: Edit/delete buttons in transport records table with confirmation dialogs
   - Clients: Edit/delete buttons in client list + edit button in detail panel
   - Vaccinations: Edit/delete buttons with confirmation dialogs
   - Medical Records: Edit/delete buttons with confirmation dialogs
   - Weight Entries: Edit/delete buttons with confirmation dialogs
-- updateWeightEntry function to database layer for editing weight records - 14:19
-
-## [0.2.0] - 2025-12-02
-
-### Added
-
+- updateWeightEntry function to database layer for editing weight records
 - Client-Puppy Sales Tracking Enhancement - comprehensive sales pipeline management
   - New ClientInterest model for tracking client inquiries before sales
   - SalePuppy junction table supporting multiple puppies per sale
@@ -38,20 +35,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated ClientsPage with tabbed view showing interests and enhanced sales display
 - Automatic migration of existing single-puppy sales to new SalePuppy structure
 - Inquiries navigation link in sidebar
-- Quick action buttons in dashboard Quick Actions section (Add Dog, Add Litter, Start Heat Cycle, Log Expense, Add Transport, Record Vaccination) - 15:15
-- Breed dropdown with prefilled options (including American Bully) and custom breed option - 15:00
-- Version display in GUI (Header, Sidebar footer, and Settings page) - 12:30
-- Automatic expense creation when transport records include a cost - 12:45
-- Version bump script now updates `src/lib/version.ts` for GUI display - 12:50
-- Typical dosage dropdowns in vaccination form with vaccine-specific options - 13:15
-- Custom dosage option for vaccination records when standard doses don't apply - 13:20
-- Automatic next due date calculation based on vaccine type and dose (puppy vs adult) - 13:35
-- Custom vaccine type field when "Other" is selected in vaccination form - 13:40
-- Standard dog color dropdown with 25+ common colors - 13:50
-- Custom color option for dog records - 13:55
-- Add Puppy button on litter detail page to quickly add puppies to a litter - 14:10
-- Birth Litter dropdown in dog form to assign dogs/puppies to litters - 14:10
-- Comprehensive heat cycle tracking system based on veterinary best practices - 14:30
+- Quick action buttons in dashboard Quick Actions section (Add Dog, Add Litter, Start Heat Cycle, Log Expense, Add Transport, Record Vaccination)
+- Breed dropdown with prefilled options (including American Bully) and custom breed option
+- Version display in GUI (Header, Sidebar footer, and Settings page)
+- Automatic expense creation when transport records include a cost
+- Version bump script now updates `src/lib/version.ts` for GUI display
+- Typical dosage dropdowns in vaccination form with vaccine-specific options
+- Custom dosage option for vaccination records when standard doses don't apply
+- Automatic next due date calculation based on vaccine type and dose (puppy vs adult)
+- Custom vaccine type field when "Other" is selected in vaccination form
+- Standard dog color dropdown with 25+ common colors
+- Custom color option for dog records
+- Add Puppy button on litter detail page to quickly add puppies to a litter
+- Birth Litter dropdown in dog form to assign dogs/puppies to litters
+- Comprehensive heat cycle tracking system based on veterinary best practices
   - Heat cycle phases (Proestrus, Estrus, Diestrus, Anestrus) with visual indicators
   - Progesterone test logging with automatic breeding recommendations
   - Real-time breeding window calculations (optimal breeding 1-3 days post-ovulation)
@@ -66,10 +63,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Transport creation/update now automatically creates/updates linked expense records when cost is provided - 12:45
-- Vaccination form now uses dropdown selection for typical dosages instead of free text input - 13:20
-- Next due dates automatically calculated using veterinary best practices (puppy schedules: 1 month intervals, adult: 12 months) - 13:35
-- Dog color field changed from text input to dropdown with standard colors and custom option - 13:50
+- Transport creation/update now automatically creates/updates linked expense records when cost is provided
+- Vaccination form now uses dropdown selection for typical dosages instead of free text input
+- Next due dates automatically calculated using veterinary best practices (puppy schedules: 1 month intervals, adult: 12 months)
+- Dog color field changed from text input to dropdown with standard colors and custom option
 
 ## [0.1.3] - 2024-12-02
 
