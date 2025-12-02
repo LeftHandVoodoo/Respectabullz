@@ -1,0 +1,85 @@
+# Respectabullz - Cursor AI Rules
+
+## Project Context
+This is a Windows desktop application for dog breeder management, built with Tauri + React + TypeScript + SQLite.
+
+## Tech Stack
+- Tauri 2.x (Rust backend)
+- React 18 + TypeScript
+- Vite bundler
+- shadcn/ui + Tailwind CSS
+- Prisma ORM (SQLite)
+- TanStack Query v5
+- React Hook Form + Zod
+- Recharts
+- Lucide icons
+
+## Brand Colors
+- Beige: #fbf1e5 (light backgrounds)
+- Brown: #6e5e44 (text, accents)
+- Blue: #303845 (primary, dark mode)
+
+## Code Conventions
+
+### File Naming
+- Components: PascalCase (e.g., `DogFormDialog.tsx`)
+- Hooks: camelCase with `use` prefix (e.g., `useDogs.ts`)
+- Pages: PascalCase with `Page` suffix (e.g., `DogsPage.tsx`)
+- Utils: camelCase (e.g., `utils.ts`)
+
+### Component Structure
+```tsx
+// Imports
+// Types/interfaces
+// Component function
+// Export
+```
+
+### Styling
+- Use Tailwind utility classes
+- Use `cn()` for conditional classes
+- Follow existing spacing patterns (space-y-6, gap-4)
+
+### State Management
+- Use TanStack Query for server state
+- Use React useState for local UI state
+- Avoid prop drilling with hooks
+
+### Forms
+- Use React Hook Form with Zod schemas
+- Validate before submission
+- Show inline error messages
+
+### Database
+- All async operations in lib/db.ts
+- Use TypeScript types from types/index.ts
+- Return null (not throw) for not found
+
+## When Making Changes
+
+1. Check existing patterns in codebase first
+2. Use existing components from src/components/ui/
+3. Follow the established hook pattern
+4. Update CHANGELOG.md for significant changes
+5. Maintain TypeScript strict mode
+
+## Entity Pattern
+
+For new entities, create:
+1. Prisma model in `prisma/schema.prisma`
+2. TypeScript types in `src/types/index.ts`
+3. DB functions in `src/lib/db.ts`
+4. React hooks in `src/hooks/use[Entity].ts`
+5. Page component in `src/pages/[Entity]Page.tsx`
+6. Form dialog in `src/components/[entity]/[Entity]FormDialog.tsx`
+7. Route in `src/App.tsx`
+8. Nav link in `src/components/layout/Sidebar.tsx`
+
+## Don't
+
+- Don't use `any` type
+- Don't create new UI components when shadcn has one
+- Don't store files in database (store paths)
+- Don't break existing functionality
+- Don't skip error handling
+

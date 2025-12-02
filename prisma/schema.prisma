@@ -1,0 +1,350 @@
+// Respectabullz Breeder Management System
+// Database schema for dog breeding operations
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// CORE ENTITIES
+// ============================================
+
+/// Individual dog record - tracks every dog/puppy in the operation
+model Dog {
+  id                 String   @id @default(cuid())
+  name               String
+  sex                String   // 'M' or 'F'
+  breed              String
+  registrationNumber String?
+  dateOfBirth        DateTime?
+  color              String?
+  microchipNumber    String?
+  status             String   @default("active") // active, sold, retired, deceased
+  profilePhotoPath   String?
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Lineage relationships
+  sireId String?
+  damId  String?
+  sire   Dog?    @relation("SireOffspring", fields: [sireId], references: [id])
+  dam    Dog?    @relation("DamOffspring", fields: [damId], references: [id])
+
+  // Offspring relationships
+  siredOffspring Dog[] @relation("SireOffspring")
+  bornOffspring  Dog[] @relation("DamOffspring")
+
+  // Litter this dog was born in
+  litterId     String?
+  birthLitter  Litter? @relation("LitterPuppies", fields: [litterId], references: [id])
+
+  // Litters sired/born by this dog
+  litteredAsSire Litter[] @relation("SireLitters")
+  litteredAsDam  Litter[] @relation("DamLitters")
+
+  // Health records
+  vaccinations   VaccinationRecord[]
+  weightEntries  WeightEntry[]
+  medicalRecords MedicalRecord[]
+
+  // Breeding (for females)
+  heatCycles HeatCycle[]
+
+  // Logistics
+  transports Transport[]
+
+  // Financial
+  expenses Expense[] @relation("DogExpenses")
+  sale     Sale?
+
+  // Pedigree ancestors
+  pedigreeEntries PedigreeEntry[]
+
+  // Photos
+  photos DogPhoto[]
+}
+
+/// Breeding litter record
+model Litter {
+  id           String    @id @default(cuid())
+  code         String    @unique // e.g., "2025-01-ABC"
+  nickname     String?
+  breedingDate DateTime?
+  dueDate      DateTime?
+  whelpDate    DateTime?
+  totalBorn    Int?
+  totalAlive   Int?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Parents
+  sireId String?
+  damId  String?
+  sire   Dog?    @relation("SireLitters", fields: [sireId], references: [id])
+  dam    Dog?    @relation("DamLitters", fields: [damId], references: [id])
+
+  // Puppies born in this litter
+  puppies Dog[] @relation("LitterPuppies")
+
+  // Associated expenses
+  expenses Expense[] @relation("LitterExpenses")
+}
+
+// ============================================
+// BREEDING & REPRODUCTION
+// ============================================
+
+/// Heat cycle tracking for females
+model HeatCycle {
+  id               String    @id @default(cuid())
+  startDate        DateTime
+  standingHeatStart DateTime?
+  standingHeatEnd  DateTime?
+  endDate          DateTime?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // The female dog
+  bitchId String
+  bitch   Dog    @relation(fields: [bitchId], references: [id], onDelete: Cascade)
+
+  // Detailed events during heat
+  events HeatEvent[]
+}
+
+/// Detailed heat events (progesterone tests, breeding dates, etc.)
+model HeatEvent {
+  id        String   @id @default(cuid())
+  date      DateTime
+  type      String   // bleeding, progesteroneTest, breeding, other
+  value     String?  // e.g., progesterone level "5.2 ng/mL"
+  notes     String?
+  createdAt DateTime @default(now())
+
+  heatCycleId String
+  heatCycle   HeatCycle @relation(fields: [heatCycleId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// HEALTH RECORDS
+// ============================================
+
+/// Vaccination/shots records
+model VaccinationRecord {
+  id          String    @id @default(cuid())
+  date        DateTime
+  vaccineType String    // DHPP, Rabies, Bordetella, etc.
+  dose        String?
+  lotNumber   String?
+  vetClinic   String?
+  nextDueDate DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  dogId String
+  dog   Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+}
+
+/// Weight tracking entries
+model WeightEntry {
+  id        String   @id @default(cuid())
+  date      DateTime
+  weightLbs Float    // Store in lbs, convert to kg on display
+  notes     String?
+  createdAt DateTime @default(now())
+
+  dogId String
+  dog   Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+}
+
+/// General medical records (exams, surgeries, tests, medications)
+model MedicalRecord {
+  id             String   @id @default(cuid())
+  date           DateTime
+  type           String   // exam, surgery, test, medication, injury, other
+  description    String
+  vetClinic      String?
+  attachmentPath String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  dogId String
+  dog   Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// LOGISTICS
+// ============================================
+
+/// Transport/shipping records
+model Transport {
+  id                  String   @id @default(cuid())
+  date                DateTime
+  mode                String   // flight, ground, pickup, other
+  shipperBusinessName String?
+  contactName         String?
+  phone               String?
+  email               String?
+  originCity          String?
+  originState         String?
+  destinationCity     String?
+  destinationState    String?
+  trackingNumber      String?
+  cost                Float?
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Dog being transported
+  dogId String
+  dog   Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+
+  // Linked expense record
+  expenseId String?  @unique
+  expense   Expense? @relation(fields: [expenseId], references: [id])
+}
+
+// ============================================
+// FINANCIAL
+// ============================================
+
+/// Expense tracking
+model Expense {
+  id              String   @id @default(cuid())
+  date            DateTime
+  amount          Float
+  category        String   // transport, vet, food, supplies, registration, marketing, utilities, misc
+  vendorName      String?
+  description     String?
+  paymentMethod   String?  // cash, check, card, etc.
+  isTaxDeductible Boolean  @default(false)
+  receiptPath     String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Optional relations
+  relatedDogId    String?
+  relatedLitterId String?
+  relatedDog      Dog?     @relation("DogExpenses", fields: [relatedDogId], references: [id])
+  relatedLitter   Litter?  @relation("LitterExpenses", fields: [relatedLitterId], references: [id])
+
+  // Transport that created this expense
+  transport Transport?
+}
+
+// ============================================
+// CLIENTS & SALES
+// ============================================
+
+/// Buyer/customer records
+model Client {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String?
+  email        String?
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  state        String?
+  postalCode   String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sales Sale[]
+}
+
+/// Sale records
+model Sale {
+  id            String    @id @default(cuid())
+  saleDate      DateTime
+  price         Float
+  depositAmount Float?
+  depositDate   DateTime?
+  contractPath  String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Dog being sold
+  dogId String @unique
+  dog   Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+
+  // Buyer
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+}
+
+// ============================================
+// PEDIGREE
+// ============================================
+
+/// Deep pedigree tracking (4+ generations)
+model PedigreeEntry {
+  id                   String   @id @default(cuid())
+  generation           Int      // 1 = parents, 2 = grandparents, etc.
+  position             String   // e.g., "S" (sire), "D" (dam), "SS", "SD", "DS", "DD", etc.
+  ancestorName         String
+  ancestorRegistration String?
+  ancestorColor        String?
+  ancestorBreed        String?
+  notes                String?
+  createdAt            DateTime @default(now())
+
+  // The dog this pedigree belongs to
+  dogId String
+  dog   Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+
+  @@unique([dogId, generation, position])
+}
+
+// ============================================
+// ATTACHMENTS & MEDIA
+// ============================================
+
+/// Dog photos (multiple per dog)
+model DogPhoto {
+  id         String   @id @default(cuid())
+  filePath   String
+  caption    String?
+  isPrimary  Boolean  @default(false)
+  uploadedAt DateTime @default(now())
+
+  dogId String
+  dog   Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+}
+
+/// General file attachments
+model Attachment {
+  id         String   @id @default(cuid())
+  entityType String   // dog, litter, medical, transport, expense, sale
+  entityId   String
+  filePath   String
+  fileName   String
+  fileType   String?  // mime type
+  uploadedAt DateTime @default(now())
+}
+
+// ============================================
+// SETTINGS
+// ============================================
+
+/// User preferences and app settings
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+

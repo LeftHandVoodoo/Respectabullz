@@ -1,0 +1,125 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light theme - Beige base with Brown/Blue accents */
+    --background: 37 60% 94%; /* #fbf1e5 beige */
+    --foreground: 35 25% 35%; /* #6e5e44 brown */
+    
+    --card: 37 60% 96%;
+    --card-foreground: 35 25% 35%;
+    
+    --popover: 37 60% 98%;
+    --popover-foreground: 35 25% 35%;
+    
+    --primary: 215 18% 24%; /* #303845 blue */
+    --primary-foreground: 37 60% 94%;
+    
+    --secondary: 35 25% 35%; /* #6e5e44 brown */
+    --secondary-foreground: 37 60% 94%;
+    
+    --muted: 37 30% 88%;
+    --muted-foreground: 35 15% 50%;
+    
+    --accent: 35 25% 45%;
+    --accent-foreground: 37 60% 94%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 35 20% 82%;
+    --input: 35 20% 82%;
+    --ring: 215 18% 24%;
+    
+    --radius: 0.5rem;
+    
+    /* Chart colors */
+    --chart-1: 215 18% 24%;
+    --chart-2: 35 25% 35%;
+    --chart-3: 37 60% 70%;
+    --chart-4: 150 40% 45%;
+    --chart-5: 25 80% 55%;
+  }
+
+  .dark {
+    /* Dark theme - Blue base with Beige/Brown accents */
+    --background: 215 18% 14%; /* Darker blue */
+    --foreground: 37 60% 90%; /* Light beige */
+    
+    --card: 215 18% 18%;
+    --card-foreground: 37 60% 90%;
+    
+    --popover: 215 18% 16%;
+    --popover-foreground: 37 60% 90%;
+    
+    --primary: 37 60% 85%; /* Beige */
+    --primary-foreground: 215 18% 14%;
+    
+    --secondary: 35 25% 55%; /* Lighter brown */
+    --secondary-foreground: 37 60% 90%;
+    
+    --muted: 215 15% 25%;
+    --muted-foreground: 37 30% 65%;
+    
+    --accent: 35 25% 45%;
+    --accent-foreground: 37 60% 90%;
+    
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 215 15% 28%;
+    --input: 215 15% 28%;
+    --ring: 37 60% 70%;
+    
+    --chart-1: 37 60% 75%;
+    --chart-2: 35 25% 55%;
+    --chart-3: 215 18% 50%;
+    --chart-4: 150 40% 55%;
+    --chart-5: 25 80% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-muted/30;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
