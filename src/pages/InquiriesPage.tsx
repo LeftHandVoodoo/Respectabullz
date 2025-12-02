@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Edit, Trash2, ArrowRight, Filter, Phone, Mail, Globe, Users, MessageSquare } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, ArrowRight, Filter, Phone, Mail, Globe, Users, MessageSquare, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,8 +33,10 @@ import {
 import { useClientInterests, useDeleteClientInterest } from '@/hooks/useClientInterests';
 import { ClientInterestFormDialog } from '@/components/inquiries/ClientInterestFormDialog';
 import { SaleFormDialog } from '@/components/sales/SaleFormDialog';
+import { ContractFormDialog } from '@/components/sales/ContractFormDialog';
+import { useDog } from '@/hooks/useDogs';
 import { formatDate } from '@/lib/utils';
-import type { ClientInterest, InterestStatus, ContactMethod } from '@/types';
+import type { ClientInterest, InterestStatus, ContactMethod, ContractData } from '@/types';
 
 const STATUS_COLORS: Record<InterestStatus, string> = {
   interested: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
@@ -78,6 +80,11 @@ export function InquiriesPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingInterest, setEditingInterest] = useState<ClientInterest | undefined>();
   const [convertingInterest, setConvertingInterest] = useState<ClientInterest | undefined>();
+  
+  // Contract flow state
+  const [showContractDialog, setShowContractDialog] = useState(false);
+  const [showSaleDialog, setShowSaleDialog] = useState(false);
+  const [contractData, setContractData] = useState<ContractData | undefined>();
 
   const handleEdit = (interest: ClientInterest) => {
     setEditingInterest(interest);
@@ -91,13 +98,34 @@ export function InquiriesPage() {
     }
   };
 
+  // Start the conversion flow by showing the contract dialog first
   const handleConvertToSale = (interest: ClientInterest) => {
     setConvertingInterest(interest);
+    setShowContractDialog(true);
   };
 
+  // Handle when contract is generated and user wants to proceed to sale
+  const handleProceedToSale = (data: ContractData) => {
+    setContractData(data);
+    setShowContractDialog(false);
+    setShowSaleDialog(true);
+  };
+
+  // Close the contract dialog
+  const handleCloseContractDialog = (open: boolean) => {
+    if (!open) {
+      setShowContractDialog(false);
+      // If they just close the contract dialog, don't clear the converting interest
+      // in case they want to try again
+    }
+  };
+
+  // Close the sale dialog and reset the flow
   const handleCloseSaleDialog = (open: boolean) => {
     if (!open) {
+      setShowSaleDialog(false);
       setConvertingInterest(undefined);
+      setContractData(undefined);
     }
   };
 
@@ -338,13 +366,29 @@ export function InquiriesPage() {
         interest={editingInterest}
       />
 
-      {/* Convert to Sale Dialog */}
+      {/* Contract Form Dialog - First step in conversion flow */}
+      {convertingInterest && convertingInterest.client && convertingInterest.dog && (
+        <ContractFormDialog
+          open={showContractDialog}
+          onOpenChange={handleCloseContractDialog}
+          client={convertingInterest.client}
+          dog={convertingInterest.dog}
+          sire={convertingInterest.dog.sire}
+          dam={convertingInterest.dog.dam}
+          onProceedToSale={handleProceedToSale}
+        />
+      )}
+
+      {/* Sale Form Dialog - Second step in conversion flow */}
       {convertingInterest && convertingInterest.clientId && convertingInterest.dogId && (
         <SaleFormDialog
-          open={!!convertingInterest}
+          open={showSaleDialog}
           onOpenChange={handleCloseSaleDialog}
           preselectedClientId={convertingInterest.clientId}
-          preselectedPuppies={[{ dogId: convertingInterest.dogId, price: 0 }]}
+          preselectedPuppies={[{ 
+            dogId: convertingInterest.dogId, 
+            price: contractData?.salePrice || 0 
+          }]}
           interestId={convertingInterest.id}
         />
       )}

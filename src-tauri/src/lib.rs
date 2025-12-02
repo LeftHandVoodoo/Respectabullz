@@ -16,10 +16,12 @@ pub fn run() {
             let photos_dir = app_data_dir.join("photos");
             let attachments_dir = app_data_dir.join("attachments");
             let backups_dir = app_data_dir.join("backups");
+            let contracts_dir = app_data_dir.join("contracts");
             
             std::fs::create_dir_all(&photos_dir).ok();
             std::fs::create_dir_all(&attachments_dir).ok();
             std::fs::create_dir_all(&backups_dir).ok();
+            std::fs::create_dir_all(&contracts_dir).ok();
             
             Ok(())
         })

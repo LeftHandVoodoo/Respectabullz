@@ -1,6 +1,8 @@
-import { Moon, Sun, Download, Upload, Trash2, Database } from 'lucide-react';
+import { useState } from 'react';
+import { Moon, Sun, Download, Upload, Trash2, Database, Building2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -29,7 +31,10 @@ import {
   useImportDatabase,
   useClearDatabase,
 } from '@/hooks/useSettings';
+import { useBreederSettings } from '@/hooks/useBreederSettings';
+import { toast } from '@/components/ui/use-toast';
 import { VERSION } from '@/lib/version';
+import type { BreederSettings } from '@/types';
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -38,6 +43,16 @@ export function SettingsPage() {
   const exportDb = useExportDatabase();
   const importDb = useImportDatabase();
   const clearDb = useClearDatabase();
+  const { breederSettings, updateBreederSettings, isPending: isBreederPending } = useBreederSettings();
+
+  // Local state for breeder form
+  const [breederForm, setBreederForm] = useState<BreederSettings>(breederSettings);
+  const [hasBreederChanges, setHasBreederChanges] = useState(false);
+
+  // Sync form with settings when they load
+  useState(() => {
+    setBreederForm(breederSettings);
+  });
 
   const weightUnit = settings?.weightUnit || 'lbs';
   const notificationsEnabled = settings?.notificationsEnabled === 'true';
@@ -48,6 +63,28 @@ export function SettingsPage() {
 
   const handleNotificationsChange = (checked: boolean) => {
     updateSetting.mutate({ key: 'notificationsEnabled', value: String(checked) });
+  };
+
+  const handleBreederFieldChange = (field: keyof BreederSettings, value: string) => {
+    setBreederForm(prev => ({ ...prev, [field]: value }));
+    setHasBreederChanges(true);
+  };
+
+  const handleSaveBreederSettings = async () => {
+    try {
+      await updateBreederSettings(breederForm);
+      setHasBreederChanges(false);
+      toast({
+        title: 'Settings saved',
+        description: 'Breeder information has been updated.',
+      });
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to save breeder settings.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleImport = () => {
@@ -73,6 +110,157 @@ export function SettingsPage() {
           Manage your application preferences
         </p>
       </div>
+
+      {/* Breeder Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            Breeder Information
+          </CardTitle>
+          <CardDescription>
+            Your kennel and contact details for contracts and documents
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="kennelName">Kennel Name</Label>
+              <Input
+                id="kennelName"
+                value={breederForm.kennelName}
+                onChange={(e) => handleBreederFieldChange('kennelName', e.target.value)}
+                placeholder="Respectabullz"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="breederName">Breeder/Owner Name *</Label>
+              <Input
+                id="breederName"
+                value={breederForm.breederName}
+                onChange={(e) => handleBreederFieldChange('breederName', e.target.value)}
+                placeholder="Your full name"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="addressLine1">Address Line 1 *</Label>
+            <Input
+              id="addressLine1"
+              value={breederForm.addressLine1}
+              onChange={(e) => handleBreederFieldChange('addressLine1', e.target.value)}
+              placeholder="Street address"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="addressLine2">Address Line 2</Label>
+            <Input
+              id="addressLine2"
+              value={breederForm.addressLine2 || ''}
+              onChange={(e) => handleBreederFieldChange('addressLine2', e.target.value)}
+              placeholder="Apt, suite, unit, etc. (optional)"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="city">City *</Label>
+              <Input
+                id="city"
+                value={breederForm.city}
+                onChange={(e) => handleBreederFieldChange('city', e.target.value)}
+                placeholder="City"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="state">State *</Label>
+              <Input
+                id="state"
+                value={breederForm.state}
+                onChange={(e) => handleBreederFieldChange('state', e.target.value)}
+                placeholder="State"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="postalCode">ZIP Code</Label>
+              <Input
+                id="postalCode"
+                value={breederForm.postalCode}
+                onChange={(e) => handleBreederFieldChange('postalCode', e.target.value)}
+                placeholder="12345"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone *</Label>
+              <Input
+                id="phone"
+                value={breederForm.phone}
+                onChange={(e) => handleBreederFieldChange('phone', e.target.value)}
+                placeholder="(555) 123-4567"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={breederForm.email}
+                onChange={(e) => handleBreederFieldChange('email', e.target.value)}
+                placeholder="your@email.com"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="kennelRegistration">Kennel Registration (ABKC/UKC)</Label>
+              <Input
+                id="kennelRegistration"
+                value={breederForm.kennelRegistration || ''}
+                onChange={(e) => handleBreederFieldChange('kennelRegistration', e.target.value)}
+                placeholder="Registration number"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="kennelPrefix">Kennel Prefix</Label>
+              <Input
+                id="kennelPrefix"
+                value={breederForm.kennelPrefix || ''}
+                onChange={(e) => handleBreederFieldChange('kennelPrefix', e.target.value)}
+                placeholder="For registered dog names"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="county">County (for legal jurisdiction)</Label>
+            <Input
+              id="county"
+              value={breederForm.county || ''}
+              onChange={(e) => handleBreederFieldChange('county', e.target.value)}
+              placeholder="Your county"
+            />
+          </div>
+
+          <div className="pt-2">
+            <Button 
+              onClick={handleSaveBreederSettings}
+              disabled={!hasBreederChanges || isBreederPending}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {isBreederPending ? 'Saving...' : 'Save Breeder Information'}
+            </Button>
+            <p className="text-sm text-muted-foreground mt-2">
+              * Required fields for contract generation
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Appearance */}
       <Card>

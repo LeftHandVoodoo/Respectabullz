@@ -439,3 +439,79 @@ export interface AppSettings {
   dataFolderPath: string;
 }
 
+// ============================================
+// BREEDER SETTINGS
+// ============================================
+
+export interface BreederSettings {
+  kennelName: string;
+  breederName: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  phone: string;
+  email: string;
+  kennelRegistration?: string;      // AKC/UKC kennel registration number
+  kennelPrefix?: string;            // Prefix for dog registration names
+  county?: string;                  // For legal jurisdiction
+}
+
+// ============================================
+// CONTRACT DATA
+// ============================================
+
+export type RegistrationType = 'pet' | 'full_rights';
+
+export interface ContractData {
+  // Agreement date
+  agreementDate: Date;
+  
+  // Breeder info (from settings)
+  breederName: string;
+  kennelName: string;
+  breederAddressLine1: string;
+  breederAddressLine2?: string;
+  breederCity: string;
+  breederState: string;
+  breederPostalCode: string;
+  breederPhone: string;
+  breederEmail: string;
+  breederCounty?: string;
+  kennelPrefix?: string;
+  
+  // Buyer info (from client)
+  buyerName: string;
+  buyerAddressLine1?: string;
+  buyerAddressLine2?: string;
+  buyerCity?: string;
+  buyerState?: string;
+  buyerPostalCode?: string;
+  buyerPhone?: string;
+  buyerEmail?: string;
+  coBuyerName?: string;
+  
+  // Puppy info (from dog)
+  puppyName: string;
+  puppyBreed: string;
+  puppySex: 'male' | 'female';
+  puppyColor?: string;
+  puppyDOB?: Date;
+  puppyMicrochip?: string;
+  puppyRegistrationNumber?: string;
+  sireName?: string;
+  damName?: string;
+  
+  // Sale terms
+  salePrice: number;
+  salePriceWords: string;           // "One Thousand Dollars and no cents"
+  puppyCount: number;
+  maleCount: number;
+  femaleCount: number;
+  registrationType: RegistrationType;
+  
+  // Signature dates
+  signingDate?: Date;
+}
+

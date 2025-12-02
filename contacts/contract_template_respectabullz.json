@@ -1,0 +1,1151 @@
+{
+  "version": 1,
+  "page_settings": {
+    "page_size": "LETTER",
+    "orientation": "portrait",
+    "margins": {
+      "top_in": 1.0,
+      "bottom_in": 1.0,
+      "left_in": 1.0,
+      "right_in": 1.0
+    },
+    "default_font": {
+      "family": "Times New Roman",
+      "size_pt": 12
+    },
+    "line_spacing": 1.15
+  },
+  "styles": {
+    "normal": {
+      "font_family": "Times New Roman",
+      "font_size_pt": 12,
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "align": "left"
+    },
+    "default_table": {
+      "font_family": "Times New Roman",
+      "font_size_pt": 11,
+      "bold": false,
+      "align": "left"
+    }
+  },
+  "blocks": [
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "CONTRACT OF SALE"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "This Agreement dated _______ __, 20__ is between (Buyer: Name Address, Phone Number, Email Address) herein referred to as Buyer and (Owner Name) of (Kennel Name-) Herein referred to as Breeder. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "In Consideration of the total sum of $_______.00 ( _____ Dollars and no cents) and the mutual promises contained herein, Breeder has agreed to sell, and Buyer has agreed to purchase ____ (#) ______ male _____ female American Bully puppy. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Born on 00/00/0000"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Sire: _____________________________"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Dam: ______________________________"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Breeder represents and warrants that the puppy herein described is a purebred and is eligible for registration with the American Bully Kennel Club (ABKC) and that s/he will supply the ABKC registration papers to buyer when same are received from the ABKC. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Breeder and Buyer hereby agree:"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "\t\t The puppy is sold as a pet, with no registration, and must be spayed/neutered at no earlier than 18 months of age no later than two years of age (as early spay/neuter can be detrimental to the dogs overall health and wellness)."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "\t\t The puppy is sold with breeding rights, or “Full Rights\" \t\t\t\tregistration. Buyer will make a good faith effort to show the dog or allow the dog to be shown by the Breeder, to its ABKC and UKC Championship."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "If No Registration\" has been selected, this puppy is being sold as pet quality only, intended for companionship with no guarantees as to breeding soundness, show-ability, work ability, trainability, temperament or size at maturity. The Buyer agrees to NO BREEDING of this dog (accidental or intentional).  Buyer is to have the dog altered (Spay/Neuter/Vasectomy/Hysterectomy) by the age of 2 years old (24 months) but no earlier than 18 months of age. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "The Buyer affirms that their purchase is for a \"pet home\" only and not for breeding purposes. If the dog produces a litter without the knowledge and written consent of the Breeder, the Breeder will be entitled to compensation in the amount of $5,000 (Five Thousand Dollars and no Cents) for breach of contract terms. The Buyer herein agrees to pay the Breeder an additional $2,000 (Two Thousand Dollars and no cents) per puppy produced (dead or alive) from the whelping no later than 30 days after the birth of the unwarranted breeding."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "The General Health Guarantee also becomes null and void if spay/neuter contract is violated."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Breeder and Buyer further agree that if \"Full Registration\" has been agreed upon (prior to sale) and noted above in this contract for a show/breeding/working prospect,  it is hereby defined to mean that at the time the puppy is delivered to Buyer, it appears to have no disqualifying or serious faults which would preclude its future exhibition in ABKC/UKC dog shows.  "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Females are not to be bred before their third estrus cycle, preferably at the age of two years old. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Males cannot be bred before their eighteen (18 months) of age, preferably two years of age. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "It is highly recommended, but not required, to health test before breeding. If you decide to Health Test, there will be a set amount (USD) agreed between Buyer and Breeder to be paid to the Buyer after proof of Health Testing has been given/approved by Breeder. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "No American Bully intended for breeding can be bred to a dog with disqualifying faults within the written standard (UKC or ABKC). "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Puppy being purchased must NEVER be bred to any dog, unless it is a purebred and registered American Bully; minimally dual registered and titled with the American Bully Kennel Club (ABKC) and United Kennel Club (UKC). "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "In the event Buyer decides to breed said dog, the Buyer will take all necessary precautions mentioned above to ensure a healthy quality litter."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "This contract is non-transferable. This is a law binding contract. If taken to court, Buyer is responsible for their attorney, court fees and travel expenses. Court appearances will be held in the Breeders state of residents (State of ________, County of ________). Buyer will also be responsible for the Breeders court fees including but not limited to filing fees, travel, and reasonable attorney fees, etc."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Payment Provisions: Payments made with PayPal/ CashApp/ Venmo or the like CAN NOT be disputed for any type of payment reversal. All money/payments placed on a puppy are NON-REFUNDABLE (unless previously agreed upon in writing by the Breeder).We have a strict NO PayPal/Credit Card Charge back refund policy, and any Buyer who attempts to dispute a transaction will lose all money placed on their puppy and any rights to purchase a puppy from us now and in the future. Buyer will be charged a $5,000.000 (Five Thousand Dollars and no cents) fee for breach of contract terms if they attempt to do any payment reversal/charge back and will be fully responsible for any and all legal fees associated with Breeders court expenses; Including but not limited to court fees, filing fees and reasonable attorney's fees. This Agreement shall be governed by and construed in accordance with the laws in the State of ___________ County of ____________.  "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "It is impossible to predict how any puppy will ultimately mature, therefore, Breeder makes no warranty whatsoever that the dog will finish its championship or otherwise succeed in the show ring. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Breeder agrees that Buyer can return the puppy for a full refund (minus the deposit) for any reason within three (3) days of delivery, provided the puppy has not been injured or killed. No veterinarian, shipping or other incidental expenses will be refunded. Breeder represents and warrants that the puppy is free of any genetic diseases (through Embark Genetics) and both parents have been OFA tested for hips/elbow dysplasia, patella, eyes, heart."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Buyer agrees to maintain the dog in good and healthy condition, to keep inoculations current, and to comply with all federal, state, and local laws, statutes, ordinances, rules, and regulations regarding the keeping and licensing of dogs in the jurisdiction in which the Buyer lives. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Breeder has had a Microchip implanted and registered. The Breeders name shall remain as a secondary contact on the microchip, with the Buyer as first contact. Any Attempt to remove Breeder from the microchip information, is an immediate breach of contract and Buyer agrees to pay Breeder a total sum of $x,000 (x Dollars and no cents) for breach of contract terms. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "If this dog is to be registered with any additional registries, the name will be as it was written on the ABKC registration for any and all additional registries going forward for the life of the dog. Buyer will not have the Breeder's kennel prefix of (____) removed from any or all registration paperwork current or in the future. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Buyer agrees to use his/her best efforts to ensure that the puppy receives at least basic obedience training, s/he is not to run loose, and in all respects, conducts itself such that it will reflect credit upon both the American Bully Breed and (______)Kennel name. Buyer further agrees that the dog is not to be trained as an attack or guard dog, will not be used as a fighting dog or otherwise trained for aggression. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Buyer agrees not to sell, transfer, lease or otherwise convey all or any part of Buyers interest in the dog without written consent of the Breeder. If Buyer should breach this part of the Agreement, Buyer agrees to pay a total sum of $5,000 no later than 30 days from the day of transfer of ownership/housing of the abovementioned dog."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Buyer agrees to inform the Breeder if the Buyer intends to sell or transfer ownership to a third party. First option to resume full owner ship must be given to Breeder. This would take into consideration the cost incurred by the breeder in caring for the dog and locating a new home. The dog will be returned to the Breeder with its full registration and any/all medical records. The Breeder has 3 days to accept or reject this right of first offer. If this dog at any time in its life needs to be surrendered, the Breeder will reclaim this dog, and its disposition becomes the choice of the breeder. Under no circumstances is the dog to be placed in a pet shop, animal shelter, relative or friends’ home or other similar establishment without written consent from the Breeder. Failure to notify the Breeder of transfer of ownership or housing of the dog, Buyer agrees to pay the Breeder a total sum of $5,000.00 (Five Thousand Dollars and no cents) for breach of this contract term. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Buyer agrees that should this puppy be lost or stolen, Buyer will notify the Breeder immediately, Breeder will NOT be responsible for this loss and Breeder will NOT refund the purchase price of the dog or replace said puppy/dog  with another dog of the same value without being compensated for that new puppy at full value."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Buyer agrees to keep Breeder up to date with any and all contact information changes which include but are not limited to: change of address, phone number, email, etc. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Buyer agrees to provide Breeder with quality photographs and videos of the dog at minimum every four (4) months for the life of the dog. Buyer understands that Breeder takes great pride in watching puppies from their program thrive in life and take great interest in all of the productions from our kennel. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "The Buyer assumes full liability for this puppy after leaving Breeders care/premises. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "If the dog develops a life-threatening illness prior to 6 months of age, Breeder is to be notified IMMEDIATELY. The Breeder must be provided with written documentation from a licensed Veterinarian on their company letterhead, containing the diagnosis and prognosis of the dog. Breeder will replace said dog with another dog with similar characteristics. This is at a later time at the discretion of the Breeder. It will be the choice of the Breeder if the original dog is a replacement situation, shall be neutered/spayed and left with the Buyer or returned alive in good condition with all registry paperwork and medical records to date and signed back over to the Breeder.  Any health problem cannot be due to nutrition, improper exercise, fighting or neglect. This expires after two years of age. In no case will a puppy be replaced with one of greater value without difference being paid up front by the Buyer. Conditions which can easily be treated are also not covered by this guarantee.  Buyer will be responsible for transportation costs to get the dog back to the Breeder at a time mutually agreeable between both parties with the utmost urgency taken into consideration."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "**((KENNEL NAME)) DOES NOT GUARANTEE AAINST ANY SKIN OR COAT PROBLEMS**"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "The Blue coat coloring in most breeds is associated with skin problems, some of which are not responsive to treatment. Blue coated dogs of all breeds are more prone to bacterial, viral, staph and fungal infections as well as forms of dermatitis, allergies, demodex, and color mutant alopecia. While some of these conditions are hereditary, many of them are simply results of the blue coat coloring. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "All skin problems, we know of are easily and inexpensively treated. NOT ALL BLUE COATED DOGS ARE AFFECTED. However, you need to be prepared if a skin or coat condition develops. We highly suggest you speak to a licensed veterinarian before purchasing a puppy that is blue or has blue parents."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Should Buyer be unable or unwilling to fulfill any of the above-mentioned terms, if the dog is seized by local authorities, as having been neglected/abused or abandoned, or if Breeder feels the home environment is not safe for the dog, the Breeder reserves all rights to reclaim/confiscate/repossess the dog without compensation to the Buyer. Buyer agrees to pay Breeder any and all expenses including court costs, reasonable attorneys’ fees, etc. in enforcing the terms and provisions of this contract. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "If any provision of this Agreement is determined to be invalid, illegal, or unenforceable, it shall not affect the enforceability of any other provision of this Agreement. Rather, the invalid, illegal, or unenforceable provision shall be deemed severed from this Agreement, and this Agreement shall be enforced as if the Agreement did not contain the invalid, illegal, or unenforceable provision for the life of this written Agreement or any Amendments added in the future."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "By signing below, you are certifying that you have read and agree to the terms listed above. The signing parties agree that negative reviews or \"bashing\" posts made publicly on social media sites or the internet in general by either party is considered slanderous and are subject to legal action and parties hereby agree to pay the other party a total sum of $5,000 (Five Thousand Dollars and no cents) for any slanderous or libel reviews or comments made publicly or on any social media platform regarding the other party. By signing this contract, you agree that the terms of this Agreement are fair and that you have made the appropriate arrangements to adhere to your contractual Agreement. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "This is the entire Agreement between the parties, no prior or simultaneous Agreements, representations, or warranties are of any force or effect. This Agreement cannot be changed except in writing signed by both parties. This Agreement is governed by the State of (______), County of (_____) law without regard to its conflict of laws provision. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Signed on ________ day of _________, 20___"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Breeder: _______________________________\t\tBuyer: _________________________________"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "\t\t\t\t\t\t       \tCo-Buyer: _________________________________"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "STATE OF ___________                  )"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "COUNTY OF _______________      )SS.:"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": " "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "            On this _____ day of _________, Two Thousand and Twenty One, before me, the undersigned, a Notary Public in and for said State, personally appeared _____________________, personally known to me or proved to me on the basis of satisfactory evidence to be the individual whose name is subscribed to the within Instrument and acknowledged to me that s/he/they executed the same in her/his/their capacity, and that by her/his/their signature on the instrument, the individuals, or the person upon behalf of which the individuals acted, executed the instrument."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": " "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "                                                                                \t\t\t    ___________________________"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "                                                                                   \t\t\t Notary Public"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Acceptable Commercial Food Brands"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "The following brand names qualify under this agreement as “premium quality” commercial dog food. While the Buyer is free to feed any brand of food, they deem suitable, in signing this agreement the Buyer certifies that they understand that feeding any commercial brands other than those on this list will void any Health Guarantee. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Acana \t\tCanidae \tDiamond Naturals \tFarmina \tFromm "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Honest Kitchen\tKirkland \tLife’s Abundance \tMerrick \tNature’s Variety Instinct "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Nutro Max \tOrijen\t\tPrima\t\t\tPurina Pro Plan \tRachael Ray Nutrish "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Solid Gold \tSport Dog \tSportMix\t\tStella and Chewy’s \tVictor"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Vaccination Schedule "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "The Buyer acknowledges receipt of the Dog’s official shot record and understands that the below vaccine protocol must be followed in order to follow this agreement. Any deviation from this schedule after the Buyer takes possession of the Dog will void the Lifetime Health Guarantee provided above"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "7 weeks - PV \t\t9 weeks - DHPP \t\t12 weeks - Rabies \t\t13 weeks - DHPP "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "16 weeks - DHPP \t\t12 months - DHPP \t18 months - Rabies "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "SPAY/NEUTER CONTRACT\n\nThis Agreement is made and entered into this ______ day of \t\t 20__"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "By and between \t\t\t (Breeder) and \t\t\t\t\t\t\t\t\t (Buyer), "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "For the purpose of setting forth the terms and conditions of purchase by the Buyer of a Purebred American Bully from the litter Born on \t\t.Out of \t\t\t\t\t\t\t\t\t\t(Sire), And\t\t\t\t\t\t\t\t___________\t\t\t(Dam).\n\nFor $\t\t\t\t  the Breeder agrees to sell and buyer agrees to purchase a ______female, _____male companion puppy from the litter described above subject to the following terms.\n\nBreeder  warrants that the above described puppy is a purebred American Bully being purchased as a companion pet and not register able with The American Bully Kennel Club (ABKC), and that the registration papers have NOT been provided to the Buyer "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "\t\t⬜\tPurchaser(s) will be Neutering/Spaying said Puppy"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "***Puppies must be spayed/neutered NO EARLIER than 18 months of age.***  (as premature spay/neutering can be detrimental to the animals health and wellness, it is best to wait until the animal is full grown.) and no later than 24 months."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "If proof of spay/ neuter is not sent to the Breeder by the age of 25 months of age, the Breeder reserves the right to temporarily repossess the dog and alter the dog at the sole expense of the Buyer. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Buyer agrees not to breed the above-described puppy/dog at any time. If the Buyer breeds the dog, without express written permission of the Breeder, the Buyer shall pay to Breeder a total sum of $5,000 (Five Thousand Dollars and no cents) and $2,000 per puppy produced from the unwarranted Breeding for breach of contract terms. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Breeder retains the rights to take ownership of said offspring/puppies once weaned, but no later than 10 weeks of age, Buyer will be responsible for any shipping costs to get dog and its unwarranted puppies back to Breeder, and Buyer will not be compensated in any way for the puppies, nor will Buyer be due any type of registration papers whatsoever then or in the future. Buyer is responsible for transferring and delivering any and all registration paperwork and medical records for the above-mentioned dog within 48 hours of repossession via OVERNIGHT USPS Mail. \n\nThis Agreement is made and signed by both parties to ensure the wellbeing and protection of this puppy.\n\nBreeder: \t\t\t\t\t\t\t\n\nDate: \t\t\t\t\t\t\t\t\n\n\nBuyer: \t\t\t\t\t\t\t\t\n\nDate: \t\t\t\t\t\t\t\t"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Co Buyer: \t\t\t\t\t\t\t"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Date: \t\t\t\t\t\t\t\t"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Making a First Aid Kit for Your Dog"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Since you never know when an accident will happen, keeping a pet emergency kit at your home, in your car, in your daily bag is a good idea. You can put a first aid kit together yourself and buy the items separately or buy one ready-made. If you make one yourself, use a small plastic tub with a tight-fitting lid to store the following items:"
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "table",
+      "style": "default_table",
+      "rows": [
+        [
+          "Important Phone Numbers\nVeterinarian Clinic Phone Number & Address\nEmergency Clinic Phone Number & Address\nPoison Control Center Phone Numbers\nEquipment and Supplies\nMuzzle, or roll of Gauze to make a muzzle\nMagnify Glass\nScissors\nTweezers\nNail Clippers and Metal Nail File\nStyptic Powder or Sticks (Kwik Stop or Cornstarch)\nPenlight\nNylon Slip Leash\nEye Dropper/ Oral Syringe\nCotton Swabs\nCotton Balls\nClean Towels- Both Cloth and Paper\nRectal Thermometer\nLubricant such as mineral oil or KY Jelly (WITHOUT Spermicide)\nDisposable Gloves\nSyringes of various sizes\nNeedle nose pliers or hemostats\nGrease-cutting Dish soap (Blue Dawn)\nBitter Apple to discourage licking\nPet Carrier\nTowels or blankets (to use as a stretcher, and another to keep dog warm during transport- some pharmacies & camping outlets carry a thermal blanket.)\nCold packs and heat packs (wrap in towel before using)\nStethoscope\nBandaging Materials\nSquare Gauze of various sizes- some sterile\nNon-stick pads\nFirst aid tape-both paper (easily comes off skin) and adhesive type\nBandaging rolls- Gauze and Vet wrap\nBand-aids (for humans)",
+          "Nutritional Support\nRehydrating solution (Gatorade or Pedialyte)\nNutritional Supplement (Nutri-Cal, Vitacal, or Nutristat\nHigh sugar source: Karo syrup\nMedicines***\nWound Disinfectant (Betadine or Nolvasan)\nTriple Antibiotic ointment for skin\nAntibiotic ophthalmic ointment for eyes (Terramycin)\nEye wash solution\nSterile saline\nAntidiarrheal medicine (Pet Pectate)\nDiphenhydramine (Benadryl) for allergic reactions (obtain dose from your veterinarian)\nCortisone spray or cream (Itch Stop)\nEar cleaning solution\nHydrogen Peroxide (to make dog vomit- only use as directed by a veterinarian)\n\n** Watch expiration dates on medication, replace as needed. "
+        ]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Some human medicines are also effective for dogs; HOWEVER, the dosages are usually lower due mostly to the smaller size of the animal."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Note that these medications are not FDA approved for use in dogs or cats and should only be used under the guidance of your veterinarian. "
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Call your vet to find exact dosage requirements for your pet to ensure the safety of administration."
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": ""
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": "Medications for Dogs"
+    },
+    {
+      "type": "table",
+      "style": "default_table",
+      "rows": [
+        [
+          "Medication",
+          "Use",
+          "Dosage",
+          "Method of Administration",
+          "Frequency"
+        ],
+        [
+          "A & D Ointment",
+          "Antibacterial ointment for scrapes and wounds",
+          "Apply a thin coating",
+          "Topical",
+          "3 - 4 times a day for 7 - 10 days"
+        ],
+        [
+          "Anbesol",
+          "Topical anesthetic for mouth pain",
+          " ",
+          "Dab on liquid with cotton swab",
+          "1 - 2 times a day for up to 2 days"
+        ],
+        [
+          "Aspirin (buffered; enteric coated)",
+          "Analgesic, anti-inflammatory",
+          "4 - 10 mg per pound of body weight (dose varies with the purpose of the medication)",
+          "With food",
+          "Once daily"
+        ],
+        [
+          "Aveeno Oatmeal Medicated Bath",
+          "For soothing itchy skin",
+          " ",
+          "Use as a bath rinse",
+          "As often as 3 times per week"
+        ],
+        [
+          "Benadryl",
+          "Antihistamine",
+          "1 - 2mg per pound of body weight",
+          "Oral",
+          "Every 8 hours"
+        ],
+        [
+          "Betadine Skin Cleanser",
+          "Antiseptic liquid soap for cleaning on or around wounds",
+          "Use full strength to wash the affected area",
+          " ",
+          " "
+        ],
+        [
+          "Betadine Solution",
+          "Antiseptic",
+          "Dilute to 0.2% (2ml to 2 quarts of water - or the color of weak tea)",
+          "Topical",
+          "As prescribed for cleaning the wound."
+        ],
+        [
+          "Bufferin",
+          "Pain reliever",
+          "10 - 25mg per 2.2 pounds of body weight",
+          "Oral",
+          "2 - 3 times a day"
+        ],
+        [
+          "Burow's Solution",
+          "Topical antiseptic",
+          " ",
+          "Moisten cotton ball and apply to wound",
+          " "
+        ],
+        [
+          "Caladryl",
+          "Soothing topical lotion for pain and itching",
+          " ",
+          "Paint on sore area",
+          " "
+        ],
+        [
+          "Charcoal (compressed activated charcoal)",
+          "Binds stomach poisons",
+          "5g per 10 pounds of body weight",
+          "Oral",
+          "Keep at least 30 tablets available, give once and only under the direction of a veterinarian"
+        ],
+        [
+          "Chlorhexidine Solution (Nolvasan, etc..)",
+          "Antiseptic",
+          "Dilute to 0.05% (25ml to 2 quarts, 1.9Liters water)",
+          "Topical",
+          "As prescribed for cleaning the wound"
+        ],
+        [
+          "Cortaid",
+          "Anti-itch cream",
+          " ",
+          " ",
+          "Apply once or twice daily as needed"
+        ],
+        [
+          "Desitin",
+          "Soothing ointment",
+          " ",
+          " ",
+          "Rub on affected area"
+        ],
+        [
+          "Dramamine",
+          "For motion sickness",
+          "2 - 4mg per pound of body weight",
+          "Oral",
+          "Every 8 hours"
+        ],
+        [
+          "Dulcolax",
+          "For constipation",
+          "5 - 20mg tablet or 1/2 to 2 pediatric suppositories (10mg)",
+          "Oral",
+          "Once a day"
+        ],
+        [
+          "Epsom Salts",
+          "Soothing soak for irritated, itchy skin",
+          "1 cup per gallon of water",
+          "Topical",
+          "Soak The affected area"
+        ],
+        [
+          "Hydrogen Peroxide (3%)",
+          "Used to induce vomiting",
+          "1 teaspoon per 10 pounds of body weight",
+          "Oral",
+          "You may repeat every 15-30 minutes (max 3 times)"
+        ],
+        [
+          "Hypo Tears",
+          "Eye lubricant",
+          " ",
+          "Topical",
+          "Apply 4 - 12 times per day"
+        ],
+        [
+          "Iodine",
+          "Topical antiseptic",
+          " ",
+          "Paint on wound",
+          " "
+        ],
+        [
+          "Ipecac Syrup",
+          "Emetic to promote vomiting",
+          "1 teaspoon per 20lb, up to 3 tsp",
+          " ",
+          " "
+        ],
+        [
+          "Kaolin and pectin (beware - some formulations contain salicylates",
+          "For persistent diarrhea",
+          "1/2 to 1ml per pound of body weight (or 1 - 2 teaspoons per 10 pounds)",
+          "Oral",
+          "Every 6 hours"
+        ],
+        [
+          "Kayo pectate",
+          "For diarrhea",
+          "1/2 - 1 teaspoon per 5 pounds",
+          "Oral",
+          "A maximum of 2 tablespoons every 8 hours"
+        ],
+        [
+          "Lanacane",
+          "Topical anesthetic",
+          " ",
+          "Apply to sore area with gauze pad",
+          " "
+        ],
+        [
+          "Massengill Disposable Douche",
+          "Odor neutralizer for skunk spray or body odor",
+          "Mix 2 oz per gal of water",
+          " ",
+          "Use a soak for 15 min, then bathe as usual"
+        ],
+        [
+          "Metamucil (unflavored)",
+          "For constipation or to add fiber to the diet",
+          "1 teaspoon per 11 - 22 pounds",
+          "Mix in with food",
+          "Once daily - for short term use, unless otherwise directed"
+        ],
+        [
+          "Milk of Magnesia, Mylanta, Maalox",
+          "Antacid, laxative, gas",
+          "2 - 4ml per pound of body weight",
+          "Oral",
+          "Every 12 - 24 hours"
+        ],
+        [
+          "Mineral Oil",
+          "Lubricant, laxative",
+          "5ml per 20 pounds of body weight",
+          "Add to food - do not give separately due to aspiration risk",
+          "Twice daily - only for 2 - 3 days"
+        ],
+        [
+          "Triple Antibiotic Ointment",
+          "Antibiotic for preventing wound infection",
+          " ",
+          "Topical",
+          "Apply 3 - 4 times daily as needed"
+        ],
+        [
+          "Pedialyte or Gatorade",
+          "For dehydration",
+          "Mix 50/50 with water",
+          "Oral",
+          "Offer as much as the dog wants"
+        ],
+        [
+          "Pepcid",
+          "Histamine blocker for antacid effect, and vomiting",
+          "1mg per pound of body weight",
+          "Injection or Oral",
+          "Once or twice daily"
+        ],
+        [
+          "Pepto-Bismol without XYLITOL ",
+          "For Diarrhea",
+          "0.5 - 1.5ml per pound of body weight",
+          "Oral",
+          "Every 12 hours"
+        ],
+        [
+          "Preparation H",
+          "For a sore anal area",
+          " ",
+          " ",
+          "Apply up to 4 times daily"
+        ],
+        [
+          "Prilosec (omeprazole)",
+          "Antacid, ulcer medication",
+          "0.25 - 0.50mg per pound of body weight",
+          "Oral",
+          "Once daily"
+        ],
+        [
+          "Robitussin DM, Benylin Expectorant",
+          "Cough Suppressant",
+          "0.50 - 1mg per pound of body weight (or 1 teaspoon per 20 pounds)",
+          "Oral",
+          "Every 6 hours"
+        ],
+        [
+          "Solarcaine",
+          "Topical pain reliever and anesthetic",
+          " ",
+          "Topical",
+          "Apply to sore area once or twice daily for up to 2 days"
+        ],
+        [
+          "Tagamet (cimetidine)",
+          "Histamine blocker for antacid effect",
+          "10mg per lb. of body weight",
+          "Oral",
+          "2 - 3 times per day"
+        ],
+        [
+          "Tylenol",
+          "Pain reliever",
+          "Ask your vet",
+          "Ask your vet",
+          "Ask your vet"
+        ],
+        [
+          "Vicks VapoRub",
+          "For congestion",
+          " ",
+          "Topical",
+          "Smear a small amount on your pet's chin for easier breathing"
+        ],
+        [
+          "Witch hazel",
+          "Astringent / topical antiseptic",
+          " ",
+          " ",
+          "Dab on affected area"
+        ],
+        [
+          "Zantac (ranitidine)",
+          "Histamine blocker for antacid effect",
+          "150 - 300mg per pound of body weight",
+          "Add to meals",
+          "Daily - divide total dose over several meals throughout the day"
+        ]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "style": "normal",
+      "text": " "
+    }
+  ]
+}

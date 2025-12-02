@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, FileText, ExternalLink } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -553,10 +553,33 @@ export function SaleFormDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="contractPath">Contract File Path</Label>
-                <Input
-                  {...register('contractPath')}
-                  placeholder="/path/to/contract.pdf"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    {...register('contractPath')}
+                    placeholder="/path/to/contract.docx"
+                    className="flex-1"
+                  />
+                  {watch('contractPath') && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        const path = watch('contractPath');
+                        if (path) {
+                          window.open(path, '_blank');
+                        }
+                      }}
+                      title="Open Contract"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  <FileText className="inline h-3 w-3 mr-1" />
+                  Contract can be generated from the Inquiries page during conversion
+                </p>
               </div>
             </div>
 

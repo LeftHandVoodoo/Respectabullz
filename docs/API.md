@@ -501,6 +501,53 @@ convertInterestToSale(interestId: string, saleInput: CreateSaleInput): Promise<{
 
 ---
 
+## Contract Generation Operations
+
+### generateContractDocumentFromJson
+Generates a Word document contract from JSON template and contract data.
+
+```typescript
+generateContractDocumentFromJson(contractData: ContractData): Promise<Blob>
+```
+
+**Parameters:**
+- `contractData`: ContractData object containing breeder, buyer, puppy, and sale information
+
+**Returns:** Blob of the generated Word document (.docx)
+
+**Template:** Uses `contacts/contract_template_respectabullz.json` as the source template
+
+**Storage:** Generated contracts are saved to `%APPDATA%/com.respectabullz.app/contracts/`
+
+### prepareTemplateData
+Prepares contract data for template rendering.
+
+```typescript
+prepareTemplateData(contractData: ContractData): Record<string, string | number | boolean>
+```
+
+**Returns:** Object mapping template placeholders to values
+
+### formatPriceWords
+Converts a numeric price to words (e.g., 1500 -> "One Thousand Five Hundred Dollars and no cents").
+
+```typescript
+formatPriceWords(amount: number): string
+```
+
+### formatContractDate
+Formats dates for contract display.
+
+```typescript
+formatContractDate(date: Date | string | undefined, formatType: 'long' | 'short'): string
+```
+
+**Returns:** 
+- 'long': "December 2, 2025"
+- 'short': "12/02/2025"
+
+---
+
 ## Settings Operations
 
 ### getSetting
@@ -614,9 +661,12 @@ useDeleteEntity()       // Delete
 | Transport | useTransports | - | useCreateTransport | useUpdateTransport | useDeleteTransport |
 | Expense | useExpenses | - | useCreateExpense | useUpdateExpense | useDeleteExpense |
 | Client | useClients | useClient | useCreateClient | useUpdateClient | useDeleteClient |
-| Sale | useSales | - | useCreateSale | - | useDeleteSale |
+| ClientInterest | useClientInterests | - | useCreateClientInterest | useUpdateClientInterest | useDeleteClientInterest |
+| Sale | useSales | - | useCreateSale | useUpdateSale | useDeleteSale |
 | Dashboard | useDashboardStats | - | - | - | - |
 | Settings | useSettings, useSetting | - | useUpdateSetting | - | - |
+| BreederSettings | useBreederSettings | - | useBreederSettings (update) | - | - |
+| Contract | - | - | useGenerateContract | - | - |
 
 ### Mutation Hook Features
 

@@ -1,5 +1,5 @@
-import { useLocation } from 'react-router-dom';
-import { Moon, Sun, Bell } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Moon, Sun, Bell, Syringe, Baby, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/theme-provider';
 import { VERSION } from '@/lib/version';
@@ -10,10 +10,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { useNotifications } from '@/hooks/useNotifications';
+import { formatDate } from '@/lib/utils';
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -29,7 +33,9 @@ const pageTitles: Record<string, string> = {
 
 export function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { setTheme } = useTheme();
+  const { notifications, count } = useNotifications();
 
   const getTitle = () => {
     // Check for exact match first
@@ -57,19 +63,79 @@ export function Header() {
         </span>
 
         {/* Notifications */}
-        <Tooltip>
-          <TooltipTrigger asChild>
+        <Popover>
+          <PopoverTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
-              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                3
-              </span>
+              {count > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                  {count > 9 ? '9+' : count}
+                </span>
+              )}
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Notifications</p>
-          </TooltipContent>
-        </Tooltip>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-0" align="end">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-semibold">Notifications</h3>
+              {count > 0 && (
+                <span className="text-sm text-muted-foreground">{count} new</span>
+              )}
+            </div>
+            <ScrollArea className="h-[300px]">
+              {notifications.length === 0 ? (
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  No notifications
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {notifications.map((notification) => {
+                    const Icon =
+                      notification.type === 'vaccination_overdue' ||
+                      notification.type === 'vaccination_due_soon'
+                        ? Syringe
+                        : notification.type === 'litter_due_soon'
+                        ? Baby
+                        : AlertCircle;
+                    
+                    const iconColor =
+                      notification.type === 'vaccination_overdue'
+                        ? 'text-red-500'
+                        : notification.type === 'vaccination_due_soon'
+                        ? 'text-amber-500'
+                        : 'text-pink-500';
+
+                    return (
+                      <div
+                        key={notification.id}
+                        className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => {
+                          if (notification.link) {
+                            navigate(notification.link);
+                          }
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <Icon className={`h-5 w-5 mt-0.5 ${iconColor}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{notification.title}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {notification.message}
+                            </p>
+                            {notification.date && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatDate(notification.date)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+          </PopoverContent>
+        </Popover>
 
         {/* Theme Toggle */}
         <DropdownMenu>

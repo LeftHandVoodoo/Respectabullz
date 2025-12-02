@@ -113,6 +113,7 @@ The app creates these directories automatically:
 - `photos/` - Dog profile photos
 - `attachments/` - Documents and files
 - `backups/` - Database backups
+- `contracts/` - Generated contract documents
 
 ## Build for Production
 

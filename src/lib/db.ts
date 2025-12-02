@@ -1052,12 +1052,22 @@ export async function deleteClient(id: string): Promise<boolean> {
 
 export async function getClientInterests(): Promise<ClientInterest[]> {
   const db = loadDb();
-  return db.clientInterests.map(ci => ({
-    ...ci,
-    client: db.clients.find(c => c.id === ci.clientId),
-    dog: db.dogs.find(d => d.id === ci.dogId),
-    convertedToSale: ci.convertedToSaleId ? db.sales.find(s => s.id === ci.convertedToSaleId) || null : null,
-  }));
+  return db.clientInterests.map(ci => {
+    const dog = db.dogs.find(d => d.id === ci.dogId);
+    // Include sire and dam for contract generation
+    const dogWithParents = dog ? {
+      ...dog,
+      sire: dog.sireId ? db.dogs.find(d => d.id === dog.sireId) || null : null,
+      dam: dog.damId ? db.dogs.find(d => d.id === dog.damId) || null : null,
+    } : undefined;
+    
+    return {
+      ...ci,
+      client: db.clients.find(c => c.id === ci.clientId),
+      dog: dogWithParents,
+      convertedToSale: ci.convertedToSaleId ? db.sales.find(s => s.id === ci.convertedToSaleId) || null : null,
+    };
+  });
 }
 
 export async function getClientInterest(id: string): Promise<ClientInterest | null> {
@@ -1065,10 +1075,18 @@ export async function getClientInterest(id: string): Promise<ClientInterest | nu
   const interest = db.clientInterests.find(ci => ci.id === id);
   if (!interest) return null;
   
+  const dog = db.dogs.find(d => d.id === interest.dogId);
+  // Include sire and dam for contract generation
+  const dogWithParents = dog ? {
+    ...dog,
+    sire: dog.sireId ? db.dogs.find(d => d.id === dog.sireId) || null : null,
+    dam: dog.damId ? db.dogs.find(d => d.id === dog.damId) || null : null,
+  } : undefined;
+  
   return {
     ...interest,
     client: db.clients.find(c => c.id === interest.clientId),
-    dog: db.dogs.find(d => d.id === interest.dogId),
+    dog: dogWithParents,
     convertedToSale: interest.convertedToSaleId ? db.sales.find(s => s.id === interest.convertedToSaleId) || null : null,
   };
 }

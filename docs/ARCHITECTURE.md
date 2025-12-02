@@ -109,6 +109,8 @@ respectabullz/
 │   │   ├── heat-cycles/     # Heat cycle components
 │   │   ├── transport/       # Transport components
 │   │   ├── expenses/        # Expense components
+│   │   ├── inquiries/       # Client interest/inquiry components
+│   │   ├── sales/           # Sale form and contract components
 │   │   └── clients/         # Client components
 │   ├── hooks/               # Custom React hooks
 │   │   ├── useDogs.ts       # Dog CRUD operations
@@ -118,11 +120,15 @@ respectabullz/
 │   │   ├── useTransport.ts  # Transport operations
 │   │   ├── useExpenses.ts   # Expense operations
 │   │   ├── useClients.ts    # Client/sale operations
+│   │   ├── useClientInterests.ts # Client interest/inquiry operations
+│   │   ├── useBreederSettings.ts # Breeder/kennel settings
+│   │   ├── useContract.ts   # Contract document generation
 │   │   ├── useDashboard.ts  # Dashboard stats
 │   │   └── useSettings.ts   # App settings
 │   ├── lib/                 # Utilities and services
 │   │   ├── db.ts            # Database client
 │   │   ├── utils.ts         # Helper functions
+│   │   ├── contractUtils.ts # Contract generation utilities
 │   │   └── notifications.ts # Notification utilities
 │   ├── pages/               # Route page components
 │   ├── types/               # TypeScript type definitions
@@ -185,6 +191,7 @@ User Action → Form Submit → Data Hook (useMutation)
 - React Hook Form for form state management
 - Zod for schema validation
 - Consistent dialog-based forms across entities
+- Multi-step forms for complex workflows (e.g., contract generation)
 
 ### 4. State Management
 - TanStack Query for server state
@@ -232,9 +239,10 @@ User Action → Form Submit → Data Hook (useMutation)
 ### Planned Improvements
 1. Full Prisma integration with Tauri IPC
 2. Photo storage with image optimization
-3. PDF generation for printable reports
+3. PDF generation for printable reports (contracts currently generate as Word documents)
 4. Calendar integration with external calendars
 5. Multi-device sync (optional cloud backup)
+6. Contract template editor UI
 
 ### Scalability
 - Current architecture supports ~10,000 dogs
