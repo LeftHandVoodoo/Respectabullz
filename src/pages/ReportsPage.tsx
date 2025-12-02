@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -10,22 +10,75 @@ import {
   PieChart,
   Pie,
   Cell,
+  Rectangle,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useDogs } from '@/hooks/useDogs';
 import { useLitters } from '@/hooks/useLitters';
 import { useVaccinations } from '@/hooks/useHealth';
-import { formatCurrency } from '@/lib/utils';
+import { useSales } from '@/hooks/useClients';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import type { VaccinationRecord, Dog, Sale } from '@/types';
 
 const COLORS = ['#303845', '#6e5e44', '#fbf1e5', '#3b82f6', '#22c55e', '#f59e0b'];
+
+type VaccinationCategory = 'Up to Date' | 'Due Soon' | 'Overdue';
+type DogStatusCategory = 'active' | 'sold' | 'retired' | 'deceased';
+
+const DOG_STATUS_COLORS: Record<string, string> = {
+  active: '#22c55e',
+  sold: '#3b82f6',
+  retired: '#f59e0b',
+  deceased: '#6b7280',
+};
+
+const DOG_STATUS_LABELS: Record<string, string> = {
+  active: 'Active',
+  sold: 'Sold',
+  retired: 'Retired',
+  deceased: 'Deceased',
+};
+
+// Custom tick component without background box
+const CustomTick = ({ x, y, payload }: { x: number; y: number; payload: { value: string } }) => (
+  <g transform={`translate(${x},${y + 12})`}>
+    <text
+      textAnchor="middle"
+      fill="hsl(var(--foreground))"
+      fontSize={12}
+      style={{ background: 'transparent' }}
+    >
+      {payload.value}
+    </text>
+  </g>
+);
 
 export function ReportsPage() {
   const { data: expenses } = useExpenses();
   const { data: dogs } = useDogs();
   const { data: litters } = useLitters();
   const { data: vaccinations } = useVaccinations();
+  const { data: sales } = useSales();
+  
+  const [selectedCategory, setSelectedCategory] = useState<VaccinationCategory | null>(null);
+  const [selectedDogStatus, setSelectedDogStatus] = useState<DogStatusCategory | null>(null);
 
   // Monthly expenses data
   const monthlyExpenses = useMemo(() => {
@@ -76,8 +129,38 @@ export function ReportsPage() {
     dogs.forEach((dog) => {
       grouped[dog.status] = (grouped[dog.status] || 0) + 1;
     });
-    return Object.entries(grouped).map(([name, value]) => ({ name, value }));
+    return Object.entries(grouped).map(([name, value]) => ({ 
+      name: DOG_STATUS_LABELS[name] || name, 
+      status: name,
+      value 
+    }));
   }, [dogs]);
+
+  // Get dogs by status for the dialog
+  const getDogsForStatus = (status: DogStatusCategory) => {
+    return dogs?.filter(d => d.status === status) || [];
+  };
+
+  // Get sale information for a dog
+  const getSaleForDog = (dogId: string): { sale: Sale; clientName: string } | null => {
+    if (!sales) return null;
+    
+    // Find the sale that contains this dog
+    for (const sale of sales) {
+      const salePuppy = sale.puppies?.find(p => p.dogId === dogId);
+      if (salePuppy) {
+        return {
+          sale,
+          clientName: sale.client?.name || 'Unknown',
+        };
+      }
+    }
+    return null;
+  };
+
+  const handleDogStatusBarDoubleClick = (status: DogStatusCategory) => {
+    setSelectedDogStatus(status);
+  };
 
   // Vaccination compliance
   const vaccinationCompliance = useMemo(() => {
@@ -104,6 +187,49 @@ export function ReportsPage() {
       { upToDate: 0, overdue: 0, upcoming: 0 }
     );
   }, [vaccinations]);
+
+  // Categorized vaccinations for the dialog
+  const categorizedVaccinations = useMemo(() => {
+    if (!vaccinations) return { upToDate: [], dueSoon: [], overdue: [] };
+    const now = new Date();
+    const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    return vaccinations.reduce(
+      (acc, vax) => {
+        if (!vax.nextDueDate) {
+          acc.upToDate.push(vax);
+        } else {
+          const dueDate = new Date(vax.nextDueDate);
+          if (dueDate < now) {
+            acc.overdue.push(vax);
+          } else if (dueDate <= thirtyDays) {
+            acc.dueSoon.push(vax);
+          } else {
+            acc.upToDate.push(vax);
+          }
+        }
+        return acc;
+      },
+      { upToDate: [] as VaccinationRecord[], dueSoon: [] as VaccinationRecord[], overdue: [] as VaccinationRecord[] }
+    );
+  }, [vaccinations]);
+
+  const getVaccinationsForCategory = (category: VaccinationCategory): VaccinationRecord[] => {
+    switch (category) {
+      case 'Up to Date':
+        return categorizedVaccinations.upToDate;
+      case 'Due Soon':
+        return categorizedVaccinations.dueSoon;
+      case 'Overdue':
+        return categorizedVaccinations.overdue;
+      default:
+        return [];
+    }
+  };
+
+  const handleBarDoubleClick = (category: VaccinationCategory) => {
+    setSelectedCategory(category);
+  };
 
   const totalExpenses = expenses?.reduce((sum, e) => sum + e.amount, 0) || 0;
 
@@ -277,26 +403,46 @@ export function ReportsPage() {
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={dogStatusData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
+                  <BarChart data={dogStatusData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={(props) => <CustomTick {...props} />}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      tick={{ 
+                        fontSize: 12, 
+                        fill: 'hsl(var(--foreground))',
+                      }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      tickLine={{ stroke: 'hsl(var(--border))' }}
+                    />
+                    <Bar
                       dataKey="value"
-                      label={({ name, value }) => `${name}: ${value}`}
-                    >
-                      {dogStatusData.map((_, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
+                      shape={(props: any) => {
+                        const { payload, x, y, width, height } = props;
+                        const fillColor = DOG_STATUS_COLORS[payload.status] || '#6b7280';
+                        return (
+                          <Rectangle
+                            x={x}
+                            y={y}
+                            width={width}
+                            height={height}
+                            fill={fillColor}
+                            style={{ cursor: 'pointer' }}
+                            onDoubleClick={() => handleDogStatusBarDoubleClick(payload.status as DogStatusCategory)}
+                          />
+                        );
+                      }}
+                    />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Double-click a bar to see details
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -345,31 +491,178 @@ export function ReportsPage() {
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Up to Date', value: vaccinationCompliance.upToDate },
-                        { name: 'Due Soon', value: vaccinationCompliance.upcoming },
-                        { name: 'Overdue', value: vaccinationCompliance.overdue },
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
+                  <BarChart
+                    data={[
+                      { name: 'Up to Date', value: vaccinationCompliance.upToDate },
+                      { name: 'Due Soon', value: vaccinationCompliance.upcoming },
+                      { name: 'Overdue', value: vaccinationCompliance.overdue },
+                    ]}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={(props) => <CustomTick {...props} />}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      tick={{ 
+                        fontSize: 12, 
+                        fill: 'hsl(var(--foreground))',
+                      }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      tickLine={{ stroke: 'hsl(var(--border))' }}
+                    />
+                    <Bar
                       dataKey="value"
-                      label={({ name, value }) => `${name}: ${value}`}
-                    >
-                      <Cell fill="#22c55e" />
-                      <Cell fill="#f59e0b" />
-                      <Cell fill="#ef4444" />
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
+                      shape={(props: any) => {
+                        const { payload, x, y, width, height } = props;
+                        const fillColor =
+                          payload.name === 'Up to Date'
+                            ? '#22c55e'
+                            : payload.name === 'Due Soon'
+                            ? '#f59e0b'
+                            : '#ef4444';
+                        return (
+                          <Rectangle
+                            x={x}
+                            y={y}
+                            width={width}
+                            height={height}
+                            fill={fillColor}
+                            style={{ cursor: 'pointer' }}
+                            onDoubleClick={() => handleBarDoubleClick(payload.name as VaccinationCategory)}
+                          />
+                        );
+                      }}
+                    />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Double-click a bar to see details
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Vaccination Details Dialog */}
+      <Dialog open={!!selectedCategory} onOpenChange={(open) => !open && setSelectedCategory(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Badge
+                className={
+                  selectedCategory === 'Up to Date'
+                    ? 'bg-green-500'
+                    : selectedCategory === 'Due Soon'
+                    ? 'bg-amber-500'
+                    : 'bg-red-500'
+                }
+              >
+                {selectedCategory}
+              </Badge>
+              Vaccinations
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedCategory && getVaccinationsForCategory(selectedCategory).length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              No vaccinations in this category
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Dog</TableHead>
+                  <TableHead>Vaccine</TableHead>
+                  <TableHead>Date Given</TableHead>
+                  <TableHead>Next Due</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedCategory && getVaccinationsForCategory(selectedCategory).map((vax) => (
+                  <TableRow key={vax.id}>
+                    <TableCell className="font-medium">
+                      {vax.dog?.name || 'Unknown'}
+                    </TableCell>
+                    <TableCell>{vax.vaccineType}</TableCell>
+                    <TableCell>{formatDate(vax.date)}</TableCell>
+                    <TableCell>
+                      {vax.nextDueDate ? formatDate(vax.nextDueDate) : 'N/A'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dog Status Details Dialog */}
+      <Dialog open={!!selectedDogStatus} onOpenChange={(open) => !open && setSelectedDogStatus(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Badge
+                style={{ backgroundColor: selectedDogStatus ? DOG_STATUS_COLORS[selectedDogStatus] : undefined }}
+              >
+                {selectedDogStatus ? DOG_STATUS_LABELS[selectedDogStatus] : ''}
+              </Badge>
+              Dogs
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedDogStatus && getDogsForStatus(selectedDogStatus).length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              No dogs in this category
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Breed</TableHead>
+                  <TableHead>Sex</TableHead>
+                  <TableHead>Color</TableHead>
+                  <TableHead>Date of Birth</TableHead>
+                  {selectedDogStatus === 'sold' && (
+                    <>
+                      <TableHead>Date Sold</TableHead>
+                      <TableHead>Customer</TableHead>
+                    </>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedDogStatus && getDogsForStatus(selectedDogStatus).map((dog) => {
+                  const saleInfo = selectedDogStatus === 'sold' ? getSaleForDog(dog.id) : null;
+                  return (
+                    <TableRow key={dog.id}>
+                      <TableCell className="font-medium">{dog.name}</TableCell>
+                      <TableCell>{dog.breed || '-'}</TableCell>
+                      <TableCell>{dog.sex === 'M' ? 'Male' : dog.sex === 'F' ? 'Female' : '-'}</TableCell>
+                      <TableCell>{dog.color || '-'}</TableCell>
+                      <TableCell>{dog.dateOfBirth ? formatDate(dog.dateOfBirth) : '-'}</TableCell>
+                      {selectedDogStatus === 'sold' && (
+                        <>
+                          <TableCell>
+                            {saleInfo ? formatDate(saleInfo.sale.saleDate) : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {saleInfo ? saleInfo.clientName : '-'}
+                          </TableCell>
+                        </>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

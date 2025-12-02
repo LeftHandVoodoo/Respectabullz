@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCreateSale, useUpdateSale, useClients } from '@/hooks/useClients';
+import { useConvertInterestToSale } from '@/hooks/useClientInterests';
 import { useDogs } from '@/hooks/useDogs';
 import { useTransports } from '@/hooks/useTransport';
 import type { Sale, PaymentStatus } from '@/types';
@@ -59,6 +60,7 @@ interface SaleFormDialogProps {
   sale?: Sale;
   preselectedClientId?: string;
   preselectedPuppies?: { dogId: string; price: number }[];
+  interestId?: string; // When provided, converts interest to sale instead of creating new sale
 }
 
 const PAYMENT_STATUS_OPTIONS: { value: PaymentStatus; label: string }[] = [
@@ -74,9 +76,11 @@ export function SaleFormDialog({
   sale,
   preselectedClientId,
   preselectedPuppies,
+  interestId,
 }: SaleFormDialogProps) {
   const createSale = useCreateSale();
   const updateSale = useUpdateSale();
+  const convertInterestToSale = useConvertInterestToSale();
   const { data: clients } = useClients();
   const { data: dogs } = useDogs();
   const { data: transports } = useTransports();
@@ -180,33 +184,50 @@ export function SaleFormDialog({
   }, [sale, open, reset, preselectedClientId, preselectedPuppies]);
 
   const onSubmit = async (data: SaleFormData) => {
-    const saleData = {
-      clientId: data.clientId,
-      saleDate: new Date(data.saleDate),
-      price: data.price,
-      depositAmount: data.depositAmount || null,
-      depositDate: data.depositDate ? new Date(data.depositDate) : null,
-      paymentStatus: data.paymentStatus as PaymentStatus,
-      shippedDate: data.shippedDate ? new Date(data.shippedDate) : null,
-      receivedDate: data.receivedDate ? new Date(data.receivedDate) : null,
-      isLocalPickup: data.isLocalPickup,
-      transportId: data.isLocalPickup ? null : (data.transportId || null),
-      warrantyInfo: data.warrantyInfo || null,
-      registrationTransferDate: data.registrationTransferDate 
-        ? new Date(data.registrationTransferDate) 
-        : null,
-      contractPath: data.contractPath || null,
-      notes: data.notes || null,
-      puppies: data.puppies,
-    };
+    try {
+      const saleData = {
+        clientId: data.clientId,
+        saleDate: new Date(data.saleDate),
+        price: data.price,
+        depositAmount: data.depositAmount || null,
+        depositDate: data.depositDate ? new Date(data.depositDate) : null,
+        paymentStatus: data.paymentStatus as PaymentStatus,
+        shippedDate: data.shippedDate ? new Date(data.shippedDate) : null,
+        receivedDate: data.receivedDate ? new Date(data.receivedDate) : null,
+        isLocalPickup: data.isLocalPickup,
+        transportId: data.isLocalPickup ? null : (data.transportId || null),
+        warrantyInfo: data.warrantyInfo || null,
+        registrationTransferDate: data.registrationTransferDate 
+          ? new Date(data.registrationTransferDate) 
+          : null,
+        contractPath: data.contractPath || null,
+        notes: data.notes || null,
+        puppies: data.puppies.filter(p => p.dogId && p.price >= 0), // Filter out invalid puppies
+      };
 
-    if (isEditing && sale) {
-      await updateSale.mutateAsync({ id: sale.id, data: saleData });
-    } else {
-      await createSale.mutateAsync(saleData);
+      // Validate puppies array
+      if (saleData.puppies.length === 0) {
+        throw new Error('At least one valid puppy is required');
+      }
+
+      if (isEditing && sale) {
+        await updateSale.mutateAsync({ id: sale.id, data: saleData });
+      } else if (interestId) {
+        // Convert interest to sale
+        await convertInterestToSale.mutateAsync({ interestId, saleInput: saleData });
+      } else {
+        // Create new sale
+        await createSale.mutateAsync(saleData);
+      }
+      
+      // Only close dialog and reset form on success
+      reset();
+      onOpenChange(false);
+    } catch (error) {
+      // Error is already handled by the mutation's onError callback
+      // Don't close dialog on error so user can retry
+      console.error('Error submitting sale form:', error);
     }
-    reset();
-    onOpenChange(false);
   };
 
   // Get already selected puppy IDs to filter them out from other dropdowns
@@ -479,12 +500,15 @@ export function SaleFormDialog({
                     name="transportId"
                     control={control}
                     render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                      <Select 
+                        onValueChange={(val) => field.onChange(val === 'none' ? '' : val)} 
+                        value={field.value || 'none'}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select transport (optional)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {transports?.map((transport) => (
                             <SelectItem key={transport.id} value={transport.id}>
                               {format(new Date(transport.date), 'MMM d, yyyy')} - {transport.mode}

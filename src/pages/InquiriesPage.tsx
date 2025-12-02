@@ -339,12 +339,13 @@ export function InquiriesPage() {
       />
 
       {/* Convert to Sale Dialog */}
-      {convertingInterest && (
+      {convertingInterest && convertingInterest.clientId && convertingInterest.dogId && (
         <SaleFormDialog
           open={!!convertingInterest}
           onOpenChange={handleCloseSaleDialog}
           preselectedClientId={convertingInterest.clientId}
           preselectedPuppies={[{ dogId: convertingInterest.dogId, price: 0 }]}
+          interestId={convertingInterest.id}
         />
       )}
     </div>

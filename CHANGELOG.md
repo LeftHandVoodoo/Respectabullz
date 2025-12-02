@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-12-02
+
+### Changed
+
+- Changed vaccination status chart from pie chart to bar chart in Reports page
+- Improved bar chart axis labels contrast using foreground color for better visibility in both light and dark modes
+- Added double-click functionality to vaccination status bars - shows detailed list of vaccinations in each category (Up to Date, Due Soon, Overdue)
+- Changed Dog Status Distribution from pie chart to bar chart with double-click functionality to view dogs by status (Active, Sold, Retired, Deceased)
+- Enhanced sold dogs dialog to show sale date and customer name when double-clicking the "Sold" bar
+
+### Added
+
+- New Sales page showing all sales records
+  - Table view with client, puppies, price, payment status, and shipping information
+  - Search functionality by client or puppy name
+  - Payment status filter (deposit only, partial, paid in full, refunded)
+  - Stats cards showing total sales, total revenue, paid in full count, and pending payments
+  - Edit and delete functionality for sales
+  - Navigation link added to sidebar
+
+### Fixed
+
+- Fixed blank GUI issue when converting client interest to sale
+  - SaleFormDialog now properly uses convertInterestToSale mutation instead of createSale when interestId is provided
+  - Added error handling with try/catch to prevent crashes
+  - Added validation for puppies array before submission
+  - Improved state management to prevent race conditions when dialog closes
+  - Added defensive checks for convertingInterest state before rendering dialog
+  - convertInterestToSale now throws error instead of returning null when interest not found
+  - Fixed Radix Select crash: SelectItem cannot have empty string value (transport selector now uses "none" as placeholder value)
+
 ## [0.2.0] - 2025-12-02
 
 ### Added

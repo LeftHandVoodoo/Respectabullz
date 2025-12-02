@@ -371,10 +371,18 @@ export async function deleteLitter(id: string): Promise<boolean> {
 
 export async function getVaccinations(dogId?: string): Promise<VaccinationRecord[]> {
   const db = loadDb();
-  if (dogId) {
-    return db.vaccinations.filter(v => v.dogId === dogId);
-  }
-  return db.vaccinations;
+  const vaccinations = dogId 
+    ? db.vaccinations.filter(v => v.dogId === dogId)
+    : db.vaccinations;
+  
+  // Include dog relation
+  return vaccinations.map(v => {
+    const dog = db.dogs.find(d => d.id === v.dogId);
+    return {
+      ...v,
+      dog: dog || undefined,
+    };
+  });
 }
 
 export async function createVaccination(input: Omit<VaccinationRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<VaccinationRecord> {
@@ -1129,10 +1137,12 @@ export async function deleteClientInterest(id: string): Promise<boolean> {
 export async function convertInterestToSale(
   interestId: string, 
   saleInput: CreateSaleInput
-): Promise<{ sale: Sale; interest: ClientInterest } | null> {
+): Promise<{ sale: Sale; interest: ClientInterest }> {
   const db = loadDb();
   const interestIndex = db.clientInterests.findIndex(ci => ci.id === interestId);
-  if (interestIndex === -1) return null;
+  if (interestIndex === -1) {
+    throw new Error(`Interest with id ${interestId} not found`);
+  }
   
   const interest = db.clientInterests[interestIndex];
   

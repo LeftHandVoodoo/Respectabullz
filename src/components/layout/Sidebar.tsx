@@ -9,6 +9,7 @@ import {
   BarChart3,
   Users,
   MessageSquare,
+  ShoppingCart,
   Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,7 @@ const navigation = [
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Clients', href: '/clients', icon: Users },
   { name: 'Inquiries', href: '/inquiries', icon: MessageSquare },
+  { name: 'Sales', href: '/sales', icon: ShoppingCart },
 ];
 
 export function Sidebar() {
