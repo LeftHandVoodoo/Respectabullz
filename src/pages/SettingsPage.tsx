@@ -29,6 +29,7 @@ import {
   useImportDatabase,
   useClearDatabase,
 } from '@/hooks/useSettings';
+import { VERSION } from '@/lib/version';
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -232,7 +233,7 @@ export function SettingsPage() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Version</span>
-              <span>0.1.0</span>
+              <span className="font-mono">v{VERSION}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Application</span>

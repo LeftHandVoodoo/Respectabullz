@@ -17,10 +17,14 @@ export function useCreateTransport() {
     mutationFn: (input: CreateTransportInput) => db.createTransport(input),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['transports'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['dogs', variables.dogId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast({
         title: 'Transport recorded',
-        description: 'The transport has been added successfully.',
+        description: variables.cost && variables.cost > 0 
+          ? 'Transport and expense have been added successfully.'
+          : 'The transport has been added successfully.',
       });
     },
     onError: (error) => {
@@ -42,7 +46,9 @@ export function useUpdateTransport() {
       db.updateTransport(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transports'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['dogs'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast({
         title: 'Transport updated',
         description: 'The transport has been updated successfully.',

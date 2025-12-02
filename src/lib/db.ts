@@ -522,9 +522,34 @@ export async function getTransports(dogId?: string): Promise<Transport[]> {
 export async function createTransport(input: CreateTransportInput): Promise<Transport> {
   const db = loadDb();
   const now = new Date();
+  
+  // If cost is provided, create an expense automatically
+  let expenseId: string | null = null;
+  if (input.cost && input.cost > 0) {
+    const expense: Expense = {
+      id: generateId(),
+      date: input.date,
+      amount: input.cost,
+      category: 'transport',
+      vendorName: input.shipperBusinessName || null,
+      description: `Transport: ${input.mode}${input.originCity && input.destinationCity ? ` (${input.originCity} → ${input.destinationCity})` : ''}`,
+      paymentMethod: null,
+      isTaxDeductible: true,
+      receiptPath: null,
+      notes: input.notes || null,
+      relatedDogId: input.dogId || null,
+      relatedLitterId: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    db.expenses.push(expense);
+    expenseId = expense.id;
+  }
+  
   const transport: Transport = {
     ...input,
     id: generateId(),
+    expenseId,
     createdAt: now,
     updatedAt: now,
   };
@@ -538,9 +563,61 @@ export async function updateTransport(id: string, input: UpdateTransportInput): 
   const index = db.transports.findIndex(t => t.id === id);
   if (index === -1) return null;
   
+  const existingTransport = db.transports[index];
+  let expenseId = existingTransport.expenseId;
+  
+  // If cost is provided and changed, update or create expense
+  if (input.cost !== undefined && input.cost !== existingTransport.cost) {
+    if (input.cost && input.cost > 0) {
+      // Update existing expense or create new one
+      if (expenseId) {
+        const expenseIndex = db.expenses.findIndex(e => e.id === expenseId);
+        if (expenseIndex !== -1) {
+          db.expenses[expenseIndex] = {
+            ...db.expenses[expenseIndex],
+            amount: input.cost,
+            date: input.date || existingTransport.date,
+            vendorName: input.shipperBusinessName || existingTransport.shipperBusinessName || null,
+            description: `Transport: ${input.mode || existingTransport.mode}${input.originCity && input.destinationCity ? ` (${input.originCity} → ${input.destinationCity})` : existingTransport.originCity && existingTransport.destinationCity ? ` (${existingTransport.originCity} → ${existingTransport.destinationCity})` : ''}`,
+            updatedAt: new Date(),
+          };
+        }
+      } else {
+        // Create new expense
+        const now = new Date();
+        const expense: Expense = {
+          id: generateId(),
+          date: input.date || existingTransport.date,
+          amount: input.cost,
+          category: 'transport',
+          vendorName: input.shipperBusinessName || existingTransport.shipperBusinessName || null,
+          description: `Transport: ${input.mode || existingTransport.mode}${input.originCity && input.destinationCity ? ` (${input.originCity} → ${input.destinationCity})` : existingTransport.originCity && existingTransport.destinationCity ? ` (${existingTransport.originCity} → ${existingTransport.destinationCity})` : ''}`,
+          paymentMethod: null,
+          isTaxDeductible: true,
+          receiptPath: null,
+          notes: input.notes !== undefined ? input.notes : existingTransport.notes || null,
+          relatedDogId: input.dogId || existingTransport.dogId || null,
+          relatedLitterId: null,
+          createdAt: now,
+          updatedAt: now,
+        };
+        db.expenses.push(expense);
+        expenseId = expense.id;
+      }
+    } else if (expenseId) {
+      // Remove expense if cost is set to 0 or null
+      const expenseIndex = db.expenses.findIndex(e => e.id === expenseId);
+      if (expenseIndex !== -1) {
+        db.expenses.splice(expenseIndex, 1);
+      }
+      expenseId = null;
+    }
+  }
+  
   db.transports[index] = {
     ...db.transports[index],
     ...input,
+    expenseId,
     updatedAt: new Date(),
   };
   saveDb(db);

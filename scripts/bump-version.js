@@ -27,6 +27,7 @@ const VERSION_FILE = path.join(ROOT, 'VERSION');
 const PACKAGE_JSON = path.join(ROOT, 'package.json');
 const TAURI_CONF = path.join(ROOT, 'src-tauri', 'tauri.conf.json');
 const CARGO_TOML = path.join(ROOT, 'src-tauri', 'Cargo.toml');
+const VERSION_TS = path.join(ROOT, 'src', 'lib', 'version.ts');
 
 function readVersion() {
   return fs.readFileSync(VERSION_FILE, 'utf-8').trim();
@@ -90,6 +91,15 @@ function updateCargoToml(newVersion) {
   console.log(`  Updated Cargo.toml to ${newVersion}`);
 }
 
+function updateVersionTs(newVersion) {
+  const content = `// Version constant - updated by bump-version script
+// This file is auto-generated, do not edit manually
+export const VERSION = '${newVersion}';
+`;
+  fs.writeFileSync(VERSION_TS, content);
+  console.log(`  Updated src/lib/version.ts to ${newVersion}`);
+}
+
 function main() {
   const args = process.argv.slice(2);
   
@@ -111,6 +121,7 @@ function main() {
   updatePackageJson(newVersion);
   updateTauriConf(newVersion);
   updateCargoToml(newVersion);
+  updateVersionTs(newVersion);
   
   console.log('');
   console.log('Done! Remember to:');

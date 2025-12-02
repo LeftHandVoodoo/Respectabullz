@@ -13,6 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { VERSION } from '@/lib/version';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -85,8 +86,8 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="border-t p-4">
-        <div className="text-xs text-muted-foreground text-center">
-          Version 0.1.0
+        <div className="text-xs text-muted-foreground text-center font-mono">
+          v{VERSION}
         </div>
       </div>
     </aside>

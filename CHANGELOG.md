@@ -5,6 +5,33 @@ All notable changes to Respectabullz will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Version display in GUI (Header, Sidebar footer, and Settings page) - 12:30
+- Automatic expense creation when transport records include a cost - 12:45
+- Version bump script now updates `src/lib/version.ts` for GUI display - 12:50
+- Typical dosage dropdowns in vaccination form with vaccine-specific options - 13:15
+- Custom dosage option for vaccination records when standard doses don't apply - 13:20
+- Automatic next due date calculation based on vaccine type and dose (puppy vs adult) - 13:35
+- Custom vaccine type field when "Other" is selected in vaccination form - 13:40
+- Standard dog color dropdown with 25+ common colors - 13:50
+- Custom color option for dog records - 13:55
+
+### Changed
+
+- Transport creation/update now automatically creates/updates linked expense records when cost is provided - 12:45
+- Vaccination form now uses dropdown selection for typical dosages instead of free text input - 13:20
+- Next due dates automatically calculated using veterinary best practices (puppy schedules: 1 month intervals, adult: 12 months) - 13:35
+- Dog color field changed from text input to dropdown with standard colors and custom option - 13:50
+
+## [0.1.3] - 2024-12-02
+
+### Added
+
+- Python script (`start_dev.py`) for starting the development server with cross-platform support
+
 ## [0.1.2] - 2024-12-02
 
 ### Added

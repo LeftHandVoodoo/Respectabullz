@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -23,6 +23,35 @@ import {
 import { useCreateDog, useUpdateDog, useDogs } from '@/hooks/useDogs';
 import type { Dog, DogStatus, DogSex } from '@/types';
 
+// Standard dog colors (common in bully breeds and general dog colors)
+const standardColors = [
+  'Black',
+  'Blue',
+  'Brindle',
+  'Brown',
+  'Chocolate',
+  'Fawn',
+  'Lilac',
+  'Merle',
+  'Red',
+  'White',
+  'Black & White',
+  'Blue & White',
+  'Brindle & White',
+  'Fawn & White',
+  'Red & White',
+  'Tri-Color',
+  'Blue Tri',
+  'Chocolate Tri',
+  'Lilac Tri',
+  'Black Tri',
+  'Seal',
+  'Isabella',
+  'Platinum',
+  'Ghost',
+  'Champagne',
+];
+
 const dogSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   sex: z.enum(['M', 'F']),
@@ -30,6 +59,7 @@ const dogSchema = z.object({
   registrationNumber: z.string().optional(),
   dateOfBirth: z.string().optional(),
   color: z.string().optional(),
+  customColor: z.string().optional(),
   microchipNumber: z.string().optional(),
   status: z.enum(['active', 'sold', 'retired', 'deceased']),
   sireId: z.string().optional(),
@@ -49,6 +79,7 @@ export function DogFormDialog({ open, onOpenChange, dog }: DogFormDialogProps) {
   const createDog = useCreateDog();
   const updateDog = useUpdateDog();
   const { data: allDogs } = useDogs();
+  const [isCustomColor, setIsCustomColor] = useState(false);
 
   const isEditing = !!dog;
 
@@ -71,6 +102,10 @@ export function DogFormDialog({ open, onOpenChange, dog }: DogFormDialogProps) {
 
   useEffect(() => {
     if (dog) {
+      const dogColor = dog.color || '';
+      const isStandardColor = standardColors.includes(dogColor);
+      setIsCustomColor(!isStandardColor && dogColor !== '');
+      
       reset({
         name: dog.name,
         sex: dog.sex,
@@ -79,7 +114,8 @@ export function DogFormDialog({ open, onOpenChange, dog }: DogFormDialogProps) {
         dateOfBirth: dog.dateOfBirth
           ? new Date(dog.dateOfBirth).toISOString().split('T')[0]
           : '',
-        color: dog.color || '',
+        color: isStandardColor ? dogColor : (dogColor ? '__custom__' : ''),
+        customColor: isStandardColor ? '' : dogColor,
         microchipNumber: dog.microchipNumber || '',
         status: dog.status,
         sireId: dog.sireId || '',
@@ -92,16 +128,25 @@ export function DogFormDialog({ open, onOpenChange, dog }: DogFormDialogProps) {
         sex: 'M',
         breed: '',
         status: 'active',
+        color: '',
+        customColor: '',
       });
+      setIsCustomColor(false);
     }
   }, [dog, reset]);
 
   const onSubmit = async (data: DogFormData) => {
+    // Use custom color if "Custom" is selected, otherwise use selected standard color
+    const color = data.color === '__custom__' && data.customColor
+      ? data.customColor
+      : data.color === '__custom__' ? null
+      : data.color || null;
+
     const payload = {
       ...data,
       dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
       registrationNumber: data.registrationNumber || null,
-      color: data.color || null,
+      color,
       microchipNumber: data.microchipNumber || null,
       sireId: data.sireId || null,
       damId: data.damId || null,
@@ -176,12 +221,53 @@ export function DogFormDialog({ open, onOpenChange, dog }: DogFormDialogProps) {
 
             {/* Color */}
             <div className="space-y-2">
-              <Label htmlFor="color">Color</Label>
-              <Input
-                id="color"
-                {...register('color')}
-                placeholder="e.g., Blue Tri"
-              />
+              <Label>Color</Label>
+              {isCustomColor ? (
+                <div className="space-y-2">
+                  <Input
+                    id="customColor"
+                    {...register('customColor')}
+                    placeholder="Enter custom color"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={() => {
+                      setIsCustomColor(false);
+                      setValue('color', '');
+                      setValue('customColor', '');
+                    }}
+                  >
+                    Use standard color
+                  </Button>
+                </div>
+              ) : (
+                <Select
+                  value={watch('color') || ''}
+                  onValueChange={(value) => {
+                    if (value === '__custom__') {
+                      setIsCustomColor(true);
+                      setValue('color', '__custom__');
+                    } else {
+                      setValue('color', value);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select color" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {standardColors.map((color) => (
+                      <SelectItem key={color} value={color}>
+                        {color}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="__custom__">Custom...</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Date of Birth */}

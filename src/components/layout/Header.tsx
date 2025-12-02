@@ -2,6 +2,7 @@ import { useLocation } from 'react-router-dom';
 import { Moon, Sun, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/theme-provider';
+import { VERSION } from '@/lib/version';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,7 +50,12 @@ export function Header() {
         {getTitle()}
       </h1>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        {/* Version */}
+        <span className="text-xs text-muted-foreground font-mono">
+          v{VERSION}
+        </span>
+
         {/* Notifications */}
         <Tooltip>
           <TooltipTrigger asChild>
