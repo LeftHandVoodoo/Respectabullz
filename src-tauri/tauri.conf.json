@@ -42,21 +42,6 @@
       "timestampUrl": ""
     }
   },
-  "plugins": {
-    "notification": {
-      "all": true
-    },
-    "fs": {
-      "all": true,
-      "scope": ["$APPDATA/**", "$HOME/**", "**"]
-    },
-    "dialog": {
-      "all": true
-    },
-    "shell": {
-      "all": false,
-      "open": true
-    }
-  }
+  "plugins": {}
 }
 
