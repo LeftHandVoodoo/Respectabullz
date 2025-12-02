@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Plus, Search, Mail, Phone } from 'lucide-react';
+import { Plus, Search, Mail, Phone, Edit, Trash2, Eye, Package, Truck, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -11,16 +13,72 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useClients } from '@/hooks/useClients';
+import { useClients, useDeleteClient } from '@/hooks/useClients';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
 import { formatDate } from '@/lib/utils';
+import type { Client, InterestStatus, PaymentStatus } from '@/types';
+
+const INTEREST_STATUS_COLORS: Record<InterestStatus, string> = {
+  interested: 'bg-blue-100 text-blue-800',
+  contacted: 'bg-yellow-100 text-yellow-800',
+  scheduled_visit: 'bg-purple-100 text-purple-800',
+  converted: 'bg-green-100 text-green-800',
+  lost: 'bg-gray-100 text-gray-800',
+};
+
+const INTEREST_STATUS_LABELS: Record<InterestStatus, string> = {
+  interested: 'Interested',
+  contacted: 'Contacted',
+  scheduled_visit: 'Visit Scheduled',
+  converted: 'Converted',
+  lost: 'Lost',
+};
+
+const PAYMENT_STATUS_COLORS: Record<PaymentStatus, string> = {
+  deposit_only: 'bg-yellow-100 text-yellow-800',
+  partial: 'bg-orange-100 text-orange-800',
+  paid_in_full: 'bg-green-100 text-green-800',
+  refunded: 'bg-red-100 text-red-800',
+};
+
+const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  deposit_only: 'Deposit Only',
+  partial: 'Partial',
+  paid_in_full: 'Paid in Full',
+  refunded: 'Refunded',
+};
 
 export function ClientsPage() {
   const { data: clients, isLoading } = useClients();
+  const deleteClient = useDeleteClient();
   const [search, setSearch] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const [editingClient, setEditingClient] = useState<Client | undefined>();
+
+  const handleEdit = (client: Client) => {
+    setEditingClient(client);
+    setShowAddDialog(true);
+  };
+
+  const handleCloseDialog = (open: boolean) => {
+    setShowAddDialog(open);
+    if (!open) {
+      setEditingClient(undefined);
+    }
+  };
 
   const filteredClients = clients?.filter((client) => {
     return (
@@ -69,18 +127,19 @@ export function ClientsPage() {
                   <TableHead>Contact</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Purchases</TableHead>
+                  <TableHead className="w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8">
+                    <TableCell colSpan={5} className="text-center py-8">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : filteredClients?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8">
+                    <TableCell colSpan={5} className="text-center py-8">
                       <p className="text-muted-foreground">No clients found</p>
                       <Button
                         variant="link"
@@ -136,6 +195,39 @@ export function ClientsPage() {
                           : '-'}
                       </TableCell>
                       <TableCell>{client.sales?.length || 0}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleEdit(client)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete {client.name}?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete this client record.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteClient.mutate(client.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -147,8 +239,18 @@ export function ClientsPage() {
         {/* Client Detail */}
         <div>
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">Client Details</CardTitle>
+              {selectedClientData && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEdit(selectedClientData)}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {selectedClientData ? (
@@ -220,30 +322,123 @@ export function ClientsPage() {
                     </div>
                   )}
 
-                  {selectedClientData.sales &&
-                    selectedClientData.sales.length > 0 && (
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Purchase History
-                        </p>
-                        <div className="space-y-2">
+                  {/* Tabs for Interests and Sales */}
+                  <Tabs defaultValue="sales" className="mt-4">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="sales">
+                        Sales ({selectedClientData.sales?.length || 0})
+                      </TabsTrigger>
+                      <TabsTrigger value="interests">
+                        Interests ({selectedClientData.interests?.length || 0})
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="sales" className="mt-4">
+                      {selectedClientData.sales && selectedClientData.sales.length > 0 ? (
+                        <div className="space-y-3">
                           {selectedClientData.sales.map((sale) => (
                             <div
                               key={sale.id}
-                              className="text-sm border rounded p-2"
+                              className="text-sm border rounded-lg p-3 space-y-2"
                             >
-                              <p className="font-medium">
-                                {sale.dog?.name || 'Unknown'}
-                              </p>
-                              <p className="text-muted-foreground">
-                                {formatDate(sale.saleDate)} - $
-                                {sale.price.toFixed(2)}
-                              </p>
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium">
+                                  {formatDate(sale.saleDate)}
+                                </span>
+                                <Badge className={PAYMENT_STATUS_COLORS[sale.paymentStatus]}>
+                                  {PAYMENT_STATUS_LABELS[sale.paymentStatus]}
+                                </Badge>
+                              </div>
+                              
+                              {/* Puppies in sale */}
+                              <div className="space-y-1">
+                                {sale.puppies?.map((sp) => (
+                                  <div key={sp.id} className="flex items-center justify-between text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <Eye className="h-3 w-3" />
+                                      {sp.dog?.name || 'Unknown Puppy'}
+                                    </span>
+                                    <span>${sp.price.toFixed(2)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              
+                              <div className="flex items-center justify-between pt-1 border-t">
+                                <span className="font-medium">Total</span>
+                                <span className="font-medium">${sale.price.toFixed(2)}</span>
+                              </div>
+
+                              {/* Shipping status */}
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                {sale.isLocalPickup ? (
+                                  <span className="flex items-center gap-1">
+                                    <Package className="h-3 w-3" />
+                                    Local Pickup
+                                  </span>
+                                ) : (
+                                  <>
+                                    {sale.shippedDate && (
+                                      <span className="flex items-center gap-1">
+                                        <Truck className="h-3 w-3" />
+                                        Shipped {formatDate(sale.shippedDate)}
+                                      </span>
+                                    )}
+                                    {sale.receivedDate && (
+                                      <span className="flex items-center gap-1">
+                                        <CheckCircle className="h-3 w-3 text-green-600" />
+                                        Received {formatDate(sale.receivedDate)}
+                                      </span>
+                                    )}
+                                    {!sale.shippedDate && !sale.receivedDate && (
+                                      <span className="text-yellow-600">Pending shipment</span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No purchases yet
+                        </p>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="interests" className="mt-4">
+                      {selectedClientData.interests && selectedClientData.interests.length > 0 ? (
+                        <div className="space-y-3">
+                          {selectedClientData.interests.map((interest) => (
+                            <div
+                              key={interest.id}
+                              className="text-sm border rounded-lg p-3 space-y-2"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium">
+                                  {interest.dog?.name || 'Unknown Puppy'}
+                                </span>
+                                <Badge className={INTEREST_STATUS_COLORS[interest.status]}>
+                                  {INTEREST_STATUS_LABELS[interest.status]}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {formatDate(interest.interestDate)} via {interest.contactMethod}
+                              </div>
+                              {interest.notes && (
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {interest.notes}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No recorded interests
+                        </p>
+                      )}
+                    </TabsContent>
+                  </Tabs>
                 </div>
               ) : (
                 <p className="text-muted-foreground">
@@ -257,7 +452,8 @@ export function ClientsPage() {
 
       <ClientFormDialog
         open={showAddDialog}
-        onOpenChange={setShowAddDialog}
+        onOpenChange={handleCloseDialog}
+        client={editingClient}
       />
     </div>
   );

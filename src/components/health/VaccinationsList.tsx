@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -10,6 +10,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import {
   useVaccinations,
@@ -17,6 +28,7 @@ import {
 } from '@/hooks/useHealth';
 import { VaccinationFormDialog } from './VaccinationFormDialog';
 import { formatDate } from '@/lib/utils';
+import type { VaccinationRecord } from '@/types';
 
 interface VaccinationsListProps {
   dogId: string;
@@ -26,6 +38,19 @@ export function VaccinationsList({ dogId }: VaccinationsListProps) {
   const { data: vaccinations, isLoading } = useVaccinations(dogId);
   const deleteVaccination = useDeleteVaccination();
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingVaccination, setEditingVaccination] = useState<VaccinationRecord | undefined>();
+
+  const handleEdit = (vaccination: VaccinationRecord) => {
+    setEditingVaccination(vaccination);
+    setShowAddDialog(true);
+  };
+
+  const handleCloseDialog = (open: boolean) => {
+    setShowAddDialog(open);
+    if (!open) {
+      setEditingVaccination(undefined);
+    }
+  };
 
   const isOverdue = (nextDueDate: Date | null | undefined) => {
     if (!nextDueDate) return false;
@@ -62,7 +87,7 @@ export function VaccinationsList({ dogId }: VaccinationsListProps) {
                 <TableHead>Vaccine</TableHead>
                 <TableHead>Clinic</TableHead>
                 <TableHead>Next Due</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
+                <TableHead className="w-[80px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -87,13 +112,37 @@ export function VaccinationsList({ dogId }: VaccinationsListProps) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteVaccination.mutate(vax.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEdit(vax)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete this vaccination?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete this vaccination record.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteVaccination.mutate(vax.id)}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -104,8 +153,9 @@ export function VaccinationsList({ dogId }: VaccinationsListProps) {
 
       <VaccinationFormDialog
         open={showAddDialog}
-        onOpenChange={setShowAddDialog}
+        onOpenChange={handleCloseDialog}
         dogId={dogId}
+        vaccination={editingVaccination}
       />
     </Card>
   );

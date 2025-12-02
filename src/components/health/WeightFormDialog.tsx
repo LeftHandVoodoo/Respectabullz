@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,7 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useCreateWeightEntry } from '@/hooks/useHealth';
+import { useCreateWeightEntry, useUpdateWeightEntry } from '@/hooks/useHealth';
+import type { WeightEntry } from '@/types';
 
 const weightSchema = z.object({
   date: z.string().min(1, 'Date is required'),
@@ -26,14 +28,18 @@ interface WeightFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   dogId: string;
+  weightEntry?: WeightEntry;
 }
 
 export function WeightFormDialog({
   open,
   onOpenChange,
   dogId,
+  weightEntry,
 }: WeightFormDialogProps) {
   const createWeight = useCreateWeightEntry();
+  const updateWeight = useUpdateWeightEntry();
+  const isEditing = !!weightEntry;
 
   const {
     register,
@@ -47,13 +53,36 @@ export function WeightFormDialog({
     },
   });
 
+  // Populate form when editing
+  useEffect(() => {
+    if (weightEntry && open) {
+      reset({
+        date: new Date(weightEntry.date).toISOString().split('T')[0],
+        weightLbs: weightEntry.weightLbs.toString(),
+        notes: weightEntry.notes || '',
+      });
+    } else if (!weightEntry && open) {
+      reset({
+        date: new Date().toISOString().split('T')[0],
+        weightLbs: '',
+        notes: '',
+      });
+    }
+  }, [weightEntry, open, reset]);
+
   const onSubmit = async (data: WeightFormData) => {
-    await createWeight.mutateAsync({
+    const weightData = {
       dogId,
       date: new Date(data.date),
       weightLbs: parseFloat(data.weightLbs),
       notes: data.notes || null,
-    });
+    };
+
+    if (isEditing && weightEntry) {
+      await updateWeight.mutateAsync({ id: weightEntry.id, data: weightData });
+    } else {
+      await createWeight.mutateAsync(weightData);
+    }
     reset();
     onOpenChange(false);
   };
@@ -62,7 +91,7 @@ export function WeightFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Weight Entry</DialogTitle>
+          <DialogTitle>{isEditing ? 'Edit Weight Entry' : 'Add Weight Entry'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -111,7 +140,7 @@ export function WeightFormDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Add Weight'}
+              {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Weight'}
             </Button>
           </DialogFooter>
         </form>

@@ -6,10 +6,12 @@ import { DogDetailPage } from './pages/DogDetailPage';
 import { LittersPage } from './pages/LittersPage';
 import { LitterDetailPage } from './pages/LitterDetailPage';
 import { HeatCyclesPage } from './pages/HeatCyclesPage';
+import { HeatCycleDetailPage } from './pages/HeatCycleDetailPage';
 import { TransportPage } from './pages/TransportPage';
 import { ExpensesPage } from './pages/ExpensesPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { ClientsPage } from './pages/ClientsPage';
+import { InquiriesPage } from './pages/InquiriesPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 function App() {
@@ -23,10 +25,12 @@ function App() {
         <Route path="/litters" element={<LittersPage />} />
         <Route path="/litters/:id" element={<LitterDetailPage />} />
         <Route path="/heat-cycles" element={<HeatCyclesPage />} />
+        <Route path="/heat-cycles/:id" element={<HeatCycleDetailPage />} />
         <Route path="/transport" element={<TransportPage />} />
         <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/clients" element={<ClientsPage />} />
+        <Route path="/inquiries" element={<InquiriesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </AppShell>

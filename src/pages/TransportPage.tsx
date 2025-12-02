@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Filter, Plane, Truck as TruckIcon, User } from 'lucide-react';
+import { Plus, Search, Filter, Plane, Truck as TruckIcon, User, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,11 +17,22 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { useTransports } from '@/hooks/useTransport';
+import { useTransports, useDeleteTransport } from '@/hooks/useTransport';
 import { TransportFormDialog } from '@/components/transport/TransportFormDialog';
 import { formatDate, formatCurrency } from '@/lib/utils';
-import type { TransportMode } from '@/types';
+import type { Transport, TransportMode } from '@/types';
 
 const modeIcons: Record<TransportMode, React.ReactNode> = {
   flight: <Plane className="h-4 w-4" />,
@@ -32,9 +43,23 @@ const modeIcons: Record<TransportMode, React.ReactNode> = {
 
 export function TransportPage() {
   const { data: transports, isLoading } = useTransports();
+  const deleteTransport = useDeleteTransport();
   const [search, setSearch] = useState('');
   const [modeFilter, setModeFilter] = useState<string>('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingTransport, setEditingTransport] = useState<Transport | undefined>();
+
+  const handleEdit = (transport: Transport) => {
+    setEditingTransport(transport);
+    setShowAddDialog(true);
+  };
+
+  const handleCloseDialog = (open: boolean) => {
+    setShowAddDialog(open);
+    if (!open) {
+      setEditingTransport(undefined);
+    }
+  };
 
   const filteredTransports = transports?.filter((transport) => {
     const matchesSearch =
@@ -100,18 +125,19 @@ export function TransportPage() {
               <TableHead>Shipper</TableHead>
               <TableHead>Route</TableHead>
               <TableHead>Cost</TableHead>
+              <TableHead className="w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : filteredTransports?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   <p className="text-muted-foreground">No transport records</p>
                   <Button
                     variant="link"
@@ -143,6 +169,39 @@ export function TransportPage() {
                   <TableCell>
                     {transport.cost ? formatCurrency(transport.cost) : '-'}
                   </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEdit(transport)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete this transport record?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete this transport record.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteTransport.mutate(transport.id)}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -152,7 +211,8 @@ export function TransportPage() {
 
       <TransportFormDialog
         open={showAddDialog}
-        onOpenChange={setShowAddDialog}
+        onOpenChange={handleCloseDialog}
+        transport={editingTransport}
       />
     </div>
   );

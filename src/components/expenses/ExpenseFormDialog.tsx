@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,10 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateExpense } from '@/hooks/useExpenses';
+import { useCreateExpense, useUpdateExpense } from '@/hooks/useExpenses';
 import { useDogs } from '@/hooks/useDogs';
 import { useLitters } from '@/hooks/useLitters';
-import type { ExpenseCategory } from '@/types';
+import type { Expense, ExpenseCategory } from '@/types';
 
 const expenseSchema = z.object({
   date: z.string().min(1, 'Date is required'),
@@ -43,15 +44,19 @@ type ExpenseFormData = z.infer<typeof expenseSchema>;
 interface ExpenseFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  expense?: Expense;
 }
 
 export function ExpenseFormDialog({
   open,
   onOpenChange,
+  expense,
 }: ExpenseFormDialogProps) {
   const createExpense = useCreateExpense();
+  const updateExpense = useUpdateExpense();
   const { data: dogs } = useDogs();
   const { data: litters } = useLitters();
+  const isEditing = !!expense;
 
   const {
     register,
@@ -69,8 +74,30 @@ export function ExpenseFormDialog({
     },
   });
 
+  // Populate form when editing
+  useEffect(() => {
+    if (expense && open) {
+      setValue('date', new Date(expense.date).toISOString().split('T')[0]);
+      setValue('amount', expense.amount.toString());
+      setValue('category', expense.category);
+      setValue('vendorName', expense.vendorName || '');
+      setValue('description', expense.description || '');
+      setValue('paymentMethod', expense.paymentMethod || '');
+      setValue('isTaxDeductible', expense.isTaxDeductible);
+      setValue('relatedDogId', expense.relatedDogId || '');
+      setValue('relatedLitterId', expense.relatedLitterId || '');
+      setValue('notes', expense.notes || '');
+    } else if (!expense && open) {
+      reset({
+        date: new Date().toISOString().split('T')[0],
+        category: 'misc',
+        isTaxDeductible: false,
+      });
+    }
+  }, [expense, open, setValue, reset]);
+
   const onSubmit = async (data: ExpenseFormData) => {
-    await createExpense.mutateAsync({
+    const expenseData = {
       date: new Date(data.date),
       amount: parseFloat(data.amount),
       category: data.category as ExpenseCategory,
@@ -82,7 +109,13 @@ export function ExpenseFormDialog({
       relatedDogId: data.relatedDogId || null,
       relatedLitterId: data.relatedLitterId || null,
       notes: data.notes || null,
-    });
+    };
+
+    if (isEditing && expense) {
+      await updateExpense.mutateAsync({ id: expense.id, data: expenseData });
+    } else {
+      await createExpense.mutateAsync(expenseData);
+    }
     reset();
     onOpenChange(false);
   };
@@ -91,7 +124,7 @@ export function ExpenseFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add Expense</DialogTitle>
+          <DialogTitle>{isEditing ? 'Edit Expense' : 'Add Expense'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -253,7 +286,7 @@ export function ExpenseFormDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Add Expense'}
+              {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Expense'}
             </Button>
           </DialogFooter>
         </form>

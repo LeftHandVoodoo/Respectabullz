@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, Filter, Download } from 'lucide-react';
+import { Plus, Search, Filter, Download, Edit, Trash2 } from 'lucide-react';
 import {
   Tooltip,
   ResponsiveContainer,
@@ -25,11 +25,22 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { useExpenses } from '@/hooks/useExpenses';
+import { useExpenses, useDeleteExpense } from '@/hooks/useExpenses';
 import { ExpenseFormDialog } from '@/components/expenses/ExpenseFormDialog';
 import { formatDate, formatCurrency } from '@/lib/utils';
-import type { ExpenseCategory } from '@/types';
+import type { Expense, ExpenseCategory } from '@/types';
 
 const categoryColors: Record<ExpenseCategory, string> = {
   transport: '#3b82f6',
@@ -44,9 +55,23 @@ const categoryColors: Record<ExpenseCategory, string> = {
 
 export function ExpensesPage() {
   const { data: expenses, isLoading } = useExpenses();
+  const deleteExpense = useDeleteExpense();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | undefined>();
+
+  const handleEdit = (expense: Expense) => {
+    setEditingExpense(expense);
+    setShowAddDialog(true);
+  };
+
+  const handleCloseDialog = (open: boolean) => {
+    setShowAddDialog(open);
+    if (!open) {
+      setEditingExpense(undefined);
+    }
+  };
 
   const filteredExpenses = expenses?.filter((expense) => {
     const matchesSearch =
@@ -202,18 +227,19 @@ export function ExpensesPage() {
               <TableHead>Description</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead>Tax Deductible</TableHead>
+              <TableHead className="w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : filteredExpenses?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   <p className="text-muted-foreground">No expenses found</p>
                   <Button
                     variant="link"
@@ -252,6 +278,39 @@ export function ExpensesPage() {
                       <Badge variant="outline">No</Badge>
                     )}
                   </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEdit(expense)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete this expense?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete this expense record.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteExpense.mutate(expense.id)}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -261,7 +320,8 @@ export function ExpensesPage() {
 
       <ExpenseFormDialog
         open={showAddDialog}
-        onOpenChange={setShowAddDialog}
+        onOpenChange={handleCloseDialog}
+        expense={editingExpense}
       />
     </div>
   );

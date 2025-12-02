@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Dog } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Dog, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useLitter, useDeleteLitter } from '@/hooks/useLitters';
 import { LitterFormDialog } from '@/components/litters/LitterFormDialog';
+import { DogFormDialog } from '@/components/dogs/DogFormDialog';
 import { formatDate } from '@/lib/utils';
 
 export function LitterDetailPage() {
@@ -34,6 +35,7 @@ export function LitterDetailPage() {
   const { data: litter, isLoading } = useLitter(id);
   const deleteLitter = useDeleteLitter();
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showAddPuppyDialog, setShowAddPuppyDialog] = useState(false);
 
   const handleDelete = async () => {
     if (id) {
@@ -195,11 +197,15 @@ export function LitterDetailPage() {
 
       {/* Puppies */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <Dog className="h-5 w-5" />
             Puppies
           </CardTitle>
+          <Button size="sm" onClick={() => setShowAddPuppyDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Puppy
+          </Button>
         </CardHeader>
         <CardContent>
           {!litter.puppies || litter.puppies.length === 0 ? (
@@ -262,6 +268,12 @@ export function LitterDetailPage() {
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
         litter={litter}
+      />
+
+      <DogFormDialog
+        open={showAddPuppyDialog}
+        onOpenChange={setShowAddPuppyDialog}
+        defaultLitterId={litter.id}
       />
     </div>
   );

@@ -61,10 +61,13 @@ model Dog {
 
   // Financial
   expenses Expense[] @relation("DogExpenses")
-  sale     Sale?
+  salePuppies SalePuppy[]
 
   // Pedigree ancestors
   pedigreeEntries PedigreeEntry[]
+
+  // Client interests in this dog
+  clientInterests ClientInterest[]
 
   // Photos
   photos DogPhoto[]
@@ -212,6 +215,9 @@ model Transport {
   // Linked expense record
   expenseId String?  @unique
   expense   Expense? @relation(fields: [expenseId], references: [id])
+
+  // Linked sale (if transport is for a sale)
+  sale Sale?
 }
 
 // ============================================
@@ -262,28 +268,80 @@ model Client {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  sales Sale[]
+  sales     Sale[]
+  interests ClientInterest[]
 }
 
-/// Sale records
+/// Sale records - supports multiple puppies per sale
 model Sale {
-  id            String    @id @default(cuid())
-  saleDate      DateTime
-  price         Float
-  depositAmount Float?
-  depositDate   DateTime?
-  contractPath  String?
-  notes         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  // Dog being sold
-  dogId String @unique
-  dog   Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+  id                       String    @id @default(cuid())
+  saleDate                 DateTime
+  price                    Float     // Total sale price
+  depositAmount            Float?
+  depositDate              DateTime?
+  contractPath             String?
+  notes                    String?
+  // New fields for enhanced tracking
+  shippedDate              DateTime?
+  receivedDate             DateTime?
+  isLocalPickup            Boolean   @default(false)
+  paymentStatus            String    @default("deposit_only") // deposit_only, paid_in_full, partial, refunded
+  warrantyInfo             String?
+  registrationTransferDate DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   // Buyer
   clientId String
   client   Client @relation(fields: [clientId], references: [id])
+
+  // Puppies in this sale (many-to-many via junction table)
+  puppies SalePuppy[]
+
+  // Optional transport link
+  transportId String?    @unique
+  transport   Transport? @relation(fields: [transportId], references: [id])
+
+  // Interests that converted to this sale
+  convertedInterests ClientInterest[]
+}
+
+/// Junction table for Sale-Dog many-to-many relationship
+model SalePuppy {
+  id        String   @id @default(cuid())
+  price     Float    // Individual puppy price within the sale
+  createdAt DateTime @default(now())
+
+  saleId String
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  dogId String
+  dog   Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+
+  @@unique([saleId, dogId])
+}
+
+/// Client interest/inquiry tracking
+model ClientInterest {
+  id            String   @id @default(cuid())
+  interestDate  DateTime
+  contactMethod String   // phone, email, website, social_media, referral, other
+  status        String   @default("interested") // interested, contacted, scheduled_visit, converted, lost
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Client who expressed interest
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Dog/puppy they're interested in
+  dogId String
+  dog   Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+
+  // If converted to a sale
+  convertedToSaleId String?
+  convertedToSale   Sale?   @relation(fields: [convertedToSaleId], references: [id])
 }
 
 // ============================================

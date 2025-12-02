@@ -21,7 +21,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCreateDog, useUpdateDog, useDogs } from '@/hooks/useDogs';
+import { useLitters } from '@/hooks/useLitters';
 import type { Dog, DogStatus, DogSex } from '@/types';
+
+// Standard dog breeds
+const standardBreeds = [
+  'American Bully',
+  'American Pit Bull Terrier',
+  'American Staffordshire Terrier',
+  'Staffordshire Bull Terrier',
+  'English Bulldog',
+  'French Bulldog',
+  'American Bulldog',
+];
 
 // Standard dog colors (common in bully breeds and general dog colors)
 const standardColors = [
@@ -56,6 +68,7 @@ const dogSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   sex: z.enum(['M', 'F']),
   breed: z.string().min(1, 'Breed is required'),
+  customBreed: z.string().optional(),
   registrationNumber: z.string().optional(),
   dateOfBirth: z.string().optional(),
   color: z.string().optional(),
@@ -64,6 +77,7 @@ const dogSchema = z.object({
   status: z.enum(['active', 'sold', 'retired', 'deceased']),
   sireId: z.string().optional(),
   damId: z.string().optional(),
+  litterId: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -73,13 +87,16 @@ interface DogFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   dog?: Dog | null;
+  defaultLitterId?: string | null;  // Pre-fill litter when adding puppy from litter page
 }
 
-export function DogFormDialog({ open, onOpenChange, dog }: DogFormDialogProps) {
+export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogFormDialogProps) {
   const createDog = useCreateDog();
   const updateDog = useUpdateDog();
   const { data: allDogs } = useDogs();
+  const { data: litters } = useLitters();
   const [isCustomColor, setIsCustomColor] = useState(false);
+  const [isCustomBreed, setIsCustomBreed] = useState(false);
 
   const isEditing = !!dog;
 
@@ -106,10 +123,15 @@ export function DogFormDialog({ open, onOpenChange, dog }: DogFormDialogProps) {
       const isStandardColor = standardColors.includes(dogColor);
       setIsCustomColor(!isStandardColor && dogColor !== '');
       
+      const dogBreed = dog.breed || '';
+      const isStandardBreed = standardBreeds.includes(dogBreed);
+      setIsCustomBreed(!isStandardBreed && dogBreed !== '');
+      
       reset({
         name: dog.name,
         sex: dog.sex,
-        breed: dog.breed,
+        breed: isStandardBreed ? dogBreed : (dogBreed ? '__custom__' : ''),
+        customBreed: isStandardBreed ? '' : dogBreed,
         registrationNumber: dog.registrationNumber || '',
         dateOfBirth: dog.dateOfBirth
           ? new Date(dog.dateOfBirth).toISOString().split('T')[0]
@@ -120,6 +142,7 @@ export function DogFormDialog({ open, onOpenChange, dog }: DogFormDialogProps) {
         status: dog.status,
         sireId: dog.sireId || '',
         damId: dog.damId || '',
+        litterId: dog.litterId || '',
         notes: dog.notes || '',
       });
     } else {
@@ -127,13 +150,16 @@ export function DogFormDialog({ open, onOpenChange, dog }: DogFormDialogProps) {
         name: '',
         sex: 'M',
         breed: '',
+        customBreed: '',
         status: 'active',
         color: '',
         customColor: '',
+        litterId: defaultLitterId || '',
       });
       setIsCustomColor(false);
+      setIsCustomBreed(false);
     }
-  }, [dog, reset]);
+  }, [dog, reset, defaultLitterId]);
 
   const onSubmit = async (data: DogFormData) => {
     // Use custom color if "Custom" is selected, otherwise use selected standard color
@@ -142,17 +168,24 @@ export function DogFormDialog({ open, onOpenChange, dog }: DogFormDialogProps) {
       : data.color === '__custom__' ? null
       : data.color || null;
 
+    // Use custom breed if "Custom" is selected, otherwise use selected standard breed
+    const breed = data.breed === '__custom__' && data.customBreed
+      ? data.customBreed
+      : data.breed === '__custom__' ? ''
+      : data.breed || '';
+
     const payload = {
       ...data,
+      breed,
       dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
       registrationNumber: data.registrationNumber || null,
       color,
       microchipNumber: data.microchipNumber || null,
       sireId: data.sireId || null,
       damId: data.damId || null,
+      litterId: data.litterId || null,
       notes: data.notes || null,
       profilePhotoPath: dog?.profilePhotoPath || null,
-      litterId: dog?.litterId || null,
     };
 
     if (isEditing && dog) {
@@ -208,12 +241,53 @@ export function DogFormDialog({ open, onOpenChange, dog }: DogFormDialogProps) {
 
             {/* Breed */}
             <div className="space-y-2">
-              <Label htmlFor="breed">Breed *</Label>
-              <Input
-                id="breed"
-                {...register('breed')}
-                placeholder="e.g., American Bully"
-              />
+              <Label>Breed *</Label>
+              {isCustomBreed ? (
+                <div className="space-y-2">
+                  <Input
+                    id="customBreed"
+                    {...register('customBreed')}
+                    placeholder="Enter custom breed"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={() => {
+                      setIsCustomBreed(false);
+                      setValue('breed', '');
+                      setValue('customBreed', '');
+                    }}
+                  >
+                    Use standard breed
+                  </Button>
+                </div>
+              ) : (
+                <Select
+                  value={watch('breed') || ''}
+                  onValueChange={(value) => {
+                    if (value === '__custom__') {
+                      setIsCustomBreed(true);
+                      setValue('breed', '__custom__');
+                    } else {
+                      setValue('breed', value);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select breed" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {standardBreeds.map((breed) => (
+                      <SelectItem key={breed} value={breed}>
+                        {breed}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="__custom__">Custom...</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
               {errors.breed && (
                 <p className="text-sm text-destructive">{errors.breed.message}</p>
               )}
@@ -363,6 +437,32 @@ export function DogFormDialog({ open, onOpenChange, dog }: DogFormDialogProps) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Birth Litter */}
+            <div className="space-y-2 col-span-2">
+              <Label>Birth Litter</Label>
+              <Select
+                value={watch('litterId') || 'none'}
+                onValueChange={(value) =>
+                  setValue('litterId', value === 'none' ? '' : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select litter (if puppy)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {litters?.map((litter) => (
+                    <SelectItem key={litter.id} value={litter.id}>
+                      {litter.code}{litter.nickname ? ` - ${litter.nickname}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Assign this dog to a litter if it was born from your breeding program
+              </p>
             </div>
           </div>
 

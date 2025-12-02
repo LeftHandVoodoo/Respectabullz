@@ -13,6 +13,8 @@ import type {
   Expense,
   Client,
   Sale,
+  SalePuppy,
+  ClientInterest,
   PedigreeEntry,
   DogPhoto,
   Setting,
@@ -26,6 +28,10 @@ import type {
   UpdateExpenseInput,
   CreateTransportInput,
   UpdateTransportInput,
+  CreateSaleInput,
+  UpdateSaleInput,
+  CreateClientInterestInput,
+  UpdateClientInterestInput,
   DashboardStats,
 } from '@/types';
 
@@ -47,6 +53,8 @@ interface Database {
   expenses: Expense[];
   clients: Client[];
   sales: Sale[];
+  salePuppies: SalePuppy[];
+  clientInterests: ClientInterest[];
   pedigreeEntries: PedigreeEntry[];
   dogPhotos: DogPhoto[];
   settings: Setting[];
@@ -64,6 +72,8 @@ const emptyDb: Database = {
   expenses: [],
   clients: [],
   sales: [],
+  salePuppies: [],
+  clientInterests: [],
   pedigreeEntries: [],
   dogPhotos: [],
   settings: [],
@@ -80,8 +90,30 @@ function loadDb(): Database {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
+      
+      // Migration: Convert old sales with dogId to new SalePuppy structure
+      let needsMigration = false;
+      const migratedSalePuppies: SalePuppy[] = parsed.salePuppies || [];
+      
+      if (parsed.sales && parsed.sales.length > 0) {
+        for (const sale of parsed.sales) {
+          // Check if this sale has the old dogId field and no corresponding SalePuppy
+          if (sale.dogId && !migratedSalePuppies.some((sp: SalePuppy) => sp.saleId === sale.id && sp.dogId === sale.dogId)) {
+            // Create a SalePuppy entry for this old sale
+            migratedSalePuppies.push({
+              id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              saleId: sale.id,
+              dogId: sale.dogId,
+              price: sale.price,
+              createdAt: sale.createdAt || new Date().toISOString(),
+            });
+            needsMigration = true;
+          }
+        }
+      }
+      
       // Convert date strings back to Date objects
-      return {
+      const db: Database = {
         ...emptyDb,
         ...parsed,
         dogs: (parsed.dogs || []).map((d: Dog) => ({
@@ -146,10 +178,33 @@ function loadDb(): Database {
           ...s,
           saleDate: new Date(s.saleDate),
           depositDate: s.depositDate ? new Date(s.depositDate) : null,
+          shippedDate: s.shippedDate ? new Date(s.shippedDate) : null,
+          receivedDate: s.receivedDate ? new Date(s.receivedDate) : null,
+          registrationTransferDate: s.registrationTransferDate ? new Date(s.registrationTransferDate) : null,
+          isLocalPickup: s.isLocalPickup ?? false,
+          paymentStatus: s.paymentStatus ?? 'deposit_only',
           createdAt: new Date(s.createdAt),
           updatedAt: new Date(s.updatedAt),
         })),
+        salePuppies: migratedSalePuppies.map((sp: SalePuppy) => ({
+          ...sp,
+          createdAt: new Date(sp.createdAt),
+        })),
+        clientInterests: (parsed.clientInterests || []).map((ci: ClientInterest) => ({
+          ...ci,
+          interestDate: new Date(ci.interestDate),
+          createdAt: new Date(ci.createdAt),
+          updatedAt: new Date(ci.updatedAt),
+        })),
       };
+      
+      // Save migrated data if migration occurred
+      if (needsMigration) {
+        saveDb(db);
+        console.log('Database migration: Converted old sales to SalePuppy structure');
+      }
+      
+      return db;
     }
   } catch (error) {
     console.error('Failed to load database:', error);
@@ -386,6 +441,19 @@ export async function createWeightEntry(input: Omit<WeightEntry, 'id' | 'created
   return weightEntry;
 }
 
+export async function updateWeightEntry(id: string, input: Partial<WeightEntry>): Promise<WeightEntry | null> {
+  const db = loadDb();
+  const index = db.weightEntries.findIndex(w => w.id === id);
+  if (index === -1) return null;
+  
+  db.weightEntries[index] = {
+    ...db.weightEntries[index],
+    ...input,
+  };
+  saveDb(db);
+  return db.weightEntries[index];
+}
+
 export async function deleteWeightEntry(id: string): Promise<boolean> {
   const db = loadDb();
   const index = db.weightEntries.findIndex(w => w.id === id);
@@ -500,6 +568,196 @@ export async function deleteHeatCycle(id: string): Promise<boolean> {
   db.heatEvents = db.heatEvents.filter(e => e.heatCycleId !== id);
   saveDb(db);
   return true;
+}
+
+export async function getHeatCycle(id: string): Promise<HeatCycle | null> {
+  const db = loadDb();
+  const cycle = db.heatCycles.find(h => h.id === id);
+  if (!cycle) return null;
+  
+  return {
+    ...cycle,
+    bitch: db.dogs.find(d => d.id === cycle.bitchId),
+    events: db.heatEvents
+      .filter(e => e.heatCycleId === id)
+      .map(e => ({
+        ...e,
+        sire: e.sireId ? db.dogs.find(d => d.id === e.sireId) || null : null,
+      }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+  };
+}
+
+// ============================================
+// HEAT EVENT OPERATIONS
+// ============================================
+
+export async function getHeatEvents(heatCycleId: string): Promise<HeatEvent[]> {
+  const db = loadDb();
+  return db.heatEvents
+    .filter(e => e.heatCycleId === heatCycleId)
+    .map(e => ({
+      ...e,
+      sire: e.sireId ? db.dogs.find(d => d.id === e.sireId) || null : null,
+    }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+}
+
+export async function createHeatEvent(input: Omit<HeatEvent, 'id' | 'createdAt' | 'heatCycle' | 'sire'>): Promise<HeatEvent> {
+  const db = loadDb();
+  const now = new Date();
+  const event: HeatEvent = {
+    ...input,
+    id: generateId(),
+    createdAt: now,
+  };
+  db.heatEvents.push(event);
+  
+  // Auto-update heat cycle based on event type
+  const cycleIndex = db.heatCycles.findIndex(c => c.id === input.heatCycleId);
+  if (cycleIndex !== -1) {
+    const cycle = db.heatCycles[cycleIndex];
+    const eventDate = new Date(input.date);
+    
+    // Update cycle fields based on event type
+    if (input.type === 'standing' && !cycle.standingHeatStart) {
+      cycle.standingHeatStart = eventDate;
+    }
+    if (input.type === 'end_receptive' && !cycle.standingHeatEnd) {
+      cycle.standingHeatEnd = eventDate;
+    }
+    if (input.type === 'ovulation') {
+      cycle.ovulationDate = eventDate;
+      // Calculate optimal breeding window (1-3 days after ovulation for best results)
+      cycle.optimalBreedingStart = new Date(eventDate.getTime() + 24 * 60 * 60 * 1000); // +1 day
+      cycle.optimalBreedingEnd = new Date(eventDate.getTime() + 3 * 24 * 60 * 60 * 1000); // +3 days
+      // Expected due date is 63 days from ovulation
+      cycle.expectedDueDate = new Date(eventDate.getTime() + 63 * 24 * 60 * 60 * 1000);
+    }
+    if (input.type === 'cycle_end') {
+      cycle.endDate = eventDate;
+      cycle.currentPhase = 'anestrus';
+      // Calculate cycle length
+      if (cycle.startDate) {
+        cycle.cycleLength = Math.round((eventDate.getTime() - new Date(cycle.startDate).getTime()) / (24 * 60 * 60 * 1000));
+      }
+      // Predict next heat (average 6-7 months, use 6.5 months = 195 days)
+      cycle.nextHeatEstimate = new Date(new Date(cycle.startDate).getTime() + 195 * 24 * 60 * 60 * 1000);
+    }
+    if (input.type === 'breeding_natural' || input.type === 'breeding_ai' || input.type === 'breeding_surgical') {
+      cycle.isBred = true;
+    }
+    
+    // Update current phase based on timeline
+    if (!cycle.endDate) {
+      const daysSinceStart = Math.round((now.getTime() - new Date(cycle.startDate).getTime()) / (24 * 60 * 60 * 1000));
+      if (cycle.standingHeatEnd) {
+        cycle.currentPhase = 'diestrus';
+      } else if (cycle.standingHeatStart) {
+        cycle.currentPhase = 'estrus';
+      } else if (daysSinceStart <= 9) {
+        cycle.currentPhase = 'proestrus';
+      } else {
+        cycle.currentPhase = 'estrus';
+      }
+    }
+    
+    cycle.updatedAt = now;
+    db.heatCycles[cycleIndex] = cycle;
+  }
+  
+  saveDb(db);
+  return event;
+}
+
+export async function updateHeatEvent(id: string, input: Partial<HeatEvent>): Promise<HeatEvent | null> {
+  const db = loadDb();
+  const index = db.heatEvents.findIndex(e => e.id === id);
+  if (index === -1) return null;
+  
+  db.heatEvents[index] = {
+    ...db.heatEvents[index],
+    ...input,
+  };
+  saveDb(db);
+  return db.heatEvents[index];
+}
+
+export async function deleteHeatEvent(id: string): Promise<boolean> {
+  const db = loadDb();
+  const index = db.heatEvents.findIndex(e => e.id === id);
+  if (index === -1) return false;
+  
+  db.heatEvents.splice(index, 1);
+  saveDb(db);
+  return true;
+}
+
+// Helper function to calculate breeding recommendations based on progesterone
+export function getBreedingRecommendation(progesteroneLevel: number): {
+  phase: string;
+  recommendation: string;
+  daysToBreeding: string;
+  ovulationStatus: string;
+} {
+  // Progesterone levels in ng/mL (veterinary standard)
+  if (progesteroneLevel < 1.0) {
+    return {
+      phase: 'Proestrus (early)',
+      recommendation: 'Too early for breeding. Continue monitoring.',
+      daysToBreeding: '4-7 days',
+      ovulationStatus: 'Not yet',
+    };
+  } else if (progesteroneLevel >= 1.0 && progesteroneLevel < 2.0) {
+    return {
+      phase: 'Proestrus (late)',
+      recommendation: 'LH surge approaching. Test again in 24-48 hours.',
+      daysToBreeding: '3-5 days',
+      ovulationStatus: 'LH surge imminent',
+    };
+  } else if (progesteroneLevel >= 2.0 && progesteroneLevel < 3.0) {
+    return {
+      phase: 'LH Surge',
+      recommendation: 'LH surge detected! Ovulation in ~48 hours.',
+      daysToBreeding: '2-4 days',
+      ovulationStatus: 'LH surge occurring',
+    };
+  } else if (progesteroneLevel >= 3.0 && progesteroneLevel < 5.0) {
+    return {
+      phase: 'Pre-ovulation',
+      recommendation: 'Ovulation imminent or occurring. Prepare for breeding.',
+      daysToBreeding: '1-3 days',
+      ovulationStatus: 'Ovulating',
+    };
+  } else if (progesteroneLevel >= 5.0 && progesteroneLevel < 8.0) {
+    return {
+      phase: 'Post-ovulation (optimal)',
+      recommendation: 'OPTIMAL BREEDING TIME! Breed now or within 24-48 hours.',
+      daysToBreeding: 'NOW',
+      ovulationStatus: 'Ovulated - eggs maturing',
+    };
+  } else if (progesteroneLevel >= 8.0 && progesteroneLevel < 15.0) {
+    return {
+      phase: 'Post-ovulation (good)',
+      recommendation: 'Good breeding window. Breed within 24 hours if not already done.',
+      daysToBreeding: 'NOW - urgent',
+      ovulationStatus: 'Ovulated - eggs mature',
+    };
+  } else if (progesteroneLevel >= 15.0 && progesteroneLevel < 25.0) {
+    return {
+      phase: 'Late estrus',
+      recommendation: 'Breeding window closing. Last chance for breeding.',
+      daysToBreeding: 'Closing',
+      ovulationStatus: 'Eggs aging',
+    };
+  } else {
+    return {
+      phase: 'Diestrus',
+      recommendation: 'Breeding window closed. Wait for next cycle.',
+      daysToBreeding: 'Passed',
+      ovulationStatus: 'Eggs no longer viable',
+    };
+  }
 }
 
 // ============================================
@@ -705,7 +963,14 @@ export async function getClients(): Promise<Client[]> {
   const db = loadDb();
   return db.clients.map(c => ({
     ...c,
-    sales: db.sales.filter(s => s.clientId === c.id),
+    sales: db.sales.filter(s => s.clientId === c.id).map(s => ({
+      ...s,
+      puppies: db.salePuppies.filter(sp => sp.saleId === s.id).map(sp => ({
+        ...sp,
+        dog: db.dogs.find(d => d.id === sp.dogId),
+      })),
+    })),
+    interests: db.clientInterests.filter(ci => ci.clientId === c.id),
   }));
 }
 
@@ -718,7 +983,16 @@ export async function getClient(id: string): Promise<Client | null> {
     ...client,
     sales: db.sales.filter(s => s.clientId === id).map(s => ({
       ...s,
-      dog: db.dogs.find(d => d.id === s.dogId),
+      puppies: db.salePuppies.filter(sp => sp.saleId === s.id).map(sp => ({
+        ...sp,
+        dog: db.dogs.find(d => d.id === sp.dogId),
+      })),
+      transport: s.transportId ? db.transports.find(t => t.id === s.transportId) || null : null,
+    })),
+    interests: db.clientInterests.filter(ci => ci.clientId === id).map(ci => ({
+      ...ci,
+      dog: db.dogs.find(d => d.id === ci.dogId),
+      convertedToSale: ci.convertedToSaleId ? db.sales.find(s => s.id === ci.convertedToSaleId) || null : null,
     })),
   };
 }
@@ -756,9 +1030,168 @@ export async function deleteClient(id: string): Promise<boolean> {
   const index = db.clients.findIndex(c => c.id === id);
   if (index === -1) return false;
   
+  // Also delete related interests
+  db.clientInterests = db.clientInterests.filter(ci => ci.clientId !== id);
+  
   db.clients.splice(index, 1);
   saveDb(db);
   return true;
+}
+
+// ============================================
+// CLIENT INTEREST OPERATIONS
+// ============================================
+
+export async function getClientInterests(): Promise<ClientInterest[]> {
+  const db = loadDb();
+  return db.clientInterests.map(ci => ({
+    ...ci,
+    client: db.clients.find(c => c.id === ci.clientId),
+    dog: db.dogs.find(d => d.id === ci.dogId),
+    convertedToSale: ci.convertedToSaleId ? db.sales.find(s => s.id === ci.convertedToSaleId) || null : null,
+  }));
+}
+
+export async function getClientInterest(id: string): Promise<ClientInterest | null> {
+  const db = loadDb();
+  const interest = db.clientInterests.find(ci => ci.id === id);
+  if (!interest) return null;
+  
+  return {
+    ...interest,
+    client: db.clients.find(c => c.id === interest.clientId),
+    dog: db.dogs.find(d => d.id === interest.dogId),
+    convertedToSale: interest.convertedToSaleId ? db.sales.find(s => s.id === interest.convertedToSaleId) || null : null,
+  };
+}
+
+export async function getInterestsByClient(clientId: string): Promise<ClientInterest[]> {
+  const db = loadDb();
+  return db.clientInterests
+    .filter(ci => ci.clientId === clientId)
+    .map(ci => ({
+      ...ci,
+      dog: db.dogs.find(d => d.id === ci.dogId),
+      convertedToSale: ci.convertedToSaleId ? db.sales.find(s => s.id === ci.convertedToSaleId) || null : null,
+    }));
+}
+
+export async function getInterestsByDog(dogId: string): Promise<ClientInterest[]> {
+  const db = loadDb();
+  return db.clientInterests
+    .filter(ci => ci.dogId === dogId)
+    .map(ci => ({
+      ...ci,
+      client: db.clients.find(c => c.id === ci.clientId),
+      convertedToSale: ci.convertedToSaleId ? db.sales.find(s => s.id === ci.convertedToSaleId) || null : null,
+    }));
+}
+
+export async function createClientInterest(input: CreateClientInterestInput): Promise<ClientInterest> {
+  const db = loadDb();
+  const now = new Date();
+  const interest: ClientInterest = {
+    ...input,
+    id: generateId(),
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.clientInterests.push(interest);
+  saveDb(db);
+  return interest;
+}
+
+export async function updateClientInterest(id: string, input: UpdateClientInterestInput): Promise<ClientInterest | null> {
+  const db = loadDb();
+  const index = db.clientInterests.findIndex(ci => ci.id === id);
+  if (index === -1) return null;
+  
+  db.clientInterests[index] = {
+    ...db.clientInterests[index],
+    ...input,
+    updatedAt: new Date(),
+  };
+  saveDb(db);
+  return db.clientInterests[index];
+}
+
+export async function deleteClientInterest(id: string): Promise<boolean> {
+  const db = loadDb();
+  const index = db.clientInterests.findIndex(ci => ci.id === id);
+  if (index === -1) return false;
+  
+  db.clientInterests.splice(index, 1);
+  saveDb(db);
+  return true;
+}
+
+// Convert an interest to a sale - marks interest as converted and creates sale
+export async function convertInterestToSale(
+  interestId: string, 
+  saleInput: CreateSaleInput
+): Promise<{ sale: Sale; interest: ClientInterest } | null> {
+  const db = loadDb();
+  const interestIndex = db.clientInterests.findIndex(ci => ci.id === interestId);
+  if (interestIndex === -1) return null;
+  
+  const interest = db.clientInterests[interestIndex];
+  
+  // Create the sale
+  const now = new Date();
+  const sale: Sale = {
+    id: generateId(),
+    clientId: saleInput.clientId,
+    saleDate: saleInput.saleDate,
+    price: saleInput.price,
+    depositAmount: saleInput.depositAmount ?? null,
+    depositDate: saleInput.depositDate ?? null,
+    contractPath: saleInput.contractPath ?? null,
+    notes: saleInput.notes ?? null,
+    shippedDate: saleInput.shippedDate ?? null,
+    receivedDate: saleInput.receivedDate ?? null,
+    isLocalPickup: saleInput.isLocalPickup ?? false,
+    paymentStatus: saleInput.paymentStatus ?? 'deposit_only',
+    warrantyInfo: saleInput.warrantyInfo ?? null,
+    registrationTransferDate: saleInput.registrationTransferDate ?? null,
+    transportId: saleInput.transportId ?? null,
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.sales.push(sale);
+  
+  // Create SalePuppy entries for each puppy
+  for (const puppy of saleInput.puppies) {
+    const salePuppy: SalePuppy = {
+      id: generateId(),
+      saleId: sale.id,
+      dogId: puppy.dogId,
+      price: puppy.price,
+      createdAt: now,
+    };
+    db.salePuppies.push(salePuppy);
+    
+    // Update dog status to sold
+    const dogIndex = db.dogs.findIndex(d => d.id === puppy.dogId);
+    if (dogIndex !== -1) {
+      db.dogs[dogIndex].status = 'sold';
+      db.dogs[dogIndex].updatedAt = now;
+    }
+  }
+  
+  // Update the interest to mark as converted
+  db.clientInterests[interestIndex] = {
+    ...interest,
+    status: 'converted',
+    convertedToSaleId: sale.id,
+    updatedAt: now,
+  };
+  
+  saveDb(db);
+  
+  return {
+    sale,
+    interest: db.clientInterests[interestIndex],
+  };
 }
 
 // ============================================
@@ -769,31 +1202,152 @@ export async function getSales(): Promise<Sale[]> {
   const db = loadDb();
   return db.sales.map(s => ({
     ...s,
-    dog: db.dogs.find(d => d.id === s.dogId),
     client: db.clients.find(c => c.id === s.clientId),
+    puppies: db.salePuppies.filter(sp => sp.saleId === s.id).map(sp => ({
+      ...sp,
+      dog: db.dogs.find(d => d.id === sp.dogId),
+    })),
+    transport: s.transportId ? db.transports.find(t => t.id === s.transportId) || null : null,
+    convertedInterests: db.clientInterests.filter(ci => ci.convertedToSaleId === s.id),
   }));
 }
 
-export async function createSale(input: Omit<Sale, 'id' | 'createdAt' | 'updatedAt' | 'dog' | 'client'>): Promise<Sale> {
+export async function getSale(id: string): Promise<Sale | null> {
+  const db = loadDb();
+  const sale = db.sales.find(s => s.id === id);
+  if (!sale) return null;
+  
+  return {
+    ...sale,
+    client: db.clients.find(c => c.id === sale.clientId),
+    puppies: db.salePuppies.filter(sp => sp.saleId === id).map(sp => ({
+      ...sp,
+      dog: db.dogs.find(d => d.id === sp.dogId),
+    })),
+    transport: sale.transportId ? db.transports.find(t => t.id === sale.transportId) || null : null,
+    convertedInterests: db.clientInterests.filter(ci => ci.convertedToSaleId === id),
+  };
+}
+
+export async function createSale(input: CreateSaleInput): Promise<Sale> {
   const db = loadDb();
   const now = new Date();
+  
   const sale: Sale = {
-    ...input,
     id: generateId(),
+    clientId: input.clientId,
+    saleDate: input.saleDate,
+    price: input.price,
+    depositAmount: input.depositAmount ?? null,
+    depositDate: input.depositDate ?? null,
+    contractPath: input.contractPath ?? null,
+    notes: input.notes ?? null,
+    shippedDate: input.shippedDate ?? null,
+    receivedDate: input.receivedDate ?? null,
+    isLocalPickup: input.isLocalPickup ?? false,
+    paymentStatus: input.paymentStatus ?? 'deposit_only',
+    warrantyInfo: input.warrantyInfo ?? null,
+    registrationTransferDate: input.registrationTransferDate ?? null,
+    transportId: input.transportId ?? null,
     createdAt: now,
     updatedAt: now,
   };
   db.sales.push(sale);
   
-  // Update dog status to sold
-  const dogIndex = db.dogs.findIndex(d => d.id === input.dogId);
-  if (dogIndex !== -1) {
-    db.dogs[dogIndex].status = 'sold';
-    db.dogs[dogIndex].updatedAt = now;
+  // Create SalePuppy entries for each puppy
+  for (const puppy of input.puppies) {
+    const salePuppy: SalePuppy = {
+      id: generateId(),
+      saleId: sale.id,
+      dogId: puppy.dogId,
+      price: puppy.price,
+      createdAt: now,
+    };
+    db.salePuppies.push(salePuppy);
+    
+    // Update dog status to sold
+    const dogIndex = db.dogs.findIndex(d => d.id === puppy.dogId);
+    if (dogIndex !== -1) {
+      db.dogs[dogIndex].status = 'sold';
+      db.dogs[dogIndex].updatedAt = now;
+    }
   }
   
   saveDb(db);
   return sale;
+}
+
+export async function updateSale(id: string, input: UpdateSaleInput): Promise<Sale | null> {
+  const db = loadDb();
+  const index = db.sales.findIndex(s => s.id === id);
+  if (index === -1) return null;
+  
+  const now = new Date();
+  const existingSale = db.sales[index];
+  
+  // Update sale fields (excluding puppies)
+  const { puppies: newPuppies, ...saleFields } = input;
+  db.sales[index] = {
+    ...existingSale,
+    ...saleFields,
+    updatedAt: now,
+  };
+  
+  // Handle puppies update if provided
+  if (newPuppies !== undefined) {
+    // Get existing puppies for this sale
+    const existingPuppyDogIds = db.salePuppies
+      .filter(sp => sp.saleId === id)
+      .map(sp => sp.dogId);
+    
+    const newPuppyDogIds = newPuppies.map(p => p.dogId);
+    
+    // Remove puppies that are no longer in the sale
+    const removedDogIds = existingPuppyDogIds.filter(dogId => !newPuppyDogIds.includes(dogId));
+    for (const dogId of removedDogIds) {
+      // Remove SalePuppy entry
+      const spIndex = db.salePuppies.findIndex(sp => sp.saleId === id && sp.dogId === dogId);
+      if (spIndex !== -1) {
+        db.salePuppies.splice(spIndex, 1);
+      }
+      // Revert dog status
+      const dogIndex = db.dogs.findIndex(d => d.id === dogId);
+      if (dogIndex !== -1) {
+        db.dogs[dogIndex].status = 'active';
+        db.dogs[dogIndex].updatedAt = now;
+      }
+    }
+    
+    // Add or update puppies
+    for (const puppy of newPuppies) {
+      const existingSpIndex = db.salePuppies.findIndex(sp => sp.saleId === id && sp.dogId === puppy.dogId);
+      
+      if (existingSpIndex !== -1) {
+        // Update price if puppy already exists
+        db.salePuppies[existingSpIndex].price = puppy.price;
+      } else {
+        // Add new SalePuppy entry
+        const salePuppy: SalePuppy = {
+          id: generateId(),
+          saleId: id,
+          dogId: puppy.dogId,
+          price: puppy.price,
+          createdAt: now,
+        };
+        db.salePuppies.push(salePuppy);
+        
+        // Update dog status to sold
+        const dogIndex = db.dogs.findIndex(d => d.id === puppy.dogId);
+        if (dogIndex !== -1) {
+          db.dogs[dogIndex].status = 'sold';
+          db.dogs[dogIndex].updatedAt = now;
+        }
+      }
+    }
+  }
+  
+  saveDb(db);
+  return db.sales[index];
 }
 
 export async function deleteSale(id: string): Promise<boolean> {
@@ -801,18 +1355,100 @@ export async function deleteSale(id: string): Promise<boolean> {
   const index = db.sales.findIndex(s => s.id === id);
   if (index === -1) return false;
   
-  const sale = db.sales[index];
+  const now = new Date();
   
-  // Revert dog status
-  const dogIndex = db.dogs.findIndex(d => d.id === sale.dogId);
-  if (dogIndex !== -1) {
-    db.dogs[dogIndex].status = 'active';
-    db.dogs[dogIndex].updatedAt = new Date();
+  // Revert dog statuses for all puppies in this sale
+  const salePuppies = db.salePuppies.filter(sp => sp.saleId === id);
+  for (const sp of salePuppies) {
+    const dogIndex = db.dogs.findIndex(d => d.id === sp.dogId);
+    if (dogIndex !== -1) {
+      db.dogs[dogIndex].status = 'active';
+      db.dogs[dogIndex].updatedAt = now;
+    }
+  }
+  
+  // Remove SalePuppy entries
+  db.salePuppies = db.salePuppies.filter(sp => sp.saleId !== id);
+  
+  // Clear convertedToSaleId from any interests pointing to this sale
+  for (let i = 0; i < db.clientInterests.length; i++) {
+    if (db.clientInterests[i].convertedToSaleId === id) {
+      db.clientInterests[i].convertedToSaleId = null;
+      db.clientInterests[i].status = 'interested'; // Reset status
+      db.clientInterests[i].updatedAt = now;
+    }
   }
   
   db.sales.splice(index, 1);
   saveDb(db);
   return true;
+}
+
+// ============================================
+// SALE PUPPY OPERATIONS
+// ============================================
+
+export async function addPuppyToSale(saleId: string, dogId: string, price: number): Promise<SalePuppy | null> {
+  const db = loadDb();
+  
+  // Check if sale exists
+  const sale = db.sales.find(s => s.id === saleId);
+  if (!sale) return null;
+  
+  // Check if puppy is already in this sale
+  const existing = db.salePuppies.find(sp => sp.saleId === saleId && sp.dogId === dogId);
+  if (existing) return existing;
+  
+  const now = new Date();
+  const salePuppy: SalePuppy = {
+    id: generateId(),
+    saleId,
+    dogId,
+    price,
+    createdAt: now,
+  };
+  db.salePuppies.push(salePuppy);
+  
+  // Update dog status to sold
+  const dogIndex = db.dogs.findIndex(d => d.id === dogId);
+  if (dogIndex !== -1) {
+    db.dogs[dogIndex].status = 'sold';
+    db.dogs[dogIndex].updatedAt = now;
+  }
+  
+  saveDb(db);
+  return salePuppy;
+}
+
+export async function removePuppyFromSale(saleId: string, dogId: string): Promise<boolean> {
+  const db = loadDb();
+  
+  const index = db.salePuppies.findIndex(sp => sp.saleId === saleId && sp.dogId === dogId);
+  if (index === -1) return false;
+  
+  db.salePuppies.splice(index, 1);
+  
+  // Revert dog status
+  const now = new Date();
+  const dogIndex = db.dogs.findIndex(d => d.id === dogId);
+  if (dogIndex !== -1) {
+    db.dogs[dogIndex].status = 'active';
+    db.dogs[dogIndex].updatedAt = now;
+  }
+  
+  saveDb(db);
+  return true;
+}
+
+export async function updatePuppyPrice(saleId: string, dogId: string, price: number): Promise<SalePuppy | null> {
+  const db = loadDb();
+  
+  const index = db.salePuppies.findIndex(sp => sp.saleId === saleId && sp.dogId === dogId);
+  if (index === -1) return null;
+  
+  db.salePuppies[index].price = price;
+  saveDb(db);
+  return db.salePuppies[index];
 }
 
 // ============================================

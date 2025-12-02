@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,9 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateTransport } from '@/hooks/useTransport';
+import { useCreateTransport, useUpdateTransport } from '@/hooks/useTransport';
 import { useDogs } from '@/hooks/useDogs';
-import type { TransportMode } from '@/types';
+import type { Transport, TransportMode } from '@/types';
 
 const transportSchema = z.object({
   dogId: z.string().min(1, 'Please select a dog'),
@@ -45,14 +46,18 @@ type TransportFormData = z.infer<typeof transportSchema>;
 interface TransportFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  transport?: Transport;
 }
 
 export function TransportFormDialog({
   open,
   onOpenChange,
+  transport,
 }: TransportFormDialogProps) {
   const createTransport = useCreateTransport();
+  const updateTransport = useUpdateTransport();
   const { data: dogs } = useDogs();
+  const isEditing = !!transport;
 
   const {
     register,
@@ -69,8 +74,33 @@ export function TransportFormDialog({
     },
   });
 
+  // Populate form when editing
+  useEffect(() => {
+    if (transport && open) {
+      setValue('dogId', transport.dogId);
+      setValue('date', new Date(transport.date).toISOString().split('T')[0]);
+      setValue('mode', transport.mode);
+      setValue('shipperBusinessName', transport.shipperBusinessName || '');
+      setValue('contactName', transport.contactName || '');
+      setValue('phone', transport.phone || '');
+      setValue('email', transport.email || '');
+      setValue('originCity', transport.originCity || '');
+      setValue('originState', transport.originState || '');
+      setValue('destinationCity', transport.destinationCity || '');
+      setValue('destinationState', transport.destinationState || '');
+      setValue('trackingNumber', transport.trackingNumber || '');
+      setValue('cost', transport.cost?.toString() || '');
+      setValue('notes', transport.notes || '');
+    } else if (!transport && open) {
+      reset({
+        date: new Date().toISOString().split('T')[0],
+        mode: 'ground',
+      });
+    }
+  }, [transport, open, setValue, reset]);
+
   const onSubmit = async (data: TransportFormData) => {
-    await createTransport.mutateAsync({
+    const transportData = {
       dogId: data.dogId,
       date: new Date(data.date),
       mode: data.mode as TransportMode,
@@ -86,7 +116,13 @@ export function TransportFormDialog({
       cost: data.cost ? parseFloat(data.cost) : null,
       notes: data.notes || null,
       expenseId: null,
-    });
+    };
+
+    if (isEditing && transport) {
+      await updateTransport.mutateAsync({ id: transport.id, data: transportData });
+    } else {
+      await createTransport.mutateAsync(transportData);
+    }
     reset();
     onOpenChange(false);
   };
@@ -95,7 +131,7 @@ export function TransportFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Transport Record</DialogTitle>
+          <DialogTitle>{isEditing ? 'Edit Transport Record' : 'Add Transport Record'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -254,7 +290,7 @@ export function TransportFormDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Add Transport'}
+              {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Transport'}
             </Button>
           </DialogFooter>
         </form>

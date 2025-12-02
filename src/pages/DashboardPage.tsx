@@ -1,7 +1,16 @@
-import { Dog, Baby, Heart, Syringe, Calendar, DollarSign } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Dog, Baby, Heart, Syringe, Calendar, DollarSign, Truck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useDashboardStats } from '@/hooks/useDashboard';
+import { useDogs } from '@/hooks/useDogs';
 import { formatCurrency } from '@/lib/utils';
+import { DogFormDialog } from '@/components/dogs/DogFormDialog';
+import { LitterFormDialog } from '@/components/litters/LitterFormDialog';
+import { HeatCycleFormDialog } from '@/components/heat-cycles/HeatCycleFormDialog';
+import { ExpenseFormDialog } from '@/components/expenses/ExpenseFormDialog';
+import { TransportFormDialog } from '@/components/transport/TransportFormDialog';
 
 interface StatCardProps {
   title: string;
@@ -28,7 +37,16 @@ function StatCard({ title, value, icon, description }: StatCardProps) {
 }
 
 export function DashboardPage() {
+  const navigate = useNavigate();
   const { data: stats, isLoading } = useDashboardStats();
+  const { data: dogs } = useDogs();
+  const [showDogDialog, setShowDogDialog] = useState(false);
+  const [showLitterDialog, setShowLitterDialog] = useState(false);
+  const [showHeatCycleDialog, setShowHeatCycleDialog] = useState(false);
+  const [showExpenseDialog, setShowExpenseDialog] = useState(false);
+  const [showTransportDialog, setShowTransportDialog] = useState(false);
+
+  const females = dogs?.filter((d) => d.sex === 'F' && d.status === 'active') || [];
 
   if (isLoading) {
     return (
@@ -90,11 +108,57 @@ export function DashboardPage() {
           <CardHeader>
             <CardTitle className="text-lg">Quick Actions</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Add a new dog, record a vaccination, or log an expense from the
-              respective pages in the sidebar.
-            </p>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDogDialog(true)}
+              >
+                <Dog className="h-4 w-4 mr-2" />
+                Add Dog
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowLitterDialog(true)}
+              >
+                <Baby className="h-4 w-4 mr-2" />
+                Add Litter
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowHeatCycleDialog(true)}
+              >
+                <Heart className="h-4 w-4 mr-2" />
+                Start Heat Cycle
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowExpenseDialog(true)}
+              >
+                <DollarSign className="h-4 w-4 mr-2" />
+                Log Expense
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowTransportDialog(true)}
+              >
+                <Truck className="h-4 w-4 mr-2" />
+                Add Transport
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/dogs')}
+              >
+                <Syringe className="h-4 w-4 mr-2" />
+                Record Vaccination
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -130,6 +194,29 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Form Dialogs */}
+      <DogFormDialog
+        open={showDogDialog}
+        onOpenChange={setShowDogDialog}
+      />
+      <LitterFormDialog
+        open={showLitterDialog}
+        onOpenChange={setShowLitterDialog}
+      />
+      <HeatCycleFormDialog
+        open={showHeatCycleDialog}
+        onOpenChange={setShowHeatCycleDialog}
+        females={females}
+      />
+      <ExpenseFormDialog
+        open={showExpenseDialog}
+        onOpenChange={setShowExpenseDialog}
+      />
+      <TransportFormDialog
+        open={showTransportDialog}
+        onOpenChange={setShowTransportDialog}
+      />
     </div>
   );
 }

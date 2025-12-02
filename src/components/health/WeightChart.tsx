@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Edit } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -19,9 +19,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useWeightEntries, useDeleteWeightEntry } from '@/hooks/useHealth';
 import { WeightFormDialog } from './WeightFormDialog';
 import { formatDate, formatWeight } from '@/lib/utils';
+import type { WeightEntry } from '@/types';
 
 interface WeightChartProps {
   dogId: string;
@@ -31,6 +43,19 @@ export function WeightChart({ dogId }: WeightChartProps) {
   const { data: weightEntries, isLoading } = useWeightEntries(dogId);
   const deleteWeight = useDeleteWeightEntry();
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<WeightEntry | undefined>();
+
+  const handleEdit = (entry: WeightEntry) => {
+    setEditingEntry(entry);
+    setShowAddDialog(true);
+  };
+
+  const handleCloseDialog = (open: boolean) => {
+    setShowAddDialog(open);
+    if (!open) {
+      setEditingEntry(undefined);
+    }
+  };
 
   const chartData = weightEntries?.map((entry) => ({
     date: formatDate(entry.date),
@@ -107,7 +132,7 @@ export function WeightChart({ dogId }: WeightChartProps) {
                   <TableHead>Date</TableHead>
                   <TableHead>Weight</TableHead>
                   <TableHead>Notes</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  <TableHead className="w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -119,13 +144,37 @@ export function WeightChart({ dogId }: WeightChartProps) {
                     </TableCell>
                     <TableCell>{entry.notes || '-'}</TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteWeight.mutate(entry.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(entry)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete this weight entry?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete this weight record.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteWeight.mutate(entry.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -137,8 +186,9 @@ export function WeightChart({ dogId }: WeightChartProps) {
 
       <WeightFormDialog
         open={showAddDialog}
-        onOpenChange={setShowAddDialog}
+        onOpenChange={handleCloseDialog}
         dogId={dogId}
+        weightEntry={editingEntry}
       />
     </div>
   );

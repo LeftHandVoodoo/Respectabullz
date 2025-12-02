@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,7 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useCreateClient } from '@/hooks/useClients';
+import { useCreateClient, useUpdateClient } from '@/hooks/useClients';
+import type { Client } from '@/types';
 
 const clientSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -31,13 +33,17 @@ type ClientFormData = z.infer<typeof clientSchema>;
 interface ClientFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  client?: Client;
 }
 
 export function ClientFormDialog({
   open,
   onOpenChange,
+  client,
 }: ClientFormDialogProps) {
   const createClient = useCreateClient();
+  const updateClient = useUpdateClient();
+  const isEditing = !!client;
 
   const {
     register,
@@ -48,8 +54,37 @@ export function ClientFormDialog({
     resolver: zodResolver(clientSchema),
   });
 
+  // Populate form when editing
+  useEffect(() => {
+    if (client && open) {
+      reset({
+        name: client.name,
+        phone: client.phone || '',
+        email: client.email || '',
+        addressLine1: client.addressLine1 || '',
+        addressLine2: client.addressLine2 || '',
+        city: client.city || '',
+        state: client.state || '',
+        postalCode: client.postalCode || '',
+        notes: client.notes || '',
+      });
+    } else if (!client && open) {
+      reset({
+        name: '',
+        phone: '',
+        email: '',
+        addressLine1: '',
+        addressLine2: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        notes: '',
+      });
+    }
+  }, [client, open, reset]);
+
   const onSubmit = async (data: ClientFormData) => {
-    await createClient.mutateAsync({
+    const clientData = {
       name: data.name,
       phone: data.phone || null,
       email: data.email || null,
@@ -59,7 +94,13 @@ export function ClientFormDialog({
       state: data.state || null,
       postalCode: data.postalCode || null,
       notes: data.notes || null,
-    });
+    };
+
+    if (isEditing && client) {
+      await updateClient.mutateAsync({ id: client.id, data: clientData });
+    } else {
+      await createClient.mutateAsync(clientData);
+    }
     reset();
     onOpenChange(false);
   };
@@ -68,7 +109,7 @@ export function ClientFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add Client</DialogTitle>
+          <DialogTitle>{isEditing ? 'Edit Client' : 'Add Client'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -167,7 +208,7 @@ export function ClientFormDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Add Client'}
+              {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Client'}
             </Button>
           </DialogFooter>
         </form>

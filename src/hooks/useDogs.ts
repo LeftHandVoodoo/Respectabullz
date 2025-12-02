@@ -25,6 +25,7 @@ export function useCreateDog() {
     mutationFn: (input: CreateDogInput) => db.createDog(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dogs'] });
+      queryClient.invalidateQueries({ queryKey: ['litters'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast({
         title: 'Dog created',
@@ -51,6 +52,7 @@ export function useUpdateDog() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['dogs'] });
       queryClient.invalidateQueries({ queryKey: ['dogs', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['litters'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast({
         title: 'Dog updated',
@@ -75,6 +77,7 @@ export function useDeleteDog() {
     mutationFn: (id: string) => db.deleteDog(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dogs'] });
+      queryClient.invalidateQueries({ queryKey: ['litters'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast({
         title: 'Dog deleted',

@@ -20,7 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateVaccination } from '@/hooks/useHealth';
+import { useCreateVaccination, useUpdateVaccination } from '@/hooks/useHealth';
+import type { VaccinationRecord } from '@/types';
 
 const vaccineTypes = [
   'DHPP',
@@ -78,14 +79,18 @@ interface VaccinationFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   dogId: string;
+  vaccination?: VaccinationRecord;
 }
 
 export function VaccinationFormDialog({
   open,
   onOpenChange,
   dogId,
+  vaccination,
 }: VaccinationFormDialogProps) {
   const createVaccination = useCreateVaccination();
+  const updateVaccination = useUpdateVaccination();
+  const isEditing = !!vaccination;
   const [isCustomDose, setIsCustomDose] = useState(false);
 
   const {
@@ -108,6 +113,34 @@ export function VaccinationFormDialog({
   const selectedVaccine = watch('vaccineType');
   const currentDose = watch('dose');
   const doseOptions = selectedVaccine ? typicalDosages[selectedVaccine] || [] : [];
+
+  // Populate form when editing
+  useEffect(() => {
+    if (vaccination && open) {
+      setValue('date', new Date(vaccination.date).toISOString().split('T')[0]);
+      // Check if vaccine type is one of the standard ones
+      const isStandardVaccine = vaccineTypes.includes(vaccination.vaccineType);
+      if (isStandardVaccine) {
+        setValue('vaccineType', vaccination.vaccineType);
+        setValue('customVaccineType', '');
+      } else {
+        setValue('vaccineType', 'Other');
+        setValue('customVaccineType', vaccination.vaccineType);
+      }
+      setValue('dose', vaccination.dose || '');
+      setValue('lotNumber', vaccination.lotNumber || '');
+      setValue('vetClinic', vaccination.vetClinic || '');
+      setValue('nextDueDate', vaccination.nextDueDate ? new Date(vaccination.nextDueDate).toISOString().split('T')[0] : '');
+      setValue('notes', vaccination.notes || '');
+    } else if (!vaccination && open) {
+      reset({
+        date: new Date().toISOString().split('T')[0],
+        vaccineType: '',
+        customVaccineType: '',
+        dose: '',
+      });
+    }
+  }, [vaccination, open, setValue, reset]);
 
   // Reset custom dose state when vaccine changes
   useEffect(() => {
@@ -234,7 +267,7 @@ export function VaccinationFormDialog({
       ? data.customVaccineType
       : data.vaccineType;
 
-    await createVaccination.mutateAsync({
+    const vaccinationData = {
       dogId,
       date: new Date(data.date),
       vaccineType,
@@ -243,7 +276,13 @@ export function VaccinationFormDialog({
       vetClinic: data.vetClinic || null,
       nextDueDate: data.nextDueDate ? new Date(data.nextDueDate) : null,
       notes: data.notes || null,
-    });
+    };
+
+    if (isEditing && vaccination) {
+      await updateVaccination.mutateAsync({ id: vaccination.id, data: vaccinationData });
+    } else {
+      await createVaccination.mutateAsync(vaccinationData);
+    }
     reset();
     setIsCustomDose(false);
     onOpenChange(false);
@@ -260,7 +299,7 @@ export function VaccinationFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Vaccination</DialogTitle>
+          <DialogTitle>{isEditing ? 'Edit Vaccination' : 'Add Vaccination'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -419,7 +458,7 @@ export function VaccinationFormDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Add Vaccination'}
+              {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Vaccination'}
             </Button>
           </DialogFooter>
         </form>

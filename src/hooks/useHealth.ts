@@ -127,6 +127,31 @@ export function useCreateWeightEntry() {
   });
 }
 
+export function useUpdateWeightEntry() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<WeightEntry> }) =>
+      db.updateWeightEntry(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['weights'] });
+      queryClient.invalidateQueries({ queryKey: ['dogs'] });
+      toast({
+        title: 'Weight entry updated',
+        description: 'The weight entry has been updated successfully.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update weight entry. Please try again.',
+        variant: 'destructive',
+      });
+      console.error('Failed to update weight entry:', error);
+    },
+  });
+}
+
 export function useDeleteWeightEntry() {
   const queryClient = useQueryClient();
 

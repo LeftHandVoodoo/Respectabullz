@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,8 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateMedicalRecord } from '@/hooks/useHealth';
-import type { MedicalRecordType } from '@/types';
+import { useCreateMedicalRecord, useUpdateMedicalRecord } from '@/hooks/useHealth';
+import type { MedicalRecord, MedicalRecordType } from '@/types';
 
 const recordTypes: { value: MedicalRecordType; label: string }[] = [
   { value: 'exam', label: 'Exam' },
@@ -45,14 +46,18 @@ interface MedicalRecordFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   dogId: string;
+  record?: MedicalRecord;
 }
 
 export function MedicalRecordFormDialog({
   open,
   onOpenChange,
   dogId,
+  record,
 }: MedicalRecordFormDialogProps) {
   const createRecord = useCreateMedicalRecord();
+  const updateRecord = useUpdateMedicalRecord();
+  const isEditing = !!record;
 
   const {
     register,
@@ -69,8 +74,24 @@ export function MedicalRecordFormDialog({
     },
   });
 
+  // Populate form when editing
+  useEffect(() => {
+    if (record && open) {
+      setValue('date', new Date(record.date).toISOString().split('T')[0]);
+      setValue('type', record.type);
+      setValue('description', record.description);
+      setValue('vetClinic', record.vetClinic || '');
+      setValue('notes', record.notes || '');
+    } else if (!record && open) {
+      reset({
+        date: new Date().toISOString().split('T')[0],
+        type: '',
+      });
+    }
+  }, [record, open, setValue, reset]);
+
   const onSubmit = async (data: MedicalFormData) => {
-    await createRecord.mutateAsync({
+    const recordData = {
       dogId,
       date: new Date(data.date),
       type: data.type as MedicalRecordType,
@@ -78,7 +99,13 @@ export function MedicalRecordFormDialog({
       vetClinic: data.vetClinic || null,
       attachmentPath: null,
       notes: data.notes || null,
-    });
+    };
+
+    if (isEditing && record) {
+      await updateRecord.mutateAsync({ id: record.id, data: recordData });
+    } else {
+      await createRecord.mutateAsync(recordData);
+    }
     reset();
     onOpenChange(false);
   };
@@ -87,7 +114,7 @@ export function MedicalRecordFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Medical Record</DialogTitle>
+          <DialogTitle>{isEditing ? 'Edit Medical Record' : 'Add Medical Record'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -166,7 +193,7 @@ export function MedicalRecordFormDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Add Record'}
+              {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Record'}
             </Button>
           </DialogFooter>
         </form>

@@ -3,7 +3,29 @@
 export type DogStatus = 'active' | 'sold' | 'retired' | 'deceased';
 export type DogSex = 'M' | 'F';
 
-export type HeatEventType = 'bleeding' | 'progesteroneTest' | 'breeding' | 'other';
+export type HeatEventType = 
+  | 'bleeding_start'      // First day of bleeding (proestrus start)
+  | 'bleeding_heavy'      // Heavy bleeding
+  | 'bleeding_light'      // Light/pink discharge
+  | 'discharge_straw'     // Straw-colored discharge (estrus indicator)
+  | 'vulva_swelling'      // Vulva swelling observation
+  | 'flagging'            // Flagging behavior (receptive)
+  | 'standing'            // Standing heat confirmed
+  | 'progesterone_test'   // Progesterone blood test
+  | 'lh_surge'            // LH surge detected
+  | 'breeding_natural'    // Natural breeding
+  | 'breeding_ai'         // Artificial insemination
+  | 'breeding_surgical'   // Surgical AI
+  | 'ovulation'           // Estimated ovulation
+  | 'end_receptive'       // No longer receptive
+  | 'cycle_end'           // Cycle ended
+  | 'other';              // Other observation
+
+export type HeatPhase = 
+  | 'proestrus'   // Days 1-9: Bleeding, swelling, attracts males but not receptive
+  | 'estrus'      // Days 9-14: Standing heat, receptive, optimal breeding
+  | 'diestrus'    // Days 14-60+: Not receptive, pregnancy or pseudo-pregnancy
+  | 'anestrus';   // Rest period between cycles
 export type MedicalRecordType = 'exam' | 'surgery' | 'test' | 'medication' | 'injury' | 'other';
 export type TransportMode = 'flight' | 'ground' | 'pickup' | 'other';
 export type ExpenseCategory = 
@@ -15,6 +37,28 @@ export type ExpenseCategory =
   | 'marketing' 
   | 'utilities' 
   | 'misc';
+
+// Client Interest & Sales types
+export type InterestStatus = 
+  | 'interested'       // Initial interest expressed
+  | 'contacted'        // Breeder has contacted client
+  | 'scheduled_visit'  // Visit/meeting scheduled
+  | 'converted'        // Converted to a sale
+  | 'lost';            // No longer interested
+
+export type ContactMethod = 
+  | 'phone'
+  | 'email'
+  | 'website'
+  | 'social_media'
+  | 'referral'
+  | 'other';
+
+export type PaymentStatus = 
+  | 'deposit_only'   // Only deposit paid
+  | 'partial'        // Partial payment made
+  | 'paid_in_full'   // Fully paid
+  | 'refunded';      // Refunded
 
 export interface Dog {
   id: string;
@@ -43,7 +87,8 @@ export interface Dog {
   heatCycles?: HeatCycle[];
   transports?: Transport[];
   photos?: DogPhoto[];
-  sale?: Sale | null;
+  salePuppies?: SalePuppy[];
+  clientInterests?: ClientInterest[];
 }
 
 export interface Litter {
@@ -70,10 +115,18 @@ export interface Litter {
 export interface HeatCycle {
   id: string;
   bitchId: string;
-  startDate: Date;
-  standingHeatStart?: Date | null;
-  standingHeatEnd?: Date | null;
-  endDate?: Date | null;
+  startDate: Date;                    // First day of bleeding (proestrus)
+  standingHeatStart?: Date | null;    // First day of standing heat (estrus)
+  standingHeatEnd?: Date | null;      // Last day of standing heat
+  ovulationDate?: Date | null;        // Estimated ovulation date
+  optimalBreedingStart?: Date | null; // Optimal breeding window start
+  optimalBreedingEnd?: Date | null;   // Optimal breeding window end
+  endDate?: Date | null;              // Cycle end date
+  expectedDueDate?: Date | null;      // If bred, expected whelp date (63 days from ovulation)
+  nextHeatEstimate?: Date | null;     // Predicted next heat (typically 6-7 months)
+  cycleLength?: number | null;        // Total cycle length in days
+  currentPhase?: HeatPhase | null;    // Current phase of cycle
+  isBred?: boolean;                   // Whether breeding occurred
   notes?: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -86,11 +139,26 @@ export interface HeatEvent {
   id: string;
   heatCycleId: string;
   date: Date;
+  time?: string | null;               // Time of event (HH:MM)
   type: HeatEventType;
-  value?: string | null;
+  value?: string | null;              // Progesterone level, LH result, etc.
+  unit?: string | null;               // ng/mL, nmol/L, etc.
+  vetClinic?: string | null;          // Where test was performed
+  sireId?: string | null;             // For breeding events
+  breedingMethod?: string | null;     // natural, AI fresh, AI frozen, surgical
   notes?: string | null;
   createdAt: Date;
+  // Relations
+  heatCycle?: HeatCycle;
+  sire?: Dog | null;
 }
+
+// Input types for heat cycle operations
+export type CreateHeatCycleInput = Omit<HeatCycle, 'id' | 'createdAt' | 'updatedAt' | 'bitch' | 'events'>;
+export type UpdateHeatCycleInput = Partial<CreateHeatCycleInput>;
+
+export type CreateHeatEventInput = Omit<HeatEvent, 'id' | 'createdAt' | 'heatCycle' | 'sire'>;
+export type UpdateHeatEventInput = Partial<CreateHeatEventInput>;
 
 export interface VaccinationRecord {
   id: string;
@@ -194,23 +262,61 @@ export interface Client {
   updatedAt: Date;
   // Relations
   sales?: Sale[];
+  interests?: ClientInterest[];
 }
 
 export interface Sale {
   id: string;
-  dogId: string;
   clientId: string;
   saleDate: Date;
-  price: number;
+  price: number;                              // Total sale price
   depositAmount?: number | null;
   depositDate?: Date | null;
   contractPath?: string | null;
   notes?: string | null;
+  // New enhanced fields
+  shippedDate?: Date | null;
+  receivedDate?: Date | null;
+  isLocalPickup: boolean;
+  paymentStatus: PaymentStatus;
+  warrantyInfo?: string | null;
+  registrationTransferDate?: Date | null;
+  transportId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   // Relations
-  dog?: Dog;
   client?: Client;
+  puppies?: SalePuppy[];                      // Multiple puppies via junction
+  transport?: Transport | null;
+  convertedInterests?: ClientInterest[];
+}
+
+export interface SalePuppy {
+  id: string;
+  saleId: string;
+  dogId: string;
+  price: number;                              // Individual puppy price
+  createdAt: Date;
+  // Relations
+  sale?: Sale;
+  dog?: Dog;
+}
+
+export interface ClientInterest {
+  id: string;
+  clientId: string;
+  dogId: string;
+  interestDate: Date;
+  contactMethod: ContactMethod;
+  status: InterestStatus;
+  notes?: string | null;
+  convertedToSaleId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  // Relations
+  client?: Client;
+  dog?: Dog;
+  convertedToSale?: Sale | null;
 }
 
 export interface PedigreeEntry {
@@ -267,6 +373,40 @@ export type UpdateExpenseInput = Partial<CreateExpenseInput>;
 
 export type CreateTransportInput = Omit<Transport, 'id' | 'createdAt' | 'updatedAt' | 'dog' | 'expense'>;
 export type UpdateTransportInput = Partial<CreateTransportInput>;
+
+// Sale input types (enhanced for multiple puppies)
+export interface CreateSaleInput {
+  clientId: string;
+  saleDate: Date;
+  price: number;
+  depositAmount?: number | null;
+  depositDate?: Date | null;
+  contractPath?: string | null;
+  notes?: string | null;
+  shippedDate?: Date | null;
+  receivedDate?: Date | null;
+  isLocalPickup?: boolean;
+  paymentStatus?: PaymentStatus;
+  warrantyInfo?: string | null;
+  registrationTransferDate?: Date | null;
+  transportId?: string | null;
+  // Puppies with individual prices
+  puppies: { dogId: string; price: number }[];
+}
+export type UpdateSaleInput = Partial<Omit<CreateSaleInput, 'puppies'>> & {
+  puppies?: { dogId: string; price: number }[];
+};
+
+// ClientInterest input types
+export type CreateClientInterestInput = Omit<ClientInterest, 'id' | 'createdAt' | 'updatedAt' | 'client' | 'dog' | 'convertedToSale'>;
+export type UpdateClientInterestInput = Partial<CreateClientInterestInput>;
+
+// SalePuppy input types
+export interface AddPuppyToSaleInput {
+  saleId: string;
+  dogId: string;
+  price: number;
+}
 
 // Dashboard stats type
 export interface DashboardStats {
