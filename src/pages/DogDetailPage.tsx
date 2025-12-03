@@ -10,6 +10,8 @@ import {
   Heart,
   Truck,
   DollarSign,
+  Dna,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +34,10 @@ import { DogFormDialog } from '@/components/dogs/DogFormDialog';
 import { VaccinationsList } from '@/components/health/VaccinationsList';
 import { WeightChart } from '@/components/health/WeightChart';
 import { MedicalRecordsList } from '@/components/health/MedicalRecordsList';
+import { HeatCyclePredictionCard } from '@/components/breeding/HeatCyclePredictionCard';
+import { GeneticTestsList } from '@/components/genetics/GeneticTestsList';
+import { PedigreeChart } from '@/components/pedigree/PedigreeChart';
+import { RegistrationStatusCard } from '@/components/registry/RegistrationStatusCard';
 import { calculateAge, formatDate } from '@/lib/utils';
 import { getPhotoUrlSync, initPhotoBasePath } from '@/lib/photoUtils';
 import type { DogStatus } from '@/types';
@@ -197,6 +203,9 @@ export function DogDetailPage() {
         </Card>
       )}
 
+      {/* Registration Status */}
+      <RegistrationStatusCard dog={dog} />
+
       {/* Tabs */}
       <Tabs defaultValue="health" className="space-y-4">
         <TabsList>
@@ -218,6 +227,14 @@ export function DogDetailPage() {
               Breeding
             </TabsTrigger>
           )}
+          <TabsTrigger value="genetics">
+            <Dna className="h-4 w-4 mr-2" />
+            Genetics
+          </TabsTrigger>
+          <TabsTrigger value="pedigree">
+            <Users className="h-4 w-4 mr-2" />
+            Pedigree
+          </TabsTrigger>
           <TabsTrigger value="transport">
             <Truck className="h-4 w-4 mr-2" />
             Transport
@@ -241,19 +258,35 @@ export function DogDetailPage() {
         </TabsContent>
 
         {dog.sex === 'F' && (
-          <TabsContent value="breeding">
+          <TabsContent value="breeding" className="space-y-4">
+            <HeatCyclePredictionCard dogId={dog.id} dogName={dog.name} />
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Heat Cycles</CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/heat-cycles')}
+                >
+                  View All Heat Cycles
+                </Button>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Heat cycle tracking coming soon...
+                  Manage heat cycles from the Heat Cycles page. Heat cycle history for {dog.name} will be displayed there.
                 </p>
               </CardContent>
             </Card>
           </TabsContent>
         )}
+
+        <TabsContent value="genetics">
+          <GeneticTestsList dogId={dog.id} />
+        </TabsContent>
+
+        <TabsContent value="pedigree">
+          <PedigreeChart dogId={dog.id} generations={3} />
+        </TabsContent>
 
         <TabsContent value="transport">
           <Card>

@@ -71,22 +71,26 @@ export async function selectImageFile(): Promise<string | null> {
     if (typeof selected === 'object' && selected !== null) {
       // Could be { path: string } or array
       const obj = selected as Record<string, unknown>;
-      if ('path' in obj && typeof obj.path === 'string') {
+      
+      // Check if it's an array first (shouldn't happen with multiple: false, but handle it)
+      if (Array.isArray(obj)) {
+        const arr = obj as unknown[];
+        if (arr.length > 0) {
+          const first = arr[0];
+          if (typeof first === 'string') {
+            console.log('Selected file (array[0] string):', first);
+            return first;
+          }
+          if (typeof first === 'object' && first !== null && 'path' in (first as Record<string, unknown>)) {
+            console.log('Selected file (array[0].path):', (first as Record<string, unknown>).path);
+            return (first as Record<string, unknown>).path as string;
+          }
+        }
+      } else if ('path' in obj && typeof obj.path === 'string') {
         console.log('Selected file (object.path):', obj.path);
         return obj.path;
       }
-      // If it's an array (shouldn't happen with multiple: false)
-      if (Array.isArray(selected) && selected.length > 0) {
-        const first = selected[0];
-        if (typeof first === 'string') {
-          console.log('Selected file (array[0] string):', first);
-          return first;
-        }
-        if (typeof first === 'object' && first !== null && 'path' in first) {
-          console.log('Selected file (array[0].path):', (first as Record<string, unknown>).path);
-          return (first as Record<string, unknown>).path as string;
-        }
-      }
+      
       console.log('Unknown object structure:', JSON.stringify(selected));
     }
     

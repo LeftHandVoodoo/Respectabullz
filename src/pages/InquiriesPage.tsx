@@ -130,13 +130,14 @@ export function InquiriesPage() {
 
   // Filter interests
   const filteredInterests = interests?.filter((interest) => {
+    const searchLower = search.toLowerCase();
     const matchesSearch = 
-      interest.client?.name.toLowerCase().includes(search.toLowerCase()) ||
-      interest.dog?.name.toLowerCase().includes(search.toLowerCase());
+      interest.client?.name?.toLowerCase().includes(searchLower) ||
+      interest.dog?.name?.toLowerCase().includes(searchLower);
     
     const matchesStatus = statusFilter === 'all' || interest.status === statusFilter;
     
-    return matchesSearch && matchesStatus;
+    return (!search || matchesSearch) && matchesStatus;
   });
 
   // Calculate stats

@@ -106,6 +106,13 @@ respectabullz/
 │   │   ├── dogs/            # Dog-specific components
 │   │   ├── litters/         # Litter components
 │   │   ├── health/          # Health tracking components
+│   │   ├── puppy-health/   # Puppy health task components (v0.8.0)
+│   │   ├── waitlist/       # Waitlist and reservation components (v0.8.0)
+│   │   ├── communication/  # Client communication logging (v0.8.0)
+│   │   ├── breeding/       # Breeding planning and external studs (v0.8.0)
+│   │   ├── genetics/       # Genetic testing and compatibility (v0.9.0)
+│   │   ├── pedigree/      # Pedigree chart components (v0.9.0)
+│   │   ├── registry/      # Registration tracking components (v0.9.0)
 │   │   ├── heat-cycles/     # Heat cycle components
 │   │   ├── transport/       # Transport components
 │   │   ├── expenses/        # Expense components
@@ -116,6 +123,11 @@ respectabullz/
 │   │   ├── useDogs.ts       # Dog CRUD operations
 │   │   ├── useLitters.ts    # Litter operations
 │   │   ├── useHealth.ts     # Vaccinations, weights, medical
+│   │   ├── usePuppyHealthTasks.ts # Puppy health task operations (v0.8.0)
+│   │   ├── useWaitlist.ts  # Waitlist operations (v0.8.0)
+│   │   ├── useCommunicationLogs.ts # Communication logging (v0.8.0)
+│   │   ├── useExternalStuds.ts # External stud operations (v0.8.0)
+│   │   ├── useGeneticTests.ts # Genetic test operations (v0.9.0)
 │   │   ├── useHeatCycles.ts # Heat cycle operations
 │   │   ├── useTransport.ts  # Transport operations
 │   │   ├── useExpenses.ts   # Expense operations

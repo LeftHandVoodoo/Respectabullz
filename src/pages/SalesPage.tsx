@@ -71,13 +71,14 @@ export function SalesPage() {
 
   // Filter sales
   const filteredSales = sales?.filter((sale) => {
+    const searchLower = search.toLowerCase();
     const matchesSearch = 
-      sale.client?.name.toLowerCase().includes(search.toLowerCase()) ||
-      sale.puppies?.some(p => p.dog?.name.toLowerCase().includes(search.toLowerCase()));
+      sale.client?.name?.toLowerCase().includes(searchLower) ||
+      sale.puppies?.some(p => p.dog?.name?.toLowerCase().includes(searchLower));
     
     const matchesPaymentStatus = paymentStatusFilter === 'all' || sale.paymentStatus === paymentStatusFilter;
     
-    return matchesSearch && matchesPaymentStatus;
+    return (!search || matchesSearch) && matchesPaymentStatus;
   });
 
   // Calculate stats

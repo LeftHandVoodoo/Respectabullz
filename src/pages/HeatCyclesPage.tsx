@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Calendar as CalendarIcon, List, Eye, AlertCircle, Heart } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, List, Eye, AlertCircle, Heart, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +34,24 @@ const phaseLabels: Record<HeatPhase, string> = {
   anestrus: 'Anestrus',
 };
 
+// Helper to format date for CSV (YYYY-MM-DD)
+function formatDateForCSV(date: Date | string | null | undefined): string {
+  if (!date) return '';
+  const d = new Date(date);
+  return d.toISOString().split('T')[0];
+}
+
+// Helper to escape CSV values
+function escapeCSV(value: string | null | undefined): string {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  // If the value contains comma, newline, or quote, wrap in quotes and escape existing quotes
+  if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
 export function HeatCyclesPage() {
   const navigate = useNavigate();
   const { data: heatCycles, isLoading } = useHeatCycles();
@@ -64,6 +82,65 @@ export function HeatCyclesPage() {
   // Check for cycles in fertile window
   const fertileCycles = activeCycles.filter(isInFertileWindow);
 
+  // Export heat cycles to CSV
+  const exportToCSV = () => {
+    if (!heatCycles || heatCycles.length === 0) return;
+
+    // CSV headers
+    const headers = [
+      'Dog Name',
+      'Start Date',
+      'Standing Heat Start',
+      'Standing Heat End',
+      'Ovulation Date',
+      'Optimal Breeding Start',
+      'Optimal Breeding End',
+      'End Date',
+      'Expected Due Date',
+      'Next Heat Estimate',
+      'Cycle Length (Days)',
+      'Current Phase',
+      'Is Bred',
+      'Notes',
+    ];
+
+    // Convert heat cycles to CSV rows
+    const rows = heatCycles.map((cycle) => [
+      escapeCSV(cycle.bitch?.name || 'Unknown'),
+      formatDateForCSV(cycle.startDate),
+      formatDateForCSV(cycle.standingHeatStart),
+      formatDateForCSV(cycle.standingHeatEnd),
+      formatDateForCSV(cycle.ovulationDate),
+      formatDateForCSV(cycle.optimalBreedingStart),
+      formatDateForCSV(cycle.optimalBreedingEnd),
+      formatDateForCSV(cycle.endDate),
+      formatDateForCSV(cycle.expectedDueDate),
+      formatDateForCSV(cycle.nextHeatEstimate),
+      cycle.cycleLength?.toString() || '',
+      cycle.currentPhase ? phaseLabels[cycle.currentPhase] : '',
+      cycle.isBred ? 'Yes' : 'No',
+      escapeCSV(cycle.notes),
+    ]);
+
+    // Build CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.join(',')),
+    ].join('\n');
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `heat_cycles_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -74,10 +151,20 @@ export function HeatCyclesPage() {
             Track heat cycles and breeding timing for your females
           </p>
         </div>
-        <Button onClick={() => setShowAddDialog(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Record Heat Cycle
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={exportToCSV}
+            disabled={!heatCycles || heatCycles.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button onClick={() => setShowAddDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Record Heat Cycle
+          </Button>
+        </div>
       </div>
 
       {/* Alert for fertile cycles */}

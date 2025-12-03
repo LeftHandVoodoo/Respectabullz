@@ -7,6 +7,144 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- (Future features will be documented here)
+
+## [0.9.0] - 2025-12-03
+
+### Added
+
+#### Priority 6: Reports & Analytics
+- New "Breeding" tab in Reports page with breeding program insights
+- Litters per year chart showing annual production over the past 5 years
+- Litter financials table with income, expenses, and profit per litter
+- Production by dam table showing litter count, puppy count, and average litter size
+- Production by sire table showing breeding male performance metrics
+- Export litter financial report to CSV
+
+#### Priority 7: Genetic Testing & Compatibility
+- Genetic test model to track health testing for dogs (DM, HUU, CMR1, EIC, vWD1, PRA-prcd, etc.)
+- Genetic tests list with status badges (Clear, Carrier, Affected, Pending)
+- Add/edit genetic test dialog with common test types pre-populated
+- Dog genetic test summary showing counts by status
+- Mating compatibility checker that analyzes genetic pairing risks
+- Warnings for carrier x carrier, affected parents, and missing tests
+- Genetics tab added to dog detail page
+
+#### Priority 8: Visual Pedigree Display
+- Pedigree chart component showing 3-generation family tree
+- Visual display of ancestors with sex-coded colors (blue for male, pink for female)
+- Ancestor cards showing name, registration number, color, and photo
+- Full-screen expand mode for detailed viewing
+- Export pedigree to text file format
+- Pedigree tab added to dog detail page
+
+#### Priority 9: Registry & Paperwork Helpers
+- Registration status tracking on dogs (not_registered, pending, registered)
+- Registration type field (full, limited)
+- Registry name field (AKC, UKC, ABKC, etc.)
+- Registration deadline tracking with visual alerts
+- Registration status card on dog detail page with inline editing
+- Litter registration export to text file with CSV format included
+- Export button on litter detail page for registry paperwork
+
+### Fixed
+
+- Fixed TypeScript and ESLint errors across multiple components
+- Fixed unused imports and variables in genetic testing, pedigree, and registry components
+- Fixed Tauri v2 compatibility issues in photo utilities and backup functions
+- Fixed React component creation during render warnings in PedigreeChart
+- Fixed setState synchronization issues in WhelpingChecklist useEffect
+- Fixed type safety issues with recharts callback props using eslint-disable comments
+- Fixed unnecessary escape characters in string literals
+
+## [0.8.0] - 2025-12-04
+
+### Added
+
+- Clickable "Total Dogs" card on dashboard that opens a dialog listing all dogs
+- Clickable "Dogs in Heat" card on dashboard that opens a dialog listing dogs currently in heat
+- Clickable "Upcoming Shots" card on dashboard that opens a dialog listing dogs with vaccinations due in the next 30 days
+- Clickable "Due Dates" card on dashboard that opens a dialog listing litters with due dates in the next 30 days
+- Clickable "Monthly Expenses" card on dashboard that navigates to the expenses page
+- Clickable reminders in the dashboard Reminders card that open the appropriate dialogs (upcoming shots and due dates)
+- Clicking a dog in any dashboard dialog navigates to that dog's detail page
+- Export heat cycles to CSV from the Heat Cycles page with all relevant data fields
+- Clicking a litter in the due dates dialog navigates to that litter's detail page
+
+#### Priority 1: Puppy Health & Development Schedule
+- Puppy health task system with auto-generated 8-week development schedule
+- Health schedule template with configurable tasks (daily weights, deworming, vaccinations, vet checks, etc.)
+- Auto-generate tasks when litter is marked as whelped based on whelp date
+- Puppy health tasks list with overdue, upcoming, and completed sections
+- Task completion tracking with progress indicators
+- Per-puppy task assignment for individual health milestones
+- Enhanced puppy weight tracking with growth monitoring
+- Puppy evaluation system with categories (show_prospect, breeding_prospect, pet)
+- Structure and temperament notes for puppy assessments
+- Dashboard widget showing "Puppy Tasks Due This Week"
+- Puppy health tasks tab on litter detail page
+
+#### Priority 2: Pregnancy & Whelping Management
+- Litter status pipeline with visual progress indicator (planned → bred → ultrasound_confirmed → xray_confirmed → whelped → weaning → ready_to_go → completed)
+- Pregnancy confirmation tracking with ultrasound date, result, and puppy count estimates
+- X-ray confirmation tracking with date and accurate puppy count
+- Whelping preparation checklist with configurable items organized by timeline
+- Checklist sections: 2 weeks before, 1 week before, and during whelping
+- Progress tracking for whelping checklist completion
+- Whelping event log for recording individual puppy births
+- Litter status progress component displayed on litter detail page
+- Whelping checklist automatically shown for litters approaching due date
+
+#### Priority 3: Waitlist & Reservation Management
+- WaitlistEntry model for tracking puppy reservations and deposits
+- Pick order management with automatic position assignment
+- Sex preference tracking (male, female, either)
+- Color preference field for client requests
+- Deposit tracking with amount, date, and status (pending, paid, refunded, applied_to_sale)
+- Waitlist status tracking (waiting, matched, converted, withdrawn)
+- Puppy assignment linking waitlist entries to specific dogs
+- Waitlist form dialog for creating and editing entries
+- Waitlist list component showing all entries for a litter
+- Visual indicators for deposit status and pick order
+- Reservation to sale conversion flow
+- Waitlist tab on litter detail page
+
+#### Priority 4: Client Communication Logging
+- CommunicationLog model tracking all client interactions
+- Communication types: phone, email, text, in-person, video call, social media
+- Direction tracking (inbound from client, outbound to client)
+- Communication timeline component showing chronological feed
+- Follow-up reminder system with due dates
+- Follow-up completion tracking
+- Related litter linking for context
+- Communication form dialog for quick entry
+- Filter by type or date range
+- Dashboard widget showing "Follow-ups Due This Week"
+- Communication timeline tab on client detail page
+
+#### Priority 5: Breeding Planning & Heat Cycle Enhancements
+- Heat cycle prediction system based on historical data
+- Average cycle length and interval calculations
+- Predicted next heat date with confidence indicators (low, medium, high)
+- Heat cycle prediction card component on dog detail page
+- Dashboard card showing "Females Expected in Heat Soon"
+- External stud database for tracking outside breeding partners
+- External stud form with owner contact information
+- Semen type tracking (fresh, chilled, frozen)
+- Health testing notes for external studs
+- Progesterone test logging with automatic breeding recommendations
+- Breeding window calculations based on progesterone levels
+- Breeding plan creation from heat cycle events
+- Outside stud selection in breeding events
+
+### Fixed
+
+- Fixed `calculateAge` function not accounting for day of month, causing incorrect age calculations near birthdays
+- Fixed potential null pointer exceptions in search filters on Inquiries and Sales pages when client or dog names are null
+- Fixed search filter returning no results when client/dog relations are not populated
+
 ## [0.7.0] - 2025-12-03
 
 ### Added
@@ -22,7 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Puppy profile photos in litter puppies table
   - Photo utilities module (photoUtils.ts) for file handling
   - useLitterPhotos hook for managing litter photo state
-- Full backup with photos (ZIP format)
+  - Full backup with photos (ZIP format)
   - Creates complete backup including database JSON and all photo files
   - ZIP archive with compression for efficient storage
   - Import/restore functionality extracts photos and database together

@@ -33,14 +33,27 @@ export function formatWeight(lbs: number, unit: 'lbs' | 'kg' = 'lbs'): string {
 export function calculateAge(birthDate: Date | string): string {
   const birth = typeof birthDate === 'string' ? new Date(birthDate) : birthDate;
   const now = new Date();
-  const years = now.getFullYear() - birth.getFullYear();
-  const months = now.getMonth() - birth.getMonth();
+  
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  
+  // Adjust if we haven't reached the birth day this month yet
+  if (now.getDate() < birth.getDate()) {
+    months--;
+  }
+  
+  // Adjust if months are negative
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
   
   const totalMonths = years * 12 + months;
   
   if (totalMonths < 1) {
     const days = Math.floor((now.getTime() - birth.getTime()) / (1000 * 60 * 60 * 24));
-    return `${days} days`;
+    if (days < 0) return '0 days';
+    return `${days} day${days !== 1 ? 's' : ''}`;
   }
   
   if (totalMonths < 12) {

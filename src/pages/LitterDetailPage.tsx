@@ -27,7 +27,12 @@ import {
 import { useLitter, useDeleteLitter } from '@/hooks/useLitters';
 import { LitterFormDialog } from '@/components/litters/LitterFormDialog';
 import { LitterPhotoGallery } from '@/components/litters/LitterPhotoGallery';
+import { LitterStatusProgress } from '@/components/litters/LitterStatusProgress';
+import { WhelpingChecklist } from '@/components/litters/WhelpingChecklist';
 import { DogFormDialog } from '@/components/dogs/DogFormDialog';
+import { PuppyHealthTasksList } from '@/components/puppy-health/PuppyHealthTasksList';
+import { WaitlistList } from '@/components/waitlist/WaitlistList';
+import { LitterRegistrationExport } from '@/components/registry/LitterRegistrationExport';
 import { formatDate } from '@/lib/utils';
 import { getPhotoUrlSync, initPhotoBasePath } from '@/lib/photoUtils';
 
@@ -132,6 +137,15 @@ export function LitterDetailPage() {
           </AlertDialog>
         </div>
       </div>
+
+      {/* Status Progress */}
+      {litter.status && (
+        <Card>
+          <CardContent className="pt-6">
+            <LitterStatusProgress status={litter.status} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Parents Cards with Photos */}
       <div className="grid gap-4 md:grid-cols-2">
@@ -254,6 +268,70 @@ export function LitterDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Pregnancy Confirmation */}
+      {(litter.ultrasoundDate || litter.xrayDate) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Pregnancy Confirmation</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              {litter.ultrasoundDate && (
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium mb-2">Ultrasound</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Date:</span>
+                      <span>{formatDate(litter.ultrasoundDate)}</span>
+                    </div>
+                    {litter.ultrasoundResult && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Result:</span>
+                        <Badge variant={
+                          litter.ultrasoundResult === 'pregnant' ? 'success' :
+                          litter.ultrasoundResult === 'not_pregnant' ? 'destructive' :
+                          'secondary'
+                        }>
+                          {litter.ultrasoundResult.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                    )}
+                    {litter.ultrasoundPuppyCount && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Est. Puppies:</span>
+                        <span>{litter.ultrasoundPuppyCount}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {litter.xrayDate && (
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium mb-2">X-Ray</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Date:</span>
+                      <span>{formatDate(litter.xrayDate)}</span>
+                    </div>
+                    {litter.xrayPuppyCount && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Puppy Count:</span>
+                        <span className="font-medium">{litter.xrayPuppyCount}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Whelping Checklist - show when status is before or during whelping */}
+      {(!litter.status || ['planned', 'bred', 'ultrasound_confirmed', 'xray_confirmed'].includes(litter.status)) && litter.dueDate && (
+        <WhelpingChecklist litter={litter} />
+      )}
+
       {/* Puppies */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -261,10 +339,15 @@ export function LitterDetailPage() {
             <Dog className="h-5 w-5" />
             Puppies
           </CardTitle>
-          <Button size="sm" onClick={() => setShowAddPuppyDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Puppy
-          </Button>
+          <div className="flex gap-2">
+            {litter.puppies && litter.puppies.length > 0 && (
+              <LitterRegistrationExport litter={litter} />
+            )}
+            <Button size="sm" onClick={() => setShowAddPuppyDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Puppy
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {!litter.puppies || litter.puppies.length === 0 ? (
@@ -317,6 +400,12 @@ export function LitterDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Waitlist & Reservations */}
+      <WaitlistList litter={litter} puppies={litter.puppies || []} />
+
+      {/* Health Schedule */}
+      <PuppyHealthTasksList litter={litter} puppies={litter.puppies || []} />
 
       {/* Photo Gallery */}
       <LitterPhotoGallery litterId={litter.id} />

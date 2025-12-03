@@ -28,6 +28,38 @@ export type HeatPhase =
   | 'anestrus';   // Rest period between cycles
 export type MedicalRecordType = 'exam' | 'surgery' | 'test' | 'medication' | 'injury' | 'other';
 export type TransportMode = 'flight' | 'ground' | 'pickup' | 'other';
+
+// Puppy Health Task Types
+export type PuppyHealthTaskType = 
+  | 'daily_weight'
+  | 'dewclaw_removal'
+  | 'tail_docking'
+  | 'deworming'
+  | 'eyes_opening'
+  | 'ears_opening'
+  | 'first_solid_food'
+  | 'vaccination'
+  | 'vet_check'
+  | 'microchipping'
+  | 'temperament_test'
+  | 'nail_trim'
+  | 'bath'
+  | 'socialization'
+  | 'other';
+
+// Puppy Evaluation Categories
+export type PuppyEvaluationCategory = 'show_prospect' | 'breeding_prospect' | 'pet';
+
+// Litter Status Pipeline
+export type LitterStatus = 
+  | 'planned'
+  | 'bred'
+  | 'ultrasound_confirmed'
+  | 'xray_confirmed'
+  | 'whelped'
+  | 'weaning'
+  | 'ready_to_go'
+  | 'completed';
 export type ExpenseCategory = 
   | 'transport' 
   | 'vet' 
@@ -75,6 +107,15 @@ export interface Dog {
   sireId?: string | null;
   damId?: string | null;
   litterId?: string | null;
+  // Puppy evaluation fields
+  evaluationCategory?: PuppyEvaluationCategory | null;
+  structureNotes?: string | null;
+  temperamentNotes?: string | null;
+  // Registration tracking
+  registrationStatus?: 'not_registered' | 'pending' | 'registered' | null;
+  registrationType?: 'full' | 'limited' | null;
+  registryName?: string | null;
+  registrationDeadline?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   // Relations (optional, populated when included)
@@ -103,6 +144,16 @@ export interface Litter {
   notes?: string | null;
   sireId?: string | null;
   damId?: string | null;
+  // Status tracking
+  status?: LitterStatus | null;
+  // Pregnancy confirmation tracking
+  ultrasoundDate?: Date | null;
+  ultrasoundResult?: 'pregnant' | 'not_pregnant' | 'inconclusive' | null;
+  ultrasoundPuppyCount?: number | null;
+  xrayDate?: Date | null;
+  xrayPuppyCount?: number | null;
+  // Whelping checklist state (JSON stored as string)
+  whelpingChecklistState?: string | null;
   createdAt: Date;
   updatedAt: Date;
   // Relations
@@ -111,6 +162,7 @@ export interface Litter {
   puppies?: Dog[];
   expenses?: Expense[];
   photos?: LitterPhoto[];
+  healthTasks?: PuppyHealthTask[];
 }
 
 export interface HeatCycle {
@@ -370,6 +422,206 @@ export interface Setting {
   updatedAt: Date;
 }
 
+// ============================================
+// PUPPY HEALTH TASK SYSTEM
+// ============================================
+
+export interface PuppyHealthTask {
+  id: string;
+  litterId: string;
+  puppyId?: string | null;  // Optional - null for litter-wide tasks
+  taskType: PuppyHealthTaskType;
+  taskName: string;         // Display name for the task
+  dueDate: Date;
+  completedDate?: Date | null;
+  notes?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  // Relations
+  litter?: Litter;
+  puppy?: Dog | null;
+}
+
+export interface HealthScheduleTemplateItem {
+  taskType: PuppyHealthTaskType;
+  taskName: string;
+  daysFromBirth: number;    // When the task is due (days after whelp date)
+  isPerPuppy: boolean;      // If true, create one task per puppy; if false, one for whole litter
+  notes?: string;
+}
+
+export interface HealthScheduleTemplate {
+  id: string;
+  name: string;
+  description?: string | null;
+  items: HealthScheduleTemplateItem[];
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Input types for puppy health tasks
+export type CreatePuppyHealthTaskInput = Omit<PuppyHealthTask, 'id' | 'createdAt' | 'updatedAt' | 'litter' | 'puppy'>;
+export type UpdatePuppyHealthTaskInput = Partial<CreatePuppyHealthTaskInput>;
+
+// ============================================
+// WAITLIST & RESERVATION SYSTEM
+// ============================================
+
+export type WaitlistStatus = 'waiting' | 'matched' | 'converted' | 'withdrawn';
+export type DepositStatus = 'pending' | 'paid' | 'refunded' | 'applied_to_sale';
+export type SexPreference = 'male' | 'female' | 'either';
+
+export interface WaitlistEntry {
+  id: string;
+  clientId: string;
+  litterId?: string | null;  // null for general waitlist
+  position: number;          // Pick order
+  preference: SexPreference;
+  colorPreference?: string | null;
+  depositAmount?: number | null;
+  depositDate?: Date | null;
+  depositStatus: DepositStatus;
+  status: WaitlistStatus;
+  assignedPuppyId?: string | null;
+  notes?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  // Relations
+  client?: Client;
+  litter?: Litter | null;
+  assignedPuppy?: Dog | null;
+}
+
+// Input types for waitlist
+export type CreateWaitlistEntryInput = Omit<WaitlistEntry, 'id' | 'createdAt' | 'updatedAt' | 'client' | 'litter' | 'assignedPuppy'>;
+export type UpdateWaitlistEntryInput = Partial<CreateWaitlistEntryInput>;
+
+// ============================================
+// CLIENT COMMUNICATION LOGGING
+// ============================================
+
+export type CommunicationType = 'phone' | 'email' | 'text' | 'in_person' | 'video_call' | 'social_media';
+export type CommunicationDirection = 'inbound' | 'outbound';
+
+export interface CommunicationLog {
+  id: string;
+  clientId: string;
+  date: Date;
+  type: CommunicationType;
+  direction: CommunicationDirection;
+  summary: string;
+  followUpNeeded: boolean;
+  followUpDate?: Date | null;
+  followUpCompleted?: boolean;
+  relatedLitterId?: string | null;
+  notes?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  // Relations
+  client?: Client;
+  relatedLitter?: Litter | null;
+}
+
+// Input types for communication logs
+export type CreateCommunicationLogInput = Omit<CommunicationLog, 'id' | 'createdAt' | 'updatedAt' | 'client' | 'relatedLitter'>;
+export type UpdateCommunicationLogInput = Partial<CreateCommunicationLogInput>;
+
+// ============================================
+// EXTERNAL STUD DATABASE
+// ============================================
+
+export type SemenType = 'fresh' | 'chilled' | 'frozen';
+
+export interface ExternalStud {
+  id: string;
+  name: string;
+  breed: string;
+  registrationNumber?: string | null;
+  ownerName?: string | null;
+  ownerEmail?: string | null;
+  ownerPhone?: string | null;
+  healthTestingNotes?: string | null;
+  geneticTestResults?: string | null;  // JSON string
+  semenType?: SemenType | null;
+  notes?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type CreateExternalStudInput = Omit<ExternalStud, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateExternalStudInput = Partial<CreateExternalStudInput>;
+
+// ============================================
+// GENETIC TESTING & COMPATIBILITY
+// ============================================
+
+export type GeneticTestStatus = 'clear' | 'carrier' | 'affected' | 'pending';
+
+// Common genetic tests for dogs
+export type CommonGeneticTest = 
+  | 'DM'        // Degenerative Myelopathy
+  | 'HUU'       // Hyperuricosuria
+  | 'CMR1'      // Canine Multifocal Retinopathy 1
+  | 'EIC'       // Exercise Induced Collapse
+  | 'vWD1'      // Von Willebrand Disease Type 1
+  | 'PRA-prcd'  // Progressive Retinal Atrophy - prcd
+  | 'CDDY'      // Chondrodystrophy
+  | 'CDPA'      // Chondrodysplasia
+  | 'NCL'       // Neuronal Ceroid Lipofuscinosis
+  | 'JHC'       // Juvenile Hereditary Cataracts
+  | 'HSF4'      // Hereditary Cataracts
+  | 'MDR1'      // Multi-Drug Resistance 1
+  | 'other';
+
+export interface GeneticTest {
+  id: string;
+  dogId: string;
+  testName: string;          // e.g., "DM", "HUU", or custom name
+  testType: CommonGeneticTest;
+  result: GeneticTestStatus;
+  labName?: string | null;
+  testDate?: Date | null;
+  certificateNumber?: string | null;
+  certificatePath?: string | null;  // Path to PDF certificate
+  notes?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  // Relations
+  dog?: Dog;
+}
+
+export type CreateGeneticTestInput = Omit<GeneticTest, 'id' | 'createdAt' | 'updatedAt' | 'dog'>;
+export type UpdateGeneticTestInput = Partial<CreateGeneticTestInput>;
+
+// Mating compatibility result
+export interface MatingCompatibilityResult {
+  isCompatible: boolean;
+  warnings: MatingWarning[];
+  summary: string;
+}
+
+export interface MatingWarning {
+  testName: string;
+  severity: 'low' | 'medium' | 'high';
+  message: string;
+  damStatus: GeneticTestStatus | null;
+  sireStatus: GeneticTestStatus | null;
+}
+
+// ============================================
+// HEAT CYCLE PREDICTIONS
+// ============================================
+
+export interface HeatCyclePrediction {
+  dogId: string;
+  averageCycleLength: number | null;
+  averageIntervalDays: number | null;
+  predictedNextHeat: Date | null;
+  confidence: 'low' | 'medium' | 'high';  // Based on data points
+  dataPointCount: number;
+}
+
 // Form input types (for creating/updating entities)
 export type CreateDogInput = Omit<Dog, 'id' | 'createdAt' | 'updatedAt' | 'sire' | 'dam' | 'birthLitter' | 'vaccinations' | 'weightEntries' | 'medicalRecords' | 'heatCycles' | 'transports' | 'photos' | 'sale'>;
 export type UpdateDogInput = Partial<CreateDogInput>;
@@ -432,6 +684,8 @@ export interface DashboardStats {
   upcomingShots: number;
   upcomingDueDates: number;
   monthlyExpenses: number;
+  puppyTasksDueThisWeek: number;
+  followUpsDue: number;
   recentActivity: ActivityItem[];
 }
 

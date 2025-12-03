@@ -18,7 +18,7 @@ Version is tracked in multiple files and must stay synchronized:
 
 | File | Purpose |
 |------|---------|
-| `VERSION` | Single source of truth |
+| `src/lib/version.ts` | Single source of truth (exported constant) |
 | `package.json` | npm package version |
 | `src-tauri/tauri.conf.json` | Tauri app version |
 | `src-tauri/Cargo.toml` | Rust crate version |
@@ -88,12 +88,22 @@ For testing releases:
 
 ## Current Version
 
-**0.7.0** (2025-12-03)
+**0.9.0** (2025-12-03)
 
 Major features in this version:
-- Photo management (dog profile photos, litter photo galleries)
-- Full backup system with ZIP archives including photos
-- Base64 data URL display for reliable photo rendering
+- Genetic testing and mating compatibility checking
+- Visual pedigree display with 3-generation charts
+- Registry status tracking and paperwork helpers
+- Advanced breeding reports and analytics
+
+**0.8.0** (2025-12-04)
+
+Major features in this version:
+- Puppy health schedule with auto-generated 8-week tasks
+- Pregnancy and whelping management with checklists
+- Waitlist and reservation system with deposit tracking
+- Client communication logging with follow-up reminders
+- Breeding planning enhancements with heat cycle predictions
 
 ## Version History
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Mail, Phone, Edit, Trash2, Eye, Package, Truck, CheckCircle } from 'lucide-react';
+import { Plus, Search, Mail, Phone, Edit, Trash2, Eye, Package, Truck, CheckCircle, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +27,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useClients, useDeleteClient } from '@/hooks/useClients';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
+import { CommunicationTimeline } from '@/components/communication/CommunicationTimeline';
 import { formatDate } from '@/lib/utils';
 import type { Client, InterestStatus, PaymentStatus } from '@/types';
 
@@ -322,14 +323,18 @@ export function ClientsPage() {
                     </div>
                   )}
 
-                  {/* Tabs for Interests and Sales */}
+                  {/* Tabs for Interests, Sales, and Communications */}
                   <Tabs defaultValue="sales" className="mt-4">
-                    <TabsList className="grid w-full grid-cols-2">
+                    <TabsList className="grid w-full grid-cols-3">
                       <TabsTrigger value="sales">
                         Sales ({selectedClientData.sales?.length || 0})
                       </TabsTrigger>
                       <TabsTrigger value="interests">
                         Interests ({selectedClientData.interests?.length || 0})
+                      </TabsTrigger>
+                      <TabsTrigger value="communications">
+                        <MessageSquare className="h-3 w-3 mr-1" />
+                        Comms
                       </TabsTrigger>
                     </TabsList>
 
@@ -437,6 +442,10 @@ export function ClientsPage() {
                           No recorded interests
                         </p>
                       )}
+                    </TabsContent>
+
+                    <TabsContent value="communications" className="mt-4">
+                      <CommunicationTimeline clientId={selectedClientData.id} />
                     </TabsContent>
                   </Tabs>
                 </div>

@@ -219,4 +219,32 @@ When adding new features:
 7. Add route to `App.tsx`
 8. Add navigation link to `Sidebar.tsx`
 9. Update `CHANGELOG.md`
+10. Update relevant documentation files (`docs/DATA_MODEL.md`, `docs/API.md`, `docs/ARCHITECTURE.md`)
+
+### New Feature Patterns (v0.8.0+)
+
+**Puppy Health Tasks:**
+- Tasks auto-generated from schedule template when litter is whelped
+- Support both litter-wide and per-puppy tasks
+- Track completion with progress indicators
+
+**Waitlist Management:**
+- Automatic position assignment based on creation order
+- Deposit tracking with status workflow
+- One-click conversion to sale
+
+**Communication Logging:**
+- Chronological timeline display
+- Follow-up reminder system
+- Link to related litters for context
+
+**Genetic Testing:**
+- Pre-populated common test types
+- Mating compatibility analysis
+- Visual status indicators (clear/carrier/affected)
+
+**Pedigree Display:**
+- Recursive ancestor lookup
+- Visual tree layout
+- Export capabilities
 

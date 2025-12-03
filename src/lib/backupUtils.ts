@@ -4,7 +4,6 @@
 import JSZip from 'jszip';
 import { readFile, writeFile, exists, mkdir, readDir, BaseDirectory } from '@tauri-apps/plugin-fs';
 import { save, open } from '@tauri-apps/plugin-dialog';
-import { appDataDir, join } from '@tauri-apps/api/path';
 
 const PHOTOS_DIR = 'photos';
 const DB_FILENAME = 'database.json';

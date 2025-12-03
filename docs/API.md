@@ -792,6 +792,11 @@ useDeleteEntity()       // Delete
 | BreederSettings | useBreederSettings | - | useBreederSettings (update) | - | - |
 | Contract | - | - | useGenerateContract | - | - |
 | LitterPhoto | useLitterPhotos | - | useCreateLitterPhoto | - | useDeleteLitterPhoto |
+| PuppyHealthTask | usePuppyHealthTasks | - | useCreatePuppyHealthTask | useUpdatePuppyHealthTask | useDeletePuppyHealthTask |
+| WaitlistEntry | useWaitlistEntries | - | useCreateWaitlistEntry | useUpdateWaitlistEntry | useDeleteWaitlistEntry |
+| CommunicationLog | useCommunicationLogs | - | useCreateCommunicationLog | useUpdateCommunicationLog | useDeleteCommunicationLog |
+| ExternalStud | useExternalStuds | - | useCreateExternalStud | useUpdateExternalStud | useDeleteExternalStud |
+| GeneticTest | useGeneticTests | - | useCreateGeneticTest | useUpdateGeneticTest | useDeleteGeneticTest |
 | Backup | useBackupInfo | - | useExportBackupWithPhotos | - | - |
 
 ### Mutation Hook Features
@@ -801,4 +806,198 @@ All mutation hooks include:
 - Toast notifications on success/error
 - Loading state via `isPending`
 - Error handling
+
+---
+
+## Puppy Health Task Operations (v0.8.0)
+
+### getPuppyHealthTasks
+Retrieves puppy health tasks, optionally filtered by litter or puppy.
+
+```typescript
+getPuppyHealthTasks(litterId?: string, puppyId?: string): Promise<PuppyHealthTask[]>
+```
+
+### generatePuppyHealthTasks
+Auto-generates health tasks for a litter based on whelp date and schedule template.
+
+```typescript
+generatePuppyHealthTasks(litterId: string, whelpDate: Date): Promise<PuppyHealthTask[]>
+```
+
+### completePuppyHealthTask
+Marks a task as completed.
+
+```typescript
+completePuppyHealthTask(id: string): Promise<PuppyHealthTask | null>
+```
+
+### uncompletePuppyHealthTask
+Marks a completed task as incomplete.
+
+```typescript
+uncompletePuppyHealthTask(id: string): Promise<PuppyHealthTask | null>
+```
+
+---
+
+## Waitlist Operations (v0.8.0)
+
+### getWaitlistEntries
+Retrieves waitlist entries, optionally filtered by litter or client.
+
+```typescript
+getWaitlistEntries(litterId?: string, clientId?: string): Promise<WaitlistEntry[]>
+```
+
+### createWaitlistEntry
+Creates a new waitlist entry with automatic position assignment.
+
+```typescript
+createWaitlistEntry(input: CreateWaitlistEntryInput): Promise<WaitlistEntry>
+```
+
+### convertWaitlistToSale
+Converts a waitlist entry to a sale, applying deposit.
+
+```typescript
+convertWaitlistToSale(waitlistEntryId: string, saleInput: CreateSaleInput): Promise<{ sale: Sale; entry: WaitlistEntry } | null>
+```
+
+---
+
+## Communication Log Operations (v0.8.0)
+
+### getCommunicationLogs
+Retrieves communication logs for a client.
+
+```typescript
+getCommunicationLogs(clientId: string): Promise<CommunicationLog[]>
+```
+
+### getFollowUpsDue
+Retrieves all follow-ups due within the next week.
+
+```typescript
+getFollowUpsDue(): Promise<CommunicationLog[]>
+```
+
+### createCommunicationLog
+Creates a new communication log entry.
+
+```typescript
+createCommunicationLog(input: CreateCommunicationLogInput): Promise<CommunicationLog>
+```
+
+### completeFollowUp
+Marks a follow-up as completed.
+
+```typescript
+completeFollowUp(id: string): Promise<CommunicationLog | null>
+```
+
+---
+
+## External Stud Operations (v0.8.0)
+
+### getExternalStuds
+Retrieves all external studs.
+
+```typescript
+getExternalStuds(): Promise<ExternalStud[]>
+```
+
+### getHeatCyclePrediction
+Calculates predicted next heat date for a female based on historical data.
+
+```typescript
+getHeatCyclePrediction(dogId: string): Promise<HeatCyclePrediction | null>
+```
+
+**Returns:**
+```typescript
+{
+  predictedNextHeat: Date | null;
+  averageCycleLength: number;
+  averageInterval: number;
+  confidence: 'low' | 'medium' | 'high';
+  dataPointCount: number;
+}
+```
+
+---
+
+## Genetic Test Operations (v0.9.0)
+
+### getGeneticTests
+Retrieves genetic tests, optionally filtered by dog.
+
+```typescript
+getGeneticTests(dogId?: string): Promise<GeneticTest[]>
+```
+
+### getMatingCompatibility
+Analyzes genetic compatibility between two dogs.
+
+```typescript
+getMatingCompatibility(damId: string, sireId: string): Promise<MatingCompatibilityResult>
+```
+
+**Returns:**
+```typescript
+{
+  compatible: boolean;
+  risks: Array<{
+    condition: string;
+    risk: 'none' | 'low' | 'medium' | 'high';
+    explanation: string;
+  }>;
+  warnings: string[];
+}
+```
+
+---
+
+## Report Operations (v0.9.0)
+
+### getLittersPerYearReport
+Generates litters per year report.
+
+```typescript
+getLittersPerYearReport(years?: number): Promise<ReportLittersPerYear[]>
+```
+
+### getLitterFinancialsReport
+Generates financial report for litters.
+
+```typescript
+getLitterFinancialsReport(): Promise<ReportLitterFinancials[]>
+```
+
+### getProductionByDamReport
+Generates production statistics by dam.
+
+```typescript
+getProductionByDamReport(): Promise<ReportProductionByParent[]>
+```
+
+### getProductionBySireReport
+Generates production statistics by sire.
+
+```typescript
+getProductionBySireReport(): Promise<ReportProductionByParent[]>
+```
+
+---
+
+## Pedigree Operations (v0.9.0)
+
+### getPedigree
+Retrieves pedigree data for a dog (up to 4 generations).
+
+```typescript
+getPedigree(dogId: string, generations?: number): Promise<PedigreeData>
+```
+
+**Returns:** Tree structure with ancestor information including name, registration, color, and photo paths.
 

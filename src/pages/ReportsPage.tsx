@@ -12,7 +12,8 @@ import {
   Cell,
   Rectangle,
 } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Download } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
@@ -29,6 +30,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useDogs } from '@/hooks/useDogs';
 import { useLitters } from '@/hooks/useLitters';
@@ -233,6 +235,141 @@ export function ReportsPage() {
 
   const totalExpenses = expenses?.reduce((sum, e) => sum + e.amount, 0) || 0;
 
+  // Litters per year analysis
+  const littersPerYear = useMemo(() => {
+    if (!litters) return [];
+    const grouped: Record<number, number> = {};
+    
+    litters.forEach((litter) => {
+      const date = litter.whelpDate || litter.breedingDate || litter.createdAt;
+      if (date) {
+        const year = new Date(date).getFullYear();
+        grouped[year] = (grouped[year] || 0) + 1;
+      }
+    });
+    
+    const currentYear = new Date().getFullYear();
+    const years = Object.keys(grouped).map(Number).sort();
+    const startYear = years.length > 0 ? Math.min(...years) : currentYear - 4;
+    
+    const result = [];
+    for (let year = startYear; year <= currentYear; year++) {
+      result.push({ year: year.toString(), count: grouped[year] || 0 });
+    }
+    return result.slice(-5); // Last 5 years
+  }, [litters]);
+
+  // Income vs expenses per litter
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+  const litterFinancials = useMemo(() => {
+    if (!litters || !expenses || !sales) return [];
+    
+    return litters.map((litter) => {
+      // Calculate expenses for this litter
+      const litterExpenses = expenses
+        .filter(e => e.relatedLitterId === litter.id)
+        .reduce((sum, e) => sum + e.amount, 0);
+      
+      // Calculate income from puppies in this litter
+      let litterIncome = 0;
+      const puppyIds = dogs?.filter(d => d.litterId === litter.id).map(d => d.id) || [];
+      
+      sales.forEach((sale) => {
+        sale.puppies?.forEach((sp) => {
+          if (puppyIds.includes(sp.dogId)) {
+            litterIncome += sp.price;
+          }
+        });
+      });
+      
+      return {
+        code: litter.code,
+        nickname: litter.nickname,
+        puppyCount: litter.totalAlive || litter.puppies?.length || 0,
+        income: litterIncome,
+        expenses: litterExpenses,
+        profit: litterIncome - litterExpenses,
+      };
+    }).filter(l => l.income > 0 || l.expenses > 0);
+  }, [litters, expenses, sales, dogs]);
+
+  // Production by dam
+  const productionByDam = useMemo(() => {
+    if (!litters || !dogs) return [];
+    
+    const damStats: Record<string, { name: string; litters: number; puppies: number }> = {};
+    
+    litters.forEach((litter) => {
+      if (litter.damId) {
+        const dam = dogs.find(d => d.id === litter.damId);
+        if (dam) {
+          if (!damStats[dam.id]) {
+            damStats[dam.id] = { name: dam.name, litters: 0, puppies: 0 };
+          }
+          damStats[dam.id].litters += 1;
+          damStats[dam.id].puppies += litter.totalAlive || litter.puppies?.length || 0;
+        }
+      }
+    });
+    
+    return Object.entries(damStats)
+      .map(([id, stats]) => ({ id, ...stats, avgLitterSize: stats.litters > 0 ? (stats.puppies / stats.litters).toFixed(1) : '0' }))
+      .sort((a, b) => b.litters - a.litters);
+  }, [litters, dogs]);
+
+  // Production by sire
+  const productionBySire = useMemo(() => {
+    if (!litters || !dogs) return [];
+    
+    const sireStats: Record<string, { name: string; litters: number; puppies: number }> = {};
+    
+    litters.forEach((litter) => {
+      if (litter.sireId) {
+        const sire = dogs.find(d => d.id === litter.sireId);
+        if (sire) {
+          if (!sireStats[sire.id]) {
+            sireStats[sire.id] = { name: sire.name, litters: 0, puppies: 0 };
+          }
+          sireStats[sire.id].litters += 1;
+          sireStats[sire.id].puppies += litter.totalAlive || litter.puppies?.length || 0;
+        }
+      }
+    });
+    
+    return Object.entries(sireStats)
+      .map(([id, stats]) => ({ id, ...stats, avgLitterSize: stats.litters > 0 ? (stats.puppies / stats.litters).toFixed(1) : '0' }))
+      .sort((a, b) => b.litters - a.litters);
+  }, [litters, dogs]);
+
+  // Export litter report to CSV
+  const exportLitterReport = () => {
+    if (!litterFinancials.length) return;
+
+    const headers = ['Litter Code', 'Nickname', 'Puppies', 'Income', 'Expenses', 'Profit'];
+    const rows = litterFinancials.map(l => [
+      l.code,
+      l.nickname || '',
+      l.puppyCount.toString(),
+      l.income.toFixed(2),
+      l.expenses.toFixed(2),
+      l.profit.toFixed(2),
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(field => `"${field}"`).join(',')),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    const today = new Date().toISOString().slice(0, 10);
+    link.setAttribute('download', `litter_financials_${today}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -246,6 +383,7 @@ export function ReportsPage() {
       <Tabs defaultValue="financial">
         <TabsList>
           <TabsTrigger value="financial">Financial</TabsTrigger>
+          <TabsTrigger value="breeding">Breeding</TabsTrigger>
           <TabsTrigger value="dogs">Dogs</TabsTrigger>
           <TabsTrigger value="health">Health</TabsTrigger>
         </TabsList>
@@ -356,6 +494,162 @@ export function ReportsPage() {
           </div>
         </TabsContent>
 
+        <TabsContent value="breeding" className="space-y-6">
+          {/* Litters Per Year */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Litters Per Year</CardTitle>
+              <CardDescription>Annual litter production over the past 5 years</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={littersPerYear}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="year" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" name="Litters" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Litter Financials */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Litter Financials</CardTitle>
+                <CardDescription>Income and expenses breakdown per litter</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={exportLitterReport} disabled={!litterFinancials.length}>
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {litterFinancials.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  No litter financial data available. Record expenses with litter associations and sales to see data here.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Litter</TableHead>
+                      <TableHead className="text-right">Puppies</TableHead>
+                      <TableHead className="text-right">Income</TableHead>
+                      <TableHead className="text-right">Expenses</TableHead>
+                      <TableHead className="text-right">Profit</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {litterFinancials.map((litter) => (
+                      <TableRow key={litter.code}>
+                        <TableCell className="font-medium">
+                          {litter.code}
+                          {litter.nickname && <span className="text-muted-foreground"> - {litter.nickname}</span>}
+                        </TableCell>
+                        <TableCell className="text-right">{litter.puppyCount}</TableCell>
+                        <TableCell className="text-right text-green-600">{formatCurrency(litter.income)}</TableCell>
+                        <TableCell className="text-right text-red-600">{formatCurrency(litter.expenses)}</TableCell>
+                        <TableCell className={`text-right font-medium ${litter.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(litter.profit)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="font-bold border-t-2">
+                      <TableCell>Total</TableCell>
+                      <TableCell className="text-right">{litterFinancials.reduce((sum, l) => sum + l.puppyCount, 0)}</TableCell>
+                      <TableCell className="text-right text-green-600">{formatCurrency(litterFinancials.reduce((sum, l) => sum + l.income, 0))}</TableCell>
+                      <TableCell className="text-right text-red-600">{formatCurrency(litterFinancials.reduce((sum, l) => sum + l.expenses, 0))}</TableCell>
+                      <TableCell className={`text-right ${litterFinancials.reduce((sum, l) => sum + l.profit, 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatCurrency(litterFinancials.reduce((sum, l) => sum + l.profit, 0))}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Production by Dam/Sire */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Production by Dam</CardTitle>
+                <CardDescription>Breeding females performance</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {productionByDam.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No dam data available</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Dam</TableHead>
+                        <TableHead className="text-right">Litters</TableHead>
+                        <TableHead className="text-right">Puppies</TableHead>
+                        <TableHead className="text-right">Avg Size</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {productionByDam.map((dam) => (
+                        <TableRow key={dam.id}>
+                          <TableCell className="font-medium">{dam.name}</TableCell>
+                          <TableCell className="text-right">{dam.litters}</TableCell>
+                          <TableCell className="text-right">{dam.puppies}</TableCell>
+                          <TableCell className="text-right">{dam.avgLitterSize}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Production by Sire</CardTitle>
+                <CardDescription>Breeding males performance</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {productionBySire.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No sire data available</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Sire</TableHead>
+                        <TableHead className="text-right">Litters</TableHead>
+                        <TableHead className="text-right">Puppies</TableHead>
+                        <TableHead className="text-right">Avg Size</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {productionBySire.map((sire) => (
+                        <TableRow key={sire.id}>
+                          <TableCell className="font-medium">{sire.name}</TableCell>
+                          <TableCell className="text-right">{sire.litters}</TableCell>
+                          <TableCell className="text-right">{sire.puppies}</TableCell>
+                          <TableCell className="text-right">{sire.avgLitterSize}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         <TabsContent value="dogs" className="space-y-6">
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
@@ -421,6 +715,7 @@ export function ReportsPage() {
                     />
                     <Bar
                       dataKey="value"
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       shape={(props: any) => {
                         const { payload, x, y, width, height } = props;
                         const fillColor = DOG_STATUS_COLORS[payload.status] || '#6b7280';
@@ -515,6 +810,7 @@ export function ReportsPage() {
                     />
                     <Bar
                       dataKey="value"
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       shape={(props: any) => {
                         const { payload, x, y, width, height } = props;
                         const fillColor =

@@ -144,7 +144,7 @@ This project uses Semantic Versioning:
 - PATCH: Bug fixes
 
 Version is tracked in:
-- `VERSION` file
+- `src/lib/version.ts` (single source of truth)
 - `package.json`
 - `src-tauri/tauri.conf.json`
 - `src-tauri/Cargo.toml`

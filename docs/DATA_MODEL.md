@@ -52,6 +52,30 @@ The database uses SQLite with a normalized relational schema. All entities use C
 │         ┌──────────────┐          ┌──────────────┐             │
 │         │PedigreeEntry │          │  Attachment  │             │
 │         └──────────────┘          └──────────────┘             │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  v0.8.0 & v0.9.0 New Entities                            │  │
+│  │                                                          │  │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │  │
+│  │  │PuppyHealthTask│  │WaitlistEntry│  │Communication │  │  │
+│  │  └──────┬───────┘  └──────┬──────┘  │    Log        │  │  │
+│  │         │                  │         └──────┬─────────┘  │  │
+│  │         │                  │               │            │  │
+│  │         ▼                  ▼               ▼            │  │
+│  │    ┌──────────┐      ┌──────────┐   ┌──────────┐       │  │
+│  │    │  Litter  │      │  Client  │   │  Client  │       │  │
+│  │    └──────────┘      └──────────┘   └──────────┘       │  │
+│  │                                                          │  │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │  │
+│  │  │ExternalStud  │  │GeneticTest  │  │HealthSchedule│  │  │
+│  │  └──────────────┘  └──────┬──────┘  │  Template    │  │  │
+│  │                           │         └──────────────┘  │  │
+│  │                           │                           │  │
+│  │                           ▼                           │  │
+│  │                      ┌──────────┐                     │  │
+│  │                      │   Dog    │                     │  │
+│  │                      └──────────┘                     │  │
+│  └──────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -76,13 +100,20 @@ The central entity representing individual dogs and puppies.
 | sireId | String? | FK to Dog (father) |
 | damId | String? | FK to Dog (mother) |
 | litterId | String? | FK to Litter (birth litter) |
+| evaluationCategory | String? | 'show_prospect', 'breeding_prospect', or 'pet' |
+| structureNotes | String? | Conformation notes |
+| temperamentNotes | String? | Personality observations |
+| registrationStatus | String? | 'not_registered', 'pending', or 'registered' |
+| registrationType | String? | 'full' or 'limited' |
+| registryName | String? | Registry name (AKC, UKC, ABKC, etc.) |
+| registrationDeadline | DateTime? | Registration deadline |
 | createdAt | DateTime | Record creation |
 | updatedAt | DateTime | Last update |
 
 **Relationships:**
 - Self-referential: sire, dam (parents), offspring
 - Belongs to: Litter (birth litter)
-- Has many: VaccinationRecord, WeightEntry, MedicalRecord, HeatCycle, Transport, DogPhoto, PedigreeEntry, SalePuppy, ClientInterest
+- Has many: VaccinationRecord, WeightEntry, MedicalRecord, HeatCycle, Transport, DogPhoto, PedigreeEntry, SalePuppy, ClientInterest, GeneticTest, PuppyHealthTask (as assigned puppy)
 
 **Photo Storage:** `profilePhotoPath` stores just the filename (e.g., `"1733241234567-abc123.jpg"`). Full path is `%APPDATA%/com.respectabullz.app/photos/{filename}`.
 
@@ -101,13 +132,20 @@ Represents a breeding event and resulting puppies.
 | whelpDate | DateTime? | Actual whelp date |
 | totalBorn | Int? | Total puppies born |
 | totalAlive | Int? | Puppies surviving |
+| status | String? | Litter status (planned, bred, ultrasound_confirmed, xray_confirmed, whelped, weaning, ready_to_go, completed) |
+| ultrasoundDate | DateTime? | Ultrasound confirmation date |
+| ultrasoundResult | String? | 'pregnant', 'not_pregnant', or 'inconclusive' |
+| ultrasoundPuppyCount | Int? | Estimated puppy count from ultrasound |
+| xrayDate | DateTime? | X-ray confirmation date |
+| xrayPuppyCount | Int? | Accurate puppy count from X-ray |
+| whelpingChecklistState | String? | JSON string of whelping checklist completion state |
 | notes | String? | Notes |
 | createdAt | DateTime | Record creation |
 | updatedAt | DateTime | Last update |
 
 **Relationships:**
 - Belongs to: Dog (sire), Dog (dam)
-- Has many: Dog (puppies), Expense, LitterPhoto
+- Has many: Dog (puppies), Expense, LitterPhoto, PuppyHealthTask, WaitlistEntry
 
 ### LitterPhoto
 Multiple photos per litter for documenting breeding and puppies over time.
@@ -413,6 +451,124 @@ Application settings.
 | value | String | Setting value |
 | updatedAt | DateTime | Last update |
 
+## New Entities (v0.8.0 & v0.9.0)
+
+### PuppyHealthTask
+Tracks health and development tasks for puppies in a litter.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| litterId | String | FK to Litter |
+| puppyId | String? | FK to Dog (optional, for per-puppy tasks) |
+| taskType | String | Task type (daily_weight, deworming, vaccination, etc.) |
+| taskName | String | Task name/description |
+| dueDate | DateTime | When task is due |
+| completedDate | DateTime? | Completion date (null if not completed) |
+| notes | String? | Additional notes |
+| createdAt | DateTime | Record creation |
+| updatedAt | DateTime | Last update |
+
+**Relationships:**
+- Belongs to: Litter, Dog (optional)
+
+### WaitlistEntry
+Tracks puppy reservations and deposits.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| clientId | String | FK to Client |
+| litterId | String? | FK to Litter (optional for general waitlist) |
+| position | Int | Pick order position |
+| preference | String | 'male', 'female', or 'either' |
+| colorPreference | String? | Color preference |
+| depositAmount | Float? | Deposit amount |
+| depositDate | DateTime? | Deposit date |
+| depositStatus | String | 'pending', 'paid', 'refunded', 'applied_to_sale' |
+| status | String | 'waiting', 'matched', 'converted', 'withdrawn' |
+| assignedPuppyId | String? | FK to Dog (when matched) |
+| notes | String? | Notes |
+| createdAt | DateTime | Record creation |
+| updatedAt | DateTime | Last update |
+
+**Relationships:**
+- Belongs to: Client, Litter (optional), Dog (assignedPuppy)
+
+### CommunicationLog
+Tracks all client interactions.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| clientId | String | FK to Client |
+| date | DateTime | Communication date |
+| type | String | 'phone', 'email', 'text', 'in_person', 'video_call', 'social_media' |
+| direction | String | 'inbound' or 'outbound' |
+| summary | String | Summary of communication |
+| followUpNeeded | Boolean | Whether follow-up is needed |
+| followUpDate | DateTime? | Follow-up due date |
+| followUpCompleted | Boolean | Whether follow-up was completed |
+| relatedLitterId | String? | FK to Litter (if related) |
+| notes | String? | Additional notes |
+| createdAt | DateTime | Record creation |
+| updatedAt | DateTime | Last update |
+
+**Relationships:**
+- Belongs to: Client, Litter (optional)
+
+### ExternalStud
+Database of outside breeding partners.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| name | String | Stud name |
+| breed | String | Breed |
+| registrationNumber | String? | Registration number |
+| ownerName | String? | Owner name |
+| ownerEmail | String? | Owner email |
+| ownerPhone | String? | Owner phone |
+| healthTestingNotes | String? | Health testing information |
+| geneticTestResults | String? | JSON string of genetic test results |
+| semenType | String? | 'fresh', 'chilled', or 'frozen' |
+| notes | String? | Additional notes |
+| createdAt | DateTime | Record creation |
+| updatedAt | DateTime | Last update |
+
+### GeneticTest
+Health testing records for dogs.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| dogId | String | FK to Dog |
+| testName | String | Test name (DM, HUU, CMR1, etc.) |
+| result | String | 'clear', 'carrier', 'affected', or 'pending' |
+| labName | String? | Testing lab name |
+| testDate | DateTime | Test date |
+| certificateNumber | String? | Certificate number |
+| documentPath | String? | Path to test certificate PDF |
+| notes | String? | Additional notes |
+| createdAt | DateTime | Record creation |
+| updatedAt | DateTime | Last update |
+
+**Relationships:**
+- Belongs to: Dog
+
+### HealthScheduleTemplate
+Configurable templates for puppy health schedules.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| name | String | Template name |
+| items | String | JSON array of HealthScheduleTemplateItem |
+| createdAt | DateTime | Record creation |
+| updatedAt | DateTime | Last update |
+
+**Note:** HealthScheduleTemplateItem defines taskType, taskName, daysFromBirth, isPerPuppy, and notes.
+
 ## Indexes
 
 The following fields are indexed for query performance:
@@ -421,7 +577,15 @@ The following fields are indexed for query performance:
 - `Dog.sex` - For filtering males/females
 - `Dog.sireId`, `Dog.damId` - For lineage queries
 - `Dog.litterId` - For litter associations
+- `Dog.registrationStatus` - For registration tracking
 - `Litter.code` - For litter lookup
+- `Litter.status` - For litter status filtering
+- `PuppyHealthTask.litterId` - For litter task queries
+- `PuppyHealthTask.dueDate` - For task reminders
+- `WaitlistEntry.litterId` - For litter waitlist queries
+- `WaitlistEntry.status` - For waitlist filtering
+- `CommunicationLog.clientId` - For client communication queries
+- `CommunicationLog.followUpDate` - For follow-up reminders
 - `VaccinationRecord.nextDueDate` - For reminder queries
 - `Expense.date` - For date range queries
 - `Expense.category` - For category filtering
@@ -429,9 +593,10 @@ The following fields are indexed for query performance:
 ## Data Integrity Rules
 
 1. **Cascade Deletes**: 
-   - Deleting a Dog cascades to related records (vaccinations, weights, medical, heat cycles, transports, photos, pedigree, sale puppies, client interests)
+   - Deleting a Dog cascades to related records (vaccinations, weights, medical, heat cycles, transports, photos, pedigree, sale puppies, client interests, genetic tests, assigned puppy health tasks)
+   - Deleting a Litter cascades to PuppyHealthTask and WaitlistEntry records
    - Deleting a Sale cascades to SalePuppy records
-   - Deleting a Client cascades to ClientInterest records
+   - Deleting a Client cascades to ClientInterest, WaitlistEntry, and CommunicationLog records
 2. **Unique Constraints**: 
    - Litter.code must be unique
    - Setting.key must be unique

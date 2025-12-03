@@ -19,6 +19,18 @@ import type {
   DogPhoto,
   LitterPhoto,
   Setting,
+  PuppyHealthTask,
+  HealthScheduleTemplate,
+  HealthScheduleTemplateItem,
+  WaitlistEntry,
+  CommunicationLog,
+  ExternalStud,
+  HeatCyclePrediction,
+  GeneticTest,
+  MatingCompatibilityResult,
+  MatingWarning,
+  CreateGeneticTestInput,
+  UpdateGeneticTestInput,
   CreateDogInput,
   UpdateDogInput,
   CreateLitterInput,
@@ -35,6 +47,14 @@ import type {
   UpdateSaleInput,
   CreateClientInterestInput,
   UpdateClientInterestInput,
+  CreatePuppyHealthTaskInput,
+  UpdatePuppyHealthTaskInput,
+  CreateWaitlistEntryInput,
+  UpdateWaitlistEntryInput,
+  CreateCommunicationLogInput,
+  UpdateCommunicationLogInput,
+  CreateExternalStudInput,
+  UpdateExternalStudInput,
   DashboardStats,
 } from '@/types';
 
@@ -62,6 +82,12 @@ interface Database {
   dogPhotos: DogPhoto[];
   litterPhotos: LitterPhoto[];
   settings: Setting[];
+  puppyHealthTasks: PuppyHealthTask[];
+  healthScheduleTemplates: HealthScheduleTemplate[];
+  waitlistEntries: WaitlistEntry[];
+  communicationLogs: CommunicationLog[];
+  externalStuds: ExternalStud[];
+  geneticTests: GeneticTest[];
 }
 
 const emptyDb: Database = {
@@ -82,6 +108,12 @@ const emptyDb: Database = {
   dogPhotos: [],
   litterPhotos: [],
   settings: [],
+  puppyHealthTasks: [],
+  healthScheduleTemplates: [],
+  waitlistEntries: [],
+  communicationLogs: [],
+  externalStuds: [],
+  geneticTests: [],
 };
 
 // Helper to generate unique IDs
@@ -124,6 +156,7 @@ function loadDb(): Database {
         dogs: (parsed.dogs || []).map((d: Dog) => ({
           ...d,
           dateOfBirth: d.dateOfBirth ? new Date(d.dateOfBirth) : null,
+          registrationDeadline: d.registrationDeadline ? new Date(d.registrationDeadline) : null,
           createdAt: new Date(d.createdAt),
           updatedAt: new Date(d.updatedAt),
         })),
@@ -132,6 +165,8 @@ function loadDb(): Database {
           breedingDate: l.breedingDate ? new Date(l.breedingDate) : null,
           dueDate: l.dueDate ? new Date(l.dueDate) : null,
           whelpDate: l.whelpDate ? new Date(l.whelpDate) : null,
+          ultrasoundDate: l.ultrasoundDate ? new Date(l.ultrasoundDate) : null,
+          xrayDate: l.xrayDate ? new Date(l.xrayDate) : null,
           createdAt: new Date(l.createdAt),
           updatedAt: new Date(l.updatedAt),
         })),
@@ -200,6 +235,42 @@ function loadDb(): Database {
           interestDate: new Date(ci.interestDate),
           createdAt: new Date(ci.createdAt),
           updatedAt: new Date(ci.updatedAt),
+        })),
+        puppyHealthTasks: (parsed.puppyHealthTasks || []).map((t: PuppyHealthTask) => ({
+          ...t,
+          dueDate: new Date(t.dueDate),
+          completedDate: t.completedDate ? new Date(t.completedDate) : null,
+          createdAt: new Date(t.createdAt),
+          updatedAt: new Date(t.updatedAt),
+        })),
+        healthScheduleTemplates: (parsed.healthScheduleTemplates || []).map((t: HealthScheduleTemplate) => ({
+          ...t,
+          createdAt: new Date(t.createdAt),
+          updatedAt: new Date(t.updatedAt),
+        })),
+        waitlistEntries: (parsed.waitlistEntries || []).map((w: WaitlistEntry) => ({
+          ...w,
+          depositDate: w.depositDate ? new Date(w.depositDate) : null,
+          createdAt: new Date(w.createdAt),
+          updatedAt: new Date(w.updatedAt),
+        })),
+        communicationLogs: (parsed.communicationLogs || []).map((c: CommunicationLog) => ({
+          ...c,
+          date: new Date(c.date),
+          followUpDate: c.followUpDate ? new Date(c.followUpDate) : null,
+          createdAt: new Date(c.createdAt),
+          updatedAt: new Date(c.updatedAt),
+        })),
+        externalStuds: (parsed.externalStuds || []).map((s: ExternalStud) => ({
+          ...s,
+          createdAt: new Date(s.createdAt),
+          updatedAt: new Date(s.updatedAt),
+        })),
+        geneticTests: (parsed.geneticTests || []).map((g: GeneticTest) => ({
+          ...g,
+          testDate: g.testDate ? new Date(g.testDate) : null,
+          createdAt: new Date(g.createdAt),
+          updatedAt: new Date(g.updatedAt),
         })),
       };
       
@@ -1536,6 +1607,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const db = loadDb();
   const now = new Date();
   const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   
   // Count active dogs
@@ -1564,6 +1636,21 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     .filter(e => new Date(e.date) >= startOfMonth)
     .reduce((sum, e) => sum + e.amount, 0);
   
+  // Count incomplete puppy health tasks due this week
+  const puppyTasksDueThisWeek = db.puppyHealthTasks.filter(t =>
+    !t.completedDate &&
+    new Date(t.dueDate) <= sevenDaysFromNow &&
+    new Date(t.dueDate) >= now
+  ).length;
+  
+  // Count follow-ups due this week
+  const followUpsDue = db.communicationLogs.filter(l =>
+    l.followUpNeeded &&
+    !l.followUpCompleted &&
+    l.followUpDate &&
+    new Date(l.followUpDate) <= sevenDaysFromNow
+  ).length;
+  
   return {
     totalDogs: db.dogs.length,
     activeDogs,
@@ -1571,6 +1658,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     upcomingShots,
     upcomingDueDates,
     monthlyExpenses,
+    puppyTasksDueThisWeek,
+    followUpsDue,
     recentActivity: [], // TODO: Implement activity tracking
   };
 }
@@ -1650,6 +1739,974 @@ export async function reorderLitterPhotos(litterId: string, photoIds: string[]):
   
   saveDb(db);
 }
+
+// ============================================
+// PUPPY HEALTH TASK OPERATIONS
+// ============================================
+
+export async function getPuppyHealthTasks(litterId?: string, puppyId?: string): Promise<PuppyHealthTask[]> {
+  const db = loadDb();
+  let tasks = db.puppyHealthTasks;
+  
+  if (litterId) {
+    tasks = tasks.filter(t => t.litterId === litterId);
+  }
+  if (puppyId) {
+    tasks = tasks.filter(t => t.puppyId === puppyId || t.puppyId === null);
+  }
+  
+  // Include relations
+  return tasks.map(t => ({
+    ...t,
+    litter: db.litters.find(l => l.id === t.litterId),
+    puppy: t.puppyId ? db.dogs.find(d => d.id === t.puppyId) || null : null,
+  })).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+}
+
+export async function getPuppyHealthTask(id: string): Promise<PuppyHealthTask | null> {
+  const db = loadDb();
+  const task = db.puppyHealthTasks.find(t => t.id === id);
+  if (!task) return null;
+  
+  return {
+    ...task,
+    litter: db.litters.find(l => l.id === task.litterId),
+    puppy: task.puppyId ? db.dogs.find(d => d.id === task.puppyId) || null : null,
+  };
+}
+
+export async function createPuppyHealthTask(input: CreatePuppyHealthTaskInput): Promise<PuppyHealthTask> {
+  const db = loadDb();
+  const now = new Date();
+  const task: PuppyHealthTask = {
+    ...input,
+    id: generateId(),
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.puppyHealthTasks.push(task);
+  saveDb(db);
+  return task;
+}
+
+export async function updatePuppyHealthTask(id: string, input: UpdatePuppyHealthTaskInput): Promise<PuppyHealthTask | null> {
+  const db = loadDb();
+  const index = db.puppyHealthTasks.findIndex(t => t.id === id);
+  if (index === -1) return null;
+  
+  db.puppyHealthTasks[index] = {
+    ...db.puppyHealthTasks[index],
+    ...input,
+    updatedAt: new Date(),
+  };
+  saveDb(db);
+  return db.puppyHealthTasks[index];
+}
+
+export async function deletePuppyHealthTask(id: string): Promise<boolean> {
+  const db = loadDb();
+  const index = db.puppyHealthTasks.findIndex(t => t.id === id);
+  if (index === -1) return false;
+  
+  db.puppyHealthTasks.splice(index, 1);
+  saveDb(db);
+  return true;
+}
+
+export async function completePuppyHealthTask(id: string, notes?: string): Promise<PuppyHealthTask | null> {
+  const db = loadDb();
+  const index = db.puppyHealthTasks.findIndex(t => t.id === id);
+  if (index === -1) return null;
+  
+  db.puppyHealthTasks[index] = {
+    ...db.puppyHealthTasks[index],
+    completedDate: new Date(),
+    notes: notes || db.puppyHealthTasks[index].notes,
+    updatedAt: new Date(),
+  };
+  saveDb(db);
+  return db.puppyHealthTasks[index];
+}
+
+export async function uncompletePuppyHealthTask(id: string): Promise<PuppyHealthTask | null> {
+  const db = loadDb();
+  const index = db.puppyHealthTasks.findIndex(t => t.id === id);
+  if (index === -1) return null;
+  
+  db.puppyHealthTasks[index] = {
+    ...db.puppyHealthTasks[index],
+    completedDate: null,
+    updatedAt: new Date(),
+  };
+  saveDb(db);
+  return db.puppyHealthTasks[index];
+}
+
+// Delete all tasks for a litter
+export async function deletePuppyHealthTasksForLitter(litterId: string): Promise<void> {
+  const db = loadDb();
+  db.puppyHealthTasks = db.puppyHealthTasks.filter(t => t.litterId !== litterId);
+  saveDb(db);
+}
+
+// ============================================
+// HEALTH SCHEDULE TEMPLATE OPERATIONS
+// ============================================
+
+// Default template for 8-week puppy schedule
+const DEFAULT_HEALTH_SCHEDULE_ITEMS: HealthScheduleTemplateItem[] = [
+  { taskType: 'daily_weight', taskName: 'Daily Weight Check (Week 1)', daysFromBirth: 1, isPerPuppy: false, notes: 'Weigh puppies twice daily for first week' },
+  { taskType: 'dewclaw_removal', taskName: 'Dewclaw Removal', daysFromBirth: 3, isPerPuppy: false, notes: 'If applicable - days 3-5' },
+  { taskType: 'daily_weight', taskName: 'Weekly Weight Check', daysFromBirth: 7, isPerPuppy: true, notes: 'Record individual puppy weights' },
+  { taskType: 'deworming', taskName: 'Deworming #1', daysFromBirth: 14, isPerPuppy: false, notes: 'Pyrantel pamoate' },
+  { taskType: 'eyes_opening', taskName: 'Eyes Opening Check', daysFromBirth: 14, isPerPuppy: true, notes: 'Eyes typically open days 10-14' },
+  { taskType: 'ears_opening', taskName: 'Ears Opening Check', daysFromBirth: 21, isPerPuppy: true, notes: 'Ears typically open around day 21' },
+  { taskType: 'first_solid_food', taskName: 'First Solid Food Introduction', daysFromBirth: 21, isPerPuppy: false, notes: 'Start weaning process' },
+  { taskType: 'deworming', taskName: 'Deworming #2', daysFromBirth: 28, isPerPuppy: false, notes: 'Pyrantel pamoate' },
+  { taskType: 'daily_weight', taskName: 'Weekly Weight Check (Week 4)', daysFromBirth: 28, isPerPuppy: true },
+  { taskType: 'nail_trim', taskName: 'Nail Trim', daysFromBirth: 28, isPerPuppy: false, notes: 'First nail trim' },
+  { taskType: 'vet_check', taskName: 'Vet Wellness Check #1', daysFromBirth: 35, isPerPuppy: true, notes: 'General health check' },
+  { taskType: 'deworming', taskName: 'Deworming #3', daysFromBirth: 42, isPerPuppy: false, notes: 'Pyrantel pamoate' },
+  { taskType: 'vaccination', taskName: 'First Vaccination (DHPP)', daysFromBirth: 42, isPerPuppy: true, notes: '6 weeks - Distemper, Hepatitis, Parainfluenza, Parvovirus' },
+  { taskType: 'microchipping', taskName: 'Microchipping', daysFromBirth: 49, isPerPuppy: true, notes: 'Record microchip numbers' },
+  { taskType: 'temperament_test', taskName: 'Temperament Testing', daysFromBirth: 49, isPerPuppy: true, notes: 'Volhard or similar assessment' },
+  { taskType: 'vet_check', taskName: 'Final Vet Check', daysFromBirth: 56, isPerPuppy: true, notes: 'Pre-placement wellness check' },
+  { taskType: 'vaccination', taskName: 'Second Vaccination (DHPP)', daysFromBirth: 56, isPerPuppy: true, notes: '8 weeks - Ready for go-home' },
+];
+
+export async function getHealthScheduleTemplates(): Promise<HealthScheduleTemplate[]> {
+  const db = loadDb();
+  return db.healthScheduleTemplates;
+}
+
+export async function getHealthScheduleTemplate(id: string): Promise<HealthScheduleTemplate | null> {
+  const db = loadDb();
+  return db.healthScheduleTemplates.find(t => t.id === id) || null;
+}
+
+export async function getDefaultHealthScheduleTemplate(): Promise<HealthScheduleTemplate> {
+  const db = loadDb();
+  let defaultTemplate = db.healthScheduleTemplates.find(t => t.isDefault);
+  
+  if (!defaultTemplate) {
+    // Create the default template if it doesn't exist
+    const now = new Date();
+    defaultTemplate = {
+      id: generateId(),
+      name: 'Standard 8-Week Schedule',
+      description: 'Default puppy health and development schedule from birth to 8 weeks',
+      items: DEFAULT_HEALTH_SCHEDULE_ITEMS,
+      isDefault: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+    db.healthScheduleTemplates.push(defaultTemplate);
+    saveDb(db);
+  }
+  
+  return defaultTemplate;
+}
+
+export async function createHealthScheduleTemplate(input: Omit<HealthScheduleTemplate, 'id' | 'createdAt' | 'updatedAt'>): Promise<HealthScheduleTemplate> {
+  const db = loadDb();
+  const now = new Date();
+  
+  // If this is being set as default, unset other defaults
+  if (input.isDefault) {
+    db.healthScheduleTemplates.forEach(t => { t.isDefault = false; });
+  }
+  
+  const template: HealthScheduleTemplate = {
+    ...input,
+    id: generateId(),
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.healthScheduleTemplates.push(template);
+  saveDb(db);
+  return template;
+}
+
+export async function updateHealthScheduleTemplate(id: string, input: Partial<HealthScheduleTemplate>): Promise<HealthScheduleTemplate | null> {
+  const db = loadDb();
+  const index = db.healthScheduleTemplates.findIndex(t => t.id === id);
+  if (index === -1) return null;
+  
+  // If this is being set as default, unset other defaults
+  if (input.isDefault) {
+    db.healthScheduleTemplates.forEach(t => { t.isDefault = false; });
+  }
+  
+  db.healthScheduleTemplates[index] = {
+    ...db.healthScheduleTemplates[index],
+    ...input,
+    updatedAt: new Date(),
+  };
+  saveDb(db);
+  return db.healthScheduleTemplates[index];
+}
+
+export async function deleteHealthScheduleTemplate(id: string): Promise<boolean> {
+  const db = loadDb();
+  const template = db.healthScheduleTemplates.find(t => t.id === id);
+  if (!template || template.isDefault) return false; // Can't delete default template
+  
+  const index = db.healthScheduleTemplates.findIndex(t => t.id === id);
+  db.healthScheduleTemplates.splice(index, 1);
+  saveDb(db);
+  return true;
+}
+
+// Generate puppy health tasks for a litter from a template
+export async function generatePuppyHealthTasksForLitter(
+  litterId: string, 
+  whelpDate: Date, 
+  templateId?: string
+): Promise<PuppyHealthTask[]> {
+  const db = loadDb();
+  const litter = db.litters.find(l => l.id === litterId);
+  if (!litter) throw new Error('Litter not found');
+  
+  // Get template (use default if not specified)
+  let template: HealthScheduleTemplate;
+  if (templateId) {
+    const found = db.healthScheduleTemplates.find(t => t.id === templateId);
+    if (!found) throw new Error('Template not found');
+    template = found;
+  } else {
+    template = await getDefaultHealthScheduleTemplate();
+  }
+  
+  // Get puppies in this litter
+  const puppies = db.dogs.filter(d => d.litterId === litterId);
+  
+  const now = new Date();
+  const tasks: PuppyHealthTask[] = [];
+  
+  for (const item of template.items) {
+    const dueDate = new Date(whelpDate.getTime() + item.daysFromBirth * 24 * 60 * 60 * 1000);
+    
+    if (item.isPerPuppy && puppies.length > 0) {
+      // Create one task per puppy
+      for (const puppy of puppies) {
+        const task: PuppyHealthTask = {
+          id: generateId(),
+          litterId,
+          puppyId: puppy.id,
+          taskType: item.taskType,
+          taskName: `${item.taskName} - ${puppy.name}`,
+          dueDate,
+          completedDate: null,
+          notes: item.notes || null,
+          createdAt: now,
+          updatedAt: now,
+        };
+        tasks.push(task);
+        db.puppyHealthTasks.push(task);
+      }
+    } else {
+      // Create one task for the whole litter
+      const task: PuppyHealthTask = {
+        id: generateId(),
+        litterId,
+        puppyId: null,
+        taskType: item.taskType,
+        taskName: item.taskName,
+        dueDate,
+        completedDate: null,
+        notes: item.notes || null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      tasks.push(task);
+      db.puppyHealthTasks.push(task);
+    }
+  }
+  
+  saveDb(db);
+  return tasks;
+}
+
+// Get tasks due this week across all litters
+export async function getPuppyHealthTasksDueThisWeek(): Promise<PuppyHealthTask[]> {
+  const db = loadDb();
+  const now = new Date();
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  
+  return db.puppyHealthTasks
+    .filter(t => 
+      !t.completedDate &&
+      new Date(t.dueDate) <= sevenDaysFromNow &&
+      new Date(t.dueDate) >= now
+    )
+    .map(t => ({
+      ...t,
+      litter: db.litters.find(l => l.id === t.litterId),
+      puppy: t.puppyId ? db.dogs.find(d => d.id === t.puppyId) || null : null,
+    }))
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+}
+
+// Get overdue tasks
+export async function getOverduePuppyHealthTasks(): Promise<PuppyHealthTask[]> {
+  const db = loadDb();
+  const now = new Date();
+  
+  return db.puppyHealthTasks
+    .filter(t => 
+      !t.completedDate &&
+      new Date(t.dueDate) < now
+    )
+    .map(t => ({
+      ...t,
+      litter: db.litters.find(l => l.id === t.litterId),
+      puppy: t.puppyId ? db.dogs.find(d => d.id === t.puppyId) || null : null,
+    }))
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+}
+
+// ============================================
+// WAITLIST ENTRY OPERATIONS
+// ============================================
+
+export async function getWaitlistEntries(litterId?: string): Promise<WaitlistEntry[]> {
+  const db = loadDb();
+  let entries = db.waitlistEntries;
+  
+  if (litterId) {
+    entries = entries.filter(w => w.litterId === litterId);
+  }
+  
+  // Include relations and sort by position
+  return entries
+    .map(w => ({
+      ...w,
+      client: db.clients.find(c => c.id === w.clientId),
+      litter: w.litterId ? db.litters.find(l => l.id === w.litterId) || null : null,
+      assignedPuppy: w.assignedPuppyId ? db.dogs.find(d => d.id === w.assignedPuppyId) || null : null,
+    }))
+    .sort((a, b) => a.position - b.position);
+}
+
+export async function getGeneralWaitlist(): Promise<WaitlistEntry[]> {
+  const db = loadDb();
+  return db.waitlistEntries
+    .filter(w => !w.litterId)
+    .map(w => ({
+      ...w,
+      client: db.clients.find(c => c.id === w.clientId),
+      litter: null,
+      assignedPuppy: w.assignedPuppyId ? db.dogs.find(d => d.id === w.assignedPuppyId) || null : null,
+    }))
+    .sort((a, b) => a.position - b.position);
+}
+
+export async function getWaitlistEntry(id: string): Promise<WaitlistEntry | null> {
+  const db = loadDb();
+  const entry = db.waitlistEntries.find(w => w.id === id);
+  if (!entry) return null;
+  
+  return {
+    ...entry,
+    client: db.clients.find(c => c.id === entry.clientId),
+    litter: entry.litterId ? db.litters.find(l => l.id === entry.litterId) || null : null,
+    assignedPuppy: entry.assignedPuppyId ? db.dogs.find(d => d.id === entry.assignedPuppyId) || null : null,
+  };
+}
+
+export async function getWaitlistEntriesByClient(clientId: string): Promise<WaitlistEntry[]> {
+  const db = loadDb();
+  return db.waitlistEntries
+    .filter(w => w.clientId === clientId)
+    .map(w => ({
+      ...w,
+      client: db.clients.find(c => c.id === w.clientId),
+      litter: w.litterId ? db.litters.find(l => l.id === w.litterId) || null : null,
+      assignedPuppy: w.assignedPuppyId ? db.dogs.find(d => d.id === w.assignedPuppyId) || null : null,
+    }))
+    .sort((a, b) => a.position - b.position);
+}
+
+export async function createWaitlistEntry(input: CreateWaitlistEntryInput): Promise<WaitlistEntry> {
+  const db = loadDb();
+  const now = new Date();
+  
+  // Determine position (next available in the list)
+  const existingEntries = db.waitlistEntries.filter(w => 
+    w.litterId === input.litterId && w.status === 'waiting'
+  );
+  const maxPosition = existingEntries.length > 0 
+    ? Math.max(...existingEntries.map(e => e.position))
+    : 0;
+  
+  const entry: WaitlistEntry = {
+    ...input,
+    id: generateId(),
+    position: input.position || maxPosition + 1,
+    depositStatus: input.depositStatus || 'pending',
+    status: input.status || 'waiting',
+    createdAt: now,
+    updatedAt: now,
+  };
+  
+  db.waitlistEntries.push(entry);
+  saveDb(db);
+  return entry;
+}
+
+export async function updateWaitlistEntry(id: string, input: UpdateWaitlistEntryInput): Promise<WaitlistEntry | null> {
+  const db = loadDb();
+  const index = db.waitlistEntries.findIndex(w => w.id === id);
+  if (index === -1) return null;
+  
+  db.waitlistEntries[index] = {
+    ...db.waitlistEntries[index],
+    ...input,
+    updatedAt: new Date(),
+  };
+  saveDb(db);
+  return db.waitlistEntries[index];
+}
+
+export async function deleteWaitlistEntry(id: string): Promise<boolean> {
+  const db = loadDb();
+  const index = db.waitlistEntries.findIndex(w => w.id === id);
+  if (index === -1) return false;
+  
+  db.waitlistEntries.splice(index, 1);
+  saveDb(db);
+  return true;
+}
+
+export async function reorderWaitlist(litterId: string | null, entryIds: string[]): Promise<void> {
+  const db = loadDb();
+  
+  entryIds.forEach((entryId, index) => {
+    const entryIndex = db.waitlistEntries.findIndex(w => 
+      w.id === entryId && w.litterId === litterId
+    );
+    if (entryIndex !== -1) {
+      db.waitlistEntries[entryIndex].position = index + 1;
+      db.waitlistEntries[entryIndex].updatedAt = new Date();
+    }
+  });
+  
+  saveDb(db);
+}
+
+export async function matchPuppyToWaitlist(entryId: string, puppyId: string): Promise<WaitlistEntry | null> {
+  const db = loadDb();
+  const index = db.waitlistEntries.findIndex(w => w.id === entryId);
+  if (index === -1) return null;
+  
+  db.waitlistEntries[index] = {
+    ...db.waitlistEntries[index],
+    assignedPuppyId: puppyId,
+    status: 'matched',
+    updatedAt: new Date(),
+  };
+  saveDb(db);
+  return db.waitlistEntries[index];
+}
+
+export async function convertWaitlistToSale(entryId: string, _saleId: string): Promise<WaitlistEntry | null> {
+  const db = loadDb();
+  const index = db.waitlistEntries.findIndex(w => w.id === entryId);
+  if (index === -1) return null;
+  
+  db.waitlistEntries[index] = {
+    ...db.waitlistEntries[index],
+    status: 'converted',
+    depositStatus: 'applied_to_sale',
+    updatedAt: new Date(),
+  };
+  saveDb(db);
+  return db.waitlistEntries[index];
+}
+
+// ============================================
+// COMMUNICATION LOG OPERATIONS
+// ============================================
+
+export async function getCommunicationLogs(clientId?: string): Promise<CommunicationLog[]> {
+  const db = loadDb();
+  let logs = db.communicationLogs;
+  
+  if (clientId) {
+    logs = logs.filter(l => l.clientId === clientId);
+  }
+  
+  // Include relations and sort by date (most recent first)
+  return logs
+    .map(l => ({
+      ...l,
+      client: db.clients.find(c => c.id === l.clientId),
+      relatedLitter: l.relatedLitterId ? db.litters.find(lit => lit.id === l.relatedLitterId) || null : null,
+    }))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+export async function getCommunicationLog(id: string): Promise<CommunicationLog | null> {
+  const db = loadDb();
+  const log = db.communicationLogs.find(l => l.id === id);
+  if (!log) return null;
+  
+  return {
+    ...log,
+    client: db.clients.find(c => c.id === log.clientId),
+    relatedLitter: log.relatedLitterId ? db.litters.find(l => l.id === log.relatedLitterId) || null : null,
+  };
+}
+
+export async function getFollowUpsDue(): Promise<CommunicationLog[]> {
+  const db = loadDb();
+  const now = new Date();
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  
+  return db.communicationLogs
+    .filter(l => 
+      l.followUpNeeded && 
+      !l.followUpCompleted &&
+      l.followUpDate &&
+      new Date(l.followUpDate) <= sevenDaysFromNow
+    )
+    .map(l => ({
+      ...l,
+      client: db.clients.find(c => c.id === l.clientId),
+      relatedLitter: l.relatedLitterId ? db.litters.find(lit => lit.id === l.relatedLitterId) || null : null,
+    }))
+    .sort((a, b) => 
+      new Date(a.followUpDate!).getTime() - new Date(b.followUpDate!).getTime()
+    );
+}
+
+export async function getOverdueFollowUps(): Promise<CommunicationLog[]> {
+  const db = loadDb();
+  const now = new Date();
+  
+  return db.communicationLogs
+    .filter(l => 
+      l.followUpNeeded && 
+      !l.followUpCompleted &&
+      l.followUpDate &&
+      new Date(l.followUpDate) < now
+    )
+    .map(l => ({
+      ...l,
+      client: db.clients.find(c => c.id === l.clientId),
+      relatedLitter: l.relatedLitterId ? db.litters.find(lit => lit.id === l.relatedLitterId) || null : null,
+    }))
+    .sort((a, b) => 
+      new Date(a.followUpDate!).getTime() - new Date(b.followUpDate!).getTime()
+    );
+}
+
+export async function createCommunicationLog(input: CreateCommunicationLogInput): Promise<CommunicationLog> {
+  const db = loadDb();
+  const now = new Date();
+  
+  const log: CommunicationLog = {
+    ...input,
+    id: generateId(),
+    followUpCompleted: input.followUpCompleted || false,
+    createdAt: now,
+    updatedAt: now,
+  };
+  
+  db.communicationLogs.push(log);
+  saveDb(db);
+  return log;
+}
+
+export async function updateCommunicationLog(id: string, input: UpdateCommunicationLogInput): Promise<CommunicationLog | null> {
+  const db = loadDb();
+  const index = db.communicationLogs.findIndex(l => l.id === id);
+  if (index === -1) return null;
+  
+  db.communicationLogs[index] = {
+    ...db.communicationLogs[index],
+    ...input,
+    updatedAt: new Date(),
+  };
+  saveDb(db);
+  return db.communicationLogs[index];
+}
+
+export async function deleteCommunicationLog(id: string): Promise<boolean> {
+  const db = loadDb();
+  const index = db.communicationLogs.findIndex(l => l.id === id);
+  if (index === -1) return false;
+  
+  db.communicationLogs.splice(index, 1);
+  saveDb(db);
+  return true;
+}
+
+export async function completeFollowUp(id: string): Promise<CommunicationLog | null> {
+  const db = loadDb();
+  const index = db.communicationLogs.findIndex(l => l.id === id);
+  if (index === -1) return null;
+  
+  db.communicationLogs[index] = {
+    ...db.communicationLogs[index],
+    followUpCompleted: true,
+    updatedAt: new Date(),
+  };
+  saveDb(db);
+  return db.communicationLogs[index];
+}
+
+// ============================================
+// EXTERNAL STUD OPERATIONS
+// ============================================
+
+export async function getExternalStuds(): Promise<ExternalStud[]> {
+  const db = loadDb();
+  return db.externalStuds.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function getExternalStud(id: string): Promise<ExternalStud | null> {
+  const db = loadDb();
+  return db.externalStuds.find(s => s.id === id) || null;
+}
+
+export async function createExternalStud(input: CreateExternalStudInput): Promise<ExternalStud> {
+  const db = loadDb();
+  const now = new Date();
+  
+  const stud: ExternalStud = {
+    ...input,
+    id: generateId(),
+    createdAt: now,
+    updatedAt: now,
+  };
+  
+  db.externalStuds.push(stud);
+  saveDb(db);
+  return stud;
+}
+
+export async function updateExternalStud(id: string, input: UpdateExternalStudInput): Promise<ExternalStud | null> {
+  const db = loadDb();
+  const index = db.externalStuds.findIndex(s => s.id === id);
+  if (index === -1) return null;
+  
+  db.externalStuds[index] = {
+    ...db.externalStuds[index],
+    ...input,
+    updatedAt: new Date(),
+  };
+  saveDb(db);
+  return db.externalStuds[index];
+}
+
+export async function deleteExternalStud(id: string): Promise<boolean> {
+  const db = loadDb();
+  const index = db.externalStuds.findIndex(s => s.id === id);
+  if (index === -1) return false;
+  
+  db.externalStuds.splice(index, 1);
+  saveDb(db);
+  return true;
+}
+
+// ============================================
+// HEAT CYCLE PREDICTIONS
+// ============================================
+
+export async function getHeatCyclePrediction(dogId: string): Promise<HeatCyclePrediction> {
+  const db = loadDb();
+  
+  // Get completed heat cycles for this dog
+  const cycles = db.heatCycles
+    .filter(h => h.bitchId === dogId && h.endDate)
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  
+  const dataPointCount = cycles.length;
+  
+  if (dataPointCount === 0) {
+    return {
+      dogId,
+      averageCycleLength: null,
+      averageIntervalDays: null,
+      predictedNextHeat: null,
+      confidence: 'low',
+      dataPointCount: 0,
+    };
+  }
+  
+  // Calculate average cycle length
+  const cycleLengths = cycles
+    .filter(c => c.cycleLength && c.cycleLength > 0)
+    .map(c => c.cycleLength!);
+  
+  const averageCycleLength = cycleLengths.length > 0
+    ? Math.round(cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length)
+    : null;
+  
+  // Calculate average interval between cycles
+  const intervals: number[] = [];
+  for (let i = 1; i < cycles.length; i++) {
+    const prevEnd = cycles[i - 1].endDate ? new Date(cycles[i - 1].endDate!) : null;
+    const currStart = new Date(cycles[i].startDate);
+    if (prevEnd) {
+      const intervalDays = Math.round((currStart.getTime() - prevEnd.getTime()) / (1000 * 60 * 60 * 24));
+      intervals.push(intervalDays);
+    }
+  }
+  
+  const averageIntervalDays = intervals.length > 0
+    ? Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length)
+    : null;
+  
+  // Predict next heat
+  let predictedNextHeat: Date | null = null;
+  const lastCycle = cycles[cycles.length - 1];
+  
+  if (lastCycle.endDate) {
+    // Use average interval if available, otherwise default to 6 months (180 days)
+    const daysToAdd = averageIntervalDays || 180;
+    predictedNextHeat = new Date(new Date(lastCycle.endDate).getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+  }
+  
+  // Determine confidence based on data points
+  let confidence: 'low' | 'medium' | 'high' = 'low';
+  if (dataPointCount >= 3) {
+    confidence = 'high';
+  } else if (dataPointCount >= 2) {
+    confidence = 'medium';
+  }
+  
+  return {
+    dogId,
+    averageCycleLength,
+    averageIntervalDays,
+    predictedNextHeat,
+    confidence,
+    dataPointCount,
+  };
+}
+
+// Get females expected in heat soon
+export async function getFemalesExpectingHeatSoon(days: number = 30): Promise<Array<{dog: Dog; prediction: HeatCyclePrediction}>> {
+  const db = loadDb();
+  const now = new Date();
+  const futureDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+  
+  const females = db.dogs.filter(d => d.sex === 'F' && d.status === 'active');
+  const results: Array<{dog: Dog; prediction: HeatCyclePrediction}> = [];
+  
+  for (const female of females) {
+    const prediction = await getHeatCyclePrediction(female.id);
+    if (prediction.predictedNextHeat && 
+        prediction.predictedNextHeat >= now && 
+        prediction.predictedNextHeat <= futureDate) {
+      results.push({ dog: female, prediction });
+    }
+  }
+  
+  return results.sort((a, b) => 
+    (a.prediction.predictedNextHeat?.getTime() || 0) - (b.prediction.predictedNextHeat?.getTime() || 0)
+  );
+}
+
+// ============================================
+// GENETIC TEST OPERATIONS
+// ============================================
+
+export async function getGeneticTests(dogId?: string): Promise<GeneticTest[]> {
+  const db = loadDb();
+  let tests = db.geneticTests;
+  
+  if (dogId) {
+    tests = tests.filter(t => t.dogId === dogId);
+  }
+  
+  return tests.map(t => ({
+    ...t,
+    dog: db.dogs.find(d => d.id === t.dogId),
+  })).sort((a, b) => a.testName.localeCompare(b.testName));
+}
+
+export async function getGeneticTest(id: string): Promise<GeneticTest | null> {
+  const db = loadDb();
+  const test = db.geneticTests.find(t => t.id === id);
+  if (!test) return null;
+  
+  return {
+    ...test,
+    dog: db.dogs.find(d => d.id === test.dogId),
+  };
+}
+
+export async function createGeneticTest(input: CreateGeneticTestInput): Promise<GeneticTest> {
+  const db = loadDb();
+  const now = new Date();
+  
+  const test: GeneticTest = {
+    ...input,
+    id: generateId(),
+    createdAt: now,
+    updatedAt: now,
+  };
+  
+  db.geneticTests.push(test);
+  saveDb(db);
+  return test;
+}
+
+export async function updateGeneticTest(id: string, input: UpdateGeneticTestInput): Promise<GeneticTest | null> {
+  const db = loadDb();
+  const index = db.geneticTests.findIndex(t => t.id === id);
+  if (index === -1) return null;
+  
+  db.geneticTests[index] = {
+    ...db.geneticTests[index],
+    ...input,
+    updatedAt: new Date(),
+  };
+  saveDb(db);
+  return db.geneticTests[index];
+}
+
+export async function deleteGeneticTest(id: string): Promise<boolean> {
+  const db = loadDb();
+  const index = db.geneticTests.findIndex(t => t.id === id);
+  if (index === -1) return false;
+  
+  db.geneticTests.splice(index, 1);
+  saveDb(db);
+  return true;
+}
+
+// Get genetic test summary for a dog
+export async function getDogGeneticTestSummary(dogId: string): Promise<{
+  tests: GeneticTest[];
+  clearCount: number;
+  carrierCount: number;
+  affectedCount: number;
+  pendingCount: number;
+  hasRiskyTests: boolean;
+}> {
+  const db = loadDb();
+  const tests = db.geneticTests.filter(t => t.dogId === dogId);
+  
+  return {
+    tests,
+    clearCount: tests.filter(t => t.result === 'clear').length,
+    carrierCount: tests.filter(t => t.result === 'carrier').length,
+    affectedCount: tests.filter(t => t.result === 'affected').length,
+    pendingCount: tests.filter(t => t.result === 'pending').length,
+    hasRiskyTests: tests.some(t => t.result === 'affected' || t.result === 'carrier'),
+  };
+}
+
+// Check mating compatibility between two dogs
+export async function checkMatingCompatibility(damId: string, sireId: string): Promise<MatingCompatibilityResult> {
+  const db = loadDb();
+  
+  const damTests = db.geneticTests.filter(t => t.dogId === damId);
+  const sireTests = db.geneticTests.filter(t => t.dogId === sireId);
+  
+  const warnings: MatingWarning[] = [];
+  
+  // Get all unique test types from both dogs
+  const allTestTypes = new Set([
+    ...damTests.map(t => t.testName),
+    ...sireTests.map(t => t.testName),
+  ]);
+  
+  for (const testName of allTestTypes) {
+    const damTest = damTests.find(t => t.testName === testName);
+    const sireTest = sireTests.find(t => t.testName === testName);
+    
+    const damStatus = damTest?.result || null;
+    const sireStatus = sireTest?.result || null;
+    
+    // If one dog is missing the test
+    if (!damTest || !sireTest) {
+      if (damTest?.result === 'carrier' || damTest?.result === 'affected' ||
+          sireTest?.result === 'carrier' || sireTest?.result === 'affected') {
+        warnings.push({
+          testName,
+          severity: 'medium',
+          message: `${testName}: One parent has ${damTest?.result || sireTest?.result} status but other parent is untested`,
+          damStatus,
+          sireStatus,
+        });
+      }
+      continue;
+    }
+    
+    // Check for problematic combinations
+    if (damStatus === 'affected' || sireStatus === 'affected') {
+      warnings.push({
+        testName,
+        severity: 'high',
+        message: `${testName}: One parent is AFFECTED - not recommended for breeding`,
+        damStatus,
+        sireStatus,
+      });
+    } else if (damStatus === 'carrier' && sireStatus === 'carrier') {
+      warnings.push({
+        testName,
+        severity: 'high',
+        message: `${testName}: Both parents are CARRIERS - 25% risk of affected puppies`,
+        damStatus,
+        sireStatus,
+      });
+    } else if ((damStatus === 'carrier' && sireStatus === 'clear') ||
+               (damStatus === 'clear' && sireStatus === 'carrier')) {
+      warnings.push({
+        testName,
+        severity: 'low',
+        message: `${testName}: One parent is carrier - puppies may be carriers but not affected`,
+        damStatus,
+        sireStatus,
+      });
+    }
+  }
+  
+  // Determine overall compatibility
+  const hasHighSeverity = warnings.some(w => w.severity === 'high');
+  const hasMediumSeverity = warnings.some(w => w.severity === 'medium');
+  
+  let summary: string;
+  if (hasHighSeverity) {
+    summary = 'NOT RECOMMENDED: This pairing has significant genetic risks.';
+  } else if (hasMediumSeverity) {
+    summary = 'CAUTION: Complete genetic testing recommended before breeding.';
+  } else if (warnings.length > 0) {
+    summary = 'ACCEPTABLE: Minor considerations noted. Safe to proceed with breeding.';
+  } else {
+    summary = 'COMPATIBLE: No genetic concerns identified.';
+  }
+  
+  return {
+    isCompatible: !hasHighSeverity,
+    warnings: warnings.sort((a, b) => {
+      const severityOrder = { high: 0, medium: 1, low: 2 };
+      return severityOrder[a.severity] - severityOrder[b.severity];
+    }),
+    summary,
+  };
+}
+
+// Common genetic test list for quick-add
+export const COMMON_GENETIC_TESTS = [
+  { name: 'DM', fullName: 'Degenerative Myelopathy', type: 'DM' as const },
+  { name: 'HUU', fullName: 'Hyperuricosuria', type: 'HUU' as const },
+  { name: 'CMR1', fullName: 'Canine Multifocal Retinopathy 1', type: 'CMR1' as const },
+  { name: 'EIC', fullName: 'Exercise Induced Collapse', type: 'EIC' as const },
+  { name: 'vWD1', fullName: 'Von Willebrand Disease Type 1', type: 'vWD1' as const },
+  { name: 'PRA-prcd', fullName: 'Progressive Retinal Atrophy (prcd)', type: 'PRA-prcd' as const },
+  { name: 'CDDY', fullName: 'Chondrodystrophy', type: 'CDDY' as const },
+  { name: 'CDPA', fullName: 'Chondrodysplasia', type: 'CDPA' as const },
+  { name: 'NCL', fullName: 'Neuronal Ceroid Lipofuscinosis', type: 'NCL' as const },
+  { name: 'JHC', fullName: 'Juvenile Hereditary Cataracts', type: 'JHC' as const },
+  { name: 'HSF4', fullName: 'Hereditary Cataracts', type: 'HSF4' as const },
+  { name: 'MDR1', fullName: 'Multi-Drug Resistance 1', type: 'MDR1' as const },
+] as const;
 
 // ============================================
 // BACKUP & EXPORT
