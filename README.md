@@ -166,6 +166,7 @@ npm run db:studio
 
 ## Documentation
 
+- [User Manual](docs/USER_MANUAL.md) - Complete user guide for all features
 - [Architecture](docs/ARCHITECTURE.md) - System design and structure
 - [Data Model](docs/DATA_MODEL.md) - Database schema documentation
 - [API Reference](docs/API.md) - Internal API documentation

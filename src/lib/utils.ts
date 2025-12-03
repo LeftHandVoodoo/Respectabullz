@@ -8,6 +8,8 @@ export function cn(...inputs: ClassValue[]) {
 export function formatDate(date: Date | string | null | undefined): string {
   if (!date) return '';
   const d = typeof date === 'string' ? new Date(date) : date;
+  // Check for invalid date
+  if (isNaN(d.getTime())) return '';
   return d.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -32,6 +34,9 @@ export function formatWeight(lbs: number, unit: 'lbs' | 'kg' = 'lbs'): string {
 
 export function calculateAge(birthDate: Date | string): string {
   const birth = typeof birthDate === 'string' ? new Date(birthDate) : birthDate;
+  // Check for invalid date
+  if (isNaN(birth.getTime())) return 'Invalid date';
+  
   const now = new Date();
   
   let years = now.getFullYear() - birth.getFullYear();

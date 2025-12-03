@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (Future features will be documented here)
 
+## [0.10.0] - 2025-12-03
+
+### Fixed
+
+- Added invalid date validation to `formatDate()` and `calculateAge()` utility functions to prevent runtime errors with corrupted date data
+
 ## [0.9.1] - 2025-12-03
 
 ### Fixed
