@@ -1,5 +1,7 @@
 # Respectabullz Internal API Reference
 
+**Version 1.0.0**
+
 ## Overview
 
 This document describes the internal API provided by the database layer (`src/lib/db.ts`) and consumed by React hooks (`src/hooks/`).
@@ -898,7 +900,7 @@ completeFollowUp(id: string): Promise<CommunicationLog | null>
 
 ---
 
-## External Stud Operations (v0.8.0)
+## External Stud Operations
 
 ### getExternalStuds
 Retrieves all external studs.
@@ -927,7 +929,7 @@ getHeatCyclePrediction(dogId: string): Promise<HeatCyclePrediction | null>
 
 ---
 
-## Genetic Test Operations (v0.9.0)
+## Genetic Test Operations
 
 ### getGeneticTests
 Retrieves genetic tests, optionally filtered by dog.
@@ -958,7 +960,7 @@ getMatingCompatibility(damId: string, sireId: string): Promise<MatingCompatibili
 
 ---
 
-## Report Operations (v0.9.0)
+## Report Operations
 
 ### getLittersPerYearReport
 Generates litters per year report.
@@ -990,7 +992,7 @@ getProductionBySireReport(): Promise<ReportProductionByParent[]>
 
 ---
 
-## Pedigree Operations (v0.9.0)
+## Pedigree Operations
 
 ### getPedigree
 Retrieves pedigree data for a dog (up to 4 generations).
@@ -1000,4 +1002,60 @@ getPedigree(dogId: string, generations?: number): Promise<PedigreeData>
 ```
 
 **Returns:** Tree structure with ancestor information including name, registration, color, and photo paths.
+
+---
+
+## Customer Packet Operations (v1.0.0)
+
+### getPacketData
+Retrieves comprehensive data for generating a customer packet PDF export.
+
+```typescript
+getPacketData(dogId: string): Promise<PacketData | null>
+```
+
+**Parameters:**
+- `dogId`: Dog's unique identifier
+
+**Returns:** Comprehensive packet data including:
+- Dog information with all relations
+- Sire and dam with profile photos
+- 4-generation pedigree ancestors
+- Vaccination records
+- Medical records
+- Weight entries
+- Genetic tests
+- Dog photos (gallery)
+- Sale and client information (if applicable)
+- Breeder settings
+
+**PacketData Structure:**
+```typescript
+{
+  dog: Dog;
+  sire: Dog | null;
+  dam: Dog | null;
+  pedigreeAncestors: Array<{
+    generation: number;
+    position: string;
+    dog: Dog | null;
+    name: string;
+    registrationNumber: string | null;
+    color: string | null;
+  }>;
+  vaccinations: VaccinationRecord[];
+  medicalRecords: MedicalRecord[];
+  weightEntries: WeightEntry[];
+  geneticTests: GeneticTest[];
+  dogPhotos: DogPhoto[];
+  sirePhoto: string | null;  // Profile photo path
+  damPhoto: string | null;   // Profile photo path
+  sale: Sale | null;
+  client: Client | null;
+  expenses: Expense[];
+  breederSettings: BreederSettings;
+}
+```
+
+This function aggregates all data needed for the PDF export in a single call, optimizing performance and ensuring data consistency.
 

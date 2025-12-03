@@ -1,7 +1,8 @@
 # Respectabullz User Manual
 
-**Version 0.9.1**  
-**Last Updated: December 2025**
+**Version 1.0.0**  
+**Last Updated: December 2025**  
+**Version 1.0.0**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
 
@@ -158,6 +159,36 @@ Track registration deadlines:
 1. On the dog's detail page, find the **Registration Status** card
 2. Click to edit status, registry, type, and deadline
 3. The dashboard will remind you of upcoming deadlines
+
+#### Customer Packet PDF Export
+
+Generate a comprehensive printable packet for customers with all dog information:
+
+1. Navigate to any dog's detail page
+2. Click the **"Export Packet"** button (next to Edit button)
+3. In the export dialog, select which sections to include:
+   - **Dog Information**: Basic details, registration, health clearances
+   - **Pedigree**: 4-generation family tree (select 2, 3, or 4 generations)
+   - **Health Records**: Choose vaccinations, medical records, genetic tests
+   - **Weight Chart**: Growth tracking visualization
+   - **Photos**: Dog photos and parent photos
+   - **Financial**: Invoice, receipt, payment history
+   - **Care Instructions**: Feeding, grooming, training, vet care guide
+   - **Registration**: AKC/registry information if applicable
+4. Click **"Export PDF"**
+5. Choose save location (Tauri) or download automatically (browser)
+
+The generated PDF includes:
+- **Cover Page**: Dog photo, name, kennel branding with Logo_Vintage.png
+- **Professional Headers/Footers**: Branded throughout with logo and page numbers
+- **Premium Design**: Brand colors, elegant typography, card-style layouts
+- **Comprehensive Content**: All selected information formatted for printing
+
+Perfect for:
+- New puppy packets
+- Registration paperwork
+- Health record documentation
+- Customer handouts
 
 ---
 
@@ -734,6 +765,8 @@ For issues or questions:
 
 ## Version History
 
+- **v1.0.0**: First stable release - Customer packet PDF export, comprehensive dog management, all core features production-ready
+- **v0.9.2**: Bug fixes and date validation improvements
 - **v0.9.1**: Bug fixes and enhancements
 - **v0.9.0**: Genetic testing, pedigree charts, registry helpers, reports
 - **v0.8.0**: Puppy health schedules, whelping management, waitlist, communication logging
@@ -742,6 +775,6 @@ See [CHANGELOG.md](../CHANGELOG.md) for complete version history.
 
 ---
 
-**Respectabullz User Manual v0.9.1**  
+**Respectabullz User Manual v1.0.0**  
 *Last Updated: December 2025*
 

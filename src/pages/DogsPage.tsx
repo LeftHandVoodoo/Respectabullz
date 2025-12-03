@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -34,12 +34,17 @@ const statusColors: Record<DogStatus, 'default' | 'secondary' | 'destructive' | 
   deceased: 'destructive',
 };
 
+type SortColumn = 'name' | 'age' | 'status' | 'sex' | null;
+type SortDirection = 'asc' | 'desc';
+
 export function DogsPage() {
   const navigate = useNavigate();
   const { data: dogs, isLoading } = useDogs();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sexFilter, setSexFilter] = useState<string>('all');
+  const [sortColumn, setSortColumn] = useState<SortColumn>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   // Initialize photo base path for displaying photos
@@ -47,19 +52,69 @@ export function DogsPage() {
     initPhotoBasePath();
   }, []);
 
-  const filteredDogs = dogs?.filter((dog) => {
-    const matchesSearch =
-      dog.name.toLowerCase().includes(search.toLowerCase()) ||
-      dog.breed.toLowerCase().includes(search.toLowerCase()) ||
-      dog.registrationNumber?.toLowerCase().includes(search.toLowerCase());
-    
-    const matchesStatus =
-      statusFilter === 'all' || dog.status === statusFilter;
-    
-    const matchesSex = sexFilter === 'all' || dog.sex === sexFilter;
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking the same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new column with default direction
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
 
-    return matchesSearch && matchesStatus && matchesSex;
-  });
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="ml-2 h-4 w-4" />
+    ) : (
+      <ArrowDown className="ml-2 h-4 w-4" />
+    );
+  };
+
+  const filteredDogs = useMemo(() => {
+    if (!dogs) return [];
+    
+    let filtered = dogs.filter((dog) => {
+      const matchesSearch =
+        dog.name.toLowerCase().includes(search.toLowerCase()) ||
+        dog.breed.toLowerCase().includes(search.toLowerCase()) ||
+        dog.registrationNumber?.toLowerCase().includes(search.toLowerCase());
+      
+      const matchesStatus =
+        statusFilter === 'all' || dog.status === statusFilter;
+      
+      const matchesSex = sexFilter === 'all' || dog.sex === sexFilter;
+
+      return matchesSearch && matchesStatus && matchesSex;
+    });
+
+    // Apply sorting
+    if (sortColumn) {
+      filtered = [...filtered].sort((a, b) => {
+        let comparison = 0;
+        
+        if (sortColumn === 'name') {
+          comparison = a.name.localeCompare(b.name);
+        } else if (sortColumn === 'age') {
+          // Sort by date of birth (older = smaller date value)
+          const dateA = a.dateOfBirth ? (a.dateOfBirth instanceof Date ? a.dateOfBirth.getTime() : new Date(a.dateOfBirth).getTime()) : 0;
+          const dateB = b.dateOfBirth ? (b.dateOfBirth instanceof Date ? b.dateOfBirth.getTime() : new Date(b.dateOfBirth).getTime()) : 0;
+          comparison = dateA - dateB;
+        } else if (sortColumn === 'status') {
+          comparison = a.status.localeCompare(b.status);
+        } else if (sortColumn === 'sex') {
+          comparison = a.sex.localeCompare(b.sex);
+        }
+        
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    return filtered;
+  }, [dogs, search, statusFilter, sexFilter, sortColumn, sortDirection]);
 
   return (
     <div className="space-y-6">
@@ -118,12 +173,48 @@ export function DogsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Sex</TableHead>
+              <TableHead>
+                <button
+                  onClick={() => handleSort('name')}
+                  className="flex items-center hover:text-foreground transition-colors cursor-pointer"
+                  aria-label="Sort by name"
+                >
+                  Name
+                  <SortIcon column="name" />
+                </button>
+              </TableHead>
+              <TableHead>
+                <button
+                  onClick={() => handleSort('sex')}
+                  className="flex items-center hover:text-foreground transition-colors cursor-pointer"
+                  aria-label="Sort by sex"
+                >
+                  Sex
+                  <SortIcon column="sex" />
+                </button>
+              </TableHead>
               <TableHead>Breed</TableHead>
-              <TableHead>Age</TableHead>
+              <TableHead>
+                <button
+                  onClick={() => handleSort('age')}
+                  className="flex items-center hover:text-foreground transition-colors cursor-pointer"
+                  aria-label="Sort by age"
+                >
+                  Age
+                  <SortIcon column="age" />
+                </button>
+              </TableHead>
               <TableHead>Registration</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>
+                <button
+                  onClick={() => handleSort('status')}
+                  className="flex items-center hover:text-foreground transition-colors cursor-pointer"
+                  aria-label="Sort by status"
+                >
+                  Status
+                  <SortIcon column="status" />
+                </button>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

@@ -88,6 +88,16 @@ For testing releases:
 
 ## Current Version
 
+**1.0.0** (2025-12-03)
+
+Major release - First stable version:
+- Complete customer packet PDF export with professional branding
+- Comprehensive dog management with pedigree tracking
+- Full health and breeding management system
+- Client management and sales pipeline
+- Photo management and backup system
+- All core features production-ready
+
 **0.9.2** (2025-12-03)
 
 Bug fixes in this version:

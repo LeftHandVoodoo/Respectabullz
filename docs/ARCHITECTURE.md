@@ -1,5 +1,7 @@
 # Respectabullz Architecture
 
+**Version 1.0.0**
+
 ## Overview
 
 Respectabullz is a desktop application for dog breeder management, built with a modern tech stack optimized for local-first operation on Windows.
@@ -106,13 +108,25 @@ respectabullz/
 │   │   ├── dogs/            # Dog-specific components
 │   │   ├── litters/         # Litter components
 │   │   ├── health/          # Health tracking components
-│   │   ├── puppy-health/   # Puppy health task components (v0.8.0)
-│   │   ├── waitlist/       # Waitlist and reservation components (v0.8.0)
-│   │   ├── communication/  # Client communication logging (v0.8.0)
-│   │   ├── breeding/       # Breeding planning and external studs (v0.8.0)
-│   │   ├── genetics/       # Genetic testing and compatibility (v0.9.0)
-│   │   ├── pedigree/      # Pedigree chart components (v0.9.0)
-│   │   ├── registry/      # Registration tracking components (v0.9.0)
+│   │   ├── puppy-health/   # Puppy health task components
+│   │   ├── waitlist/       # Waitlist and reservation components
+│   │   ├── communication/  # Client communication logging
+│   │   ├── breeding/       # Breeding planning and external studs
+│   │   ├── genetics/       # Genetic testing and compatibility
+│   │   ├── pedigree/      # Pedigree chart components
+│   │   ├── registry/      # Registration tracking components
+│   │   ├── packet/        # Customer packet PDF export components
+│   │   │   ├── PacketExportDialog.tsx  # Export dialog with section selection
+│   │   │   └── templates/              # PDF template components
+│   │   │       ├── PacketDocument.tsx  # Main document orchestrator
+│   │   │       ├── CoverPage.tsx       # Cover page template
+│   │   │       ├── DogInfoSection.tsx  # Dog information section
+│   │   │       ├── PedigreeSection.tsx # Pedigree chart (landscape)
+│   │   │       ├── HealthSection.tsx   # Health records section
+│   │   │       ├── WeightChartSection.tsx # Weight tracking section
+│   │   │       ├── FinancialSection.tsx # Financial information section
+│   │   │       ├── CareInstructionsSection.tsx # Care guide section
+│   │   │       └── PhotoGallerySection.tsx # Photo gallery section
 │   │   ├── heat-cycles/     # Heat cycle components
 │   │   ├── transport/       # Transport components
 │   │   ├── expenses/        # Expense components
@@ -123,11 +137,12 @@ respectabullz/
 │   │   ├── useDogs.ts       # Dog CRUD operations
 │   │   ├── useLitters.ts    # Litter operations
 │   │   ├── useHealth.ts     # Vaccinations, weights, medical
-│   │   ├── usePuppyHealthTasks.ts # Puppy health task operations (v0.8.0)
-│   │   ├── useWaitlist.ts  # Waitlist operations (v0.8.0)
-│   │   ├── useCommunicationLogs.ts # Communication logging (v0.8.0)
-│   │   ├── useExternalStuds.ts # External stud operations (v0.8.0)
-│   │   ├── useGeneticTests.ts # Genetic test operations (v0.9.0)
+│   │   ├── usePuppyHealthTasks.ts # Puppy health task operations
+│   │   ├── useWaitlist.ts  # Waitlist operations
+│   │   ├── useCommunicationLogs.ts # Communication logging
+│   │   ├── useExternalStuds.ts # External stud operations
+│   │   ├── useGeneticTests.ts # Genetic test operations
+│   │   └── pdfExport.ts        # PDF generation utilities and styles
 │   │   ├── useHeatCycles.ts # Heat cycle operations
 │   │   ├── useTransport.ts  # Transport operations
 │   │   ├── useExpenses.ts   # Expense operations
@@ -143,6 +158,7 @@ respectabullz/
 │   │   ├── contractUtils.ts # Contract generation utilities
 │   │   ├── photoUtils.ts    # Photo upload and display utilities
 │   │   ├── backupUtils.ts   # Full backup with photos (ZIP)
+│   │   ├── pdfExport.ts     # PDF generation utilities and styles
 │   │   └── notifications.ts # Notification utilities
 │   ├── pages/               # Route page components
 │   ├── types/               # TypeScript type definitions

@@ -786,3 +786,76 @@ export interface ContractData {
   signingDate?: Date;
 }
 
+// ============================================
+// CUSTOMER PACKET EXPORT
+// ============================================
+
+export interface PacketOptions {
+  // Sections to include
+  includeDogInfo: boolean;
+  includePedigree: boolean;
+  includeVaccinations: boolean;
+  includeMedicalRecords: boolean;
+  includeWeightChart: boolean;
+  includeGeneticTests: boolean;
+  includePhotos: boolean;
+  includeParentPhotos: boolean;
+  includeFinancial: boolean;
+  includeCareInstructions: boolean;
+  includeRegistration: boolean;
+  
+  // Pedigree options
+  pedigreeGenerations: 2 | 3 | 4;
+}
+
+export interface PacketData {
+  // Dog information
+  dog: Dog;
+  
+  // Pedigree data - parents and ancestors
+  sire: Dog | null;
+  dam: Dog | null;
+  pedigreeAncestors: {
+    generation: number;
+    position: string;
+    dog: Dog | null;
+    name: string;
+    registrationNumber: string | null;
+    color: string | null;
+  }[];
+  
+  // Health records
+  vaccinations: VaccinationRecord[];
+  medicalRecords: MedicalRecord[];
+  weightEntries: WeightEntry[];
+  geneticTests: GeneticTest[];
+  
+  // Photos
+  dogPhotos: DogPhoto[];
+  sirePhoto: string | null;
+  damPhoto: string | null;
+  
+  // Financial data
+  sale: Sale | null;
+  client: Client | null;
+  expenses: Expense[];
+  
+  // Breeder information
+  breederSettings: BreederSettings;
+}
+
+export const DEFAULT_PACKET_OPTIONS: PacketOptions = {
+  includeDogInfo: true,
+  includePedigree: true,
+  includeVaccinations: true,
+  includeMedicalRecords: true,
+  includeWeightChart: true,
+  includeGeneticTests: true,
+  includePhotos: true,
+  includeParentPhotos: true,
+  includeFinancial: true,
+  includeCareInstructions: true,
+  includeRegistration: true,
+  pedigreeGenerations: 4,
+};
+

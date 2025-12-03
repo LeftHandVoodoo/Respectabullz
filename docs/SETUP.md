@@ -1,5 +1,7 @@
 # Respectabullz Setup Guide
 
+**Version 1.0.0**
+
 ## System Requirements
 
 ### Minimum Requirements
@@ -98,7 +100,7 @@ DATABASE_URL="file:./data/respectabullz.db"
 
 # App info
 VITE_APP_NAME="Respectabullz"
-VITE_APP_VERSION="0.1.0"
+VITE_APP_VERSION="1.0.0"
 ```
 
 ### Database Location

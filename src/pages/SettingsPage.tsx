@@ -34,6 +34,8 @@ import {
   useExportBackupWithPhotos,
   useImportBackupWithPhotos,
   useBackupInfo,
+  useSeedDatabase,
+  useUnseedDatabase,
 } from '@/hooks/useSettings';
 import { useBreederSettings } from '@/hooks/useBreederSettings';
 import { toast } from '@/components/ui/use-toast';
@@ -48,6 +50,8 @@ export function SettingsPage() {
   const exportDb = useExportDatabase();
   const importDb = useImportDatabase();
   const clearDb = useClearDatabase();
+  const seedDb = useSeedDatabase();
+  const unseedDb = useUnseedDatabase();
   const exportWithPhotos = useExportBackupWithPhotos();
   const importWithPhotos = useImportBackupWithPhotos();
   const { data: backupInfo } = useBackupInfo();
@@ -433,8 +437,57 @@ export function SettingsPage() {
             </div>
           </div>
 
+          {/* Testing Tools */}
+          <div className="pt-4 border-t">
+            <h3 className="text-sm font-medium mb-2">Testing Tools</h3>
+            <div className="flex gap-2 mb-2">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    disabled={seedDb.isPending}
+                    variant="outline"
+                  >
+                    <Database className="mr-2 h-4 w-4" />
+                    Seed Test Data
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Seed Test Data?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will populate the database with comprehensive dummy test data.
+                      The database must be empty to seed test data. If you have existing data,
+                      please clear it first using "Clear All Data" in the Danger Zone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => seedDb.mutate()}
+                      disabled={seedDb.isPending}
+                    >
+                      {seedDb.isPending ? 'Seeding...' : 'Seed Test Data'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button
+                onClick={() => unseedDb.mutate()}
+                disabled={unseedDb.isPending}
+                variant="outline"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {unseedDb.isPending ? 'Removing...' : 'Remove Test Data'}
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Seed or remove dummy test data for testing purposes. Database must be empty to seed.
+            </p>
+          </div>
+
           {/* Danger Zone */}
           <div className="pt-4 border-t">
+            <h3 className="text-sm font-medium mb-2 text-destructive">Danger Zone</h3>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">

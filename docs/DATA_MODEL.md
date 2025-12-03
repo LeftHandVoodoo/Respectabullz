@@ -1,5 +1,7 @@
 # Respectabullz Data Model
 
+**Version 1.0.0**
+
 ## Overview
 
 The database uses SQLite with a normalized relational schema. All entities use CUID for primary keys and include audit timestamps.
@@ -54,7 +56,7 @@ The database uses SQLite with a normalized relational schema. All entities use C
 │         └──────────────┘          └──────────────┘             │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │  v0.8.0 & v0.9.0 New Entities                            │  │
+│  │  Additional Entities                                    │  │
 │  │                                                          │  │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │  │
 │  │  │PuppyHealthTask│  │WaitlistEntry│  │Communication │  │  │
@@ -451,7 +453,7 @@ Application settings.
 | value | String | Setting value |
 | updatedAt | DateTime | Last update |
 
-## New Entities (v0.8.0 & v0.9.0)
+## Additional Entities
 
 ### PuppyHealthTask
 Tracks health and development tasks for puppies in a litter.

@@ -203,3 +203,53 @@ export function useImportBackupWithPhotos() {
   });
 }
 
+export function useSeedDatabase() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: db.seedDatabase,
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      toast({
+        title: 'Database seeded',
+        description: 'Test data has been populated successfully.',
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to seed database. Please try again.';
+      
+      toast({
+        title: 'Cannot Seed Test Data',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+      console.error('Failed to seed database:', error);
+    },
+  });
+}
+
+export function useUnseedDatabase() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: db.unseedDatabase,
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      toast({
+        title: 'Test data removed',
+        description: 'All seeded test data has been cleared.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to remove test data. Please try again.',
+        variant: 'destructive',
+      });
+      console.error('Failed to unseed database:', error);
+    },
+  });
+}
+

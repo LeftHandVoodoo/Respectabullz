@@ -8,6 +8,7 @@ import {
   Pencil,
   Trash2,
   FileText,
+  Info,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,9 +31,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useGeneticTests, useDeleteGeneticTest, useDogGeneticTestSummary } from '@/hooks/useGeneticTests';
 import { GeneticTestFormDialog } from './GeneticTestFormDialog';
 import { formatDate } from '@/lib/utils';
+import { getGeneticTestExplanation, getGeneticTestInfo, getBreedingRecommendation } from '@/lib/geneticTestExplanations';
 import type { GeneticTest, GeneticTestStatus } from '@/types';
 
 interface GeneticTestsListProps {
@@ -74,6 +83,7 @@ export function GeneticTestsList({ dogId }: GeneticTestsListProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingTest, setEditingTest] = useState<GeneticTest | null>(null);
   const [deletingTest, setDeletingTest] = useState<GeneticTest | null>(null);
+  const [explanationTest, setExplanationTest] = useState<GeneticTest | null>(null);
 
   const handleDelete = async () => {
     if (deletingTest) {
@@ -159,23 +169,38 @@ export function GeneticTestsList({ dogId }: GeneticTestsListProps) {
                   const config = statusConfig[test.result];
                   const StatusIcon = config.icon;
 
+                  const testInfo = getGeneticTestInfo(test.testType);
+                  const explanation = getGeneticTestExplanation(test.testType, test.result);
+                  const breedingRec = getBreedingRecommendation(test.testType);
+
                   return (
                     <TableRow key={test.id}>
                       <TableCell className="font-medium">
-                        <div>
-                          <span>{test.testName}</span>
+                        <button
+                          onClick={() => setExplanationTest(test)}
+                          className="text-left hover:text-primary transition-colors cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span>{test.testName}</span>
+                            <Info className="h-4 w-4 opacity-0 group-hover:opacity-50 transition-opacity text-muted-foreground" />
+                          </div>
                           {test.certificateNumber && (
                             <span className="block text-xs text-muted-foreground">
                               Cert #{test.certificateNumber}
                             </span>
                           )}
-                        </div>
+                        </button>
                       </TableCell>
                       <TableCell>
-                        <Badge className={config.className} variant={config.variant}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {config.label}
-                        </Badge>
+                        <button
+                          onClick={() => setExplanationTest(test)}
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                        >
+                          <Badge className={config.className} variant={config.variant}>
+                            <StatusIcon className="h-3 w-3 mr-1" />
+                            {config.label}
+                          </Badge>
+                        </button>
                       </TableCell>
                       <TableCell>
                         {test.testDate ? formatDate(test.testDate) : '-'}
@@ -248,6 +273,61 @@ export function GeneticTestsList({ dogId }: GeneticTestsListProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Test Explanation Dialog */}
+      <Dialog open={!!explanationTest} onOpenChange={(open) => !open && setExplanationTest(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5" />
+              {explanationTest && (
+                <>
+                  {explanationTest.testName} - {statusConfig[explanationTest.result].label}
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {explanationTest && getGeneticTestInfo(explanationTest.testType).description}
+            </DialogDescription>
+          </DialogHeader>
+          {explanationTest && (
+            <div className="space-y-4 mt-4">
+              <div>
+                <h4 className="font-semibold mb-2">Test Result Explanation</h4>
+                <p className="text-sm text-muted-foreground">
+                  {getGeneticTestExplanation(explanationTest.testType, explanationTest.result)}
+                </p>
+              </div>
+              {explanationTest.result !== 'pending' && getBreedingRecommendation(explanationTest.testType) && (
+                <div>
+                  <h4 className="font-semibold mb-2">Breeding Recommendation</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {getBreedingRecommendation(explanationTest.testType)}
+                  </p>
+                </div>
+              )}
+              {explanationTest.testDate && (
+                <div>
+                  <h4 className="font-semibold mb-2">Test Details</h4>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>Test Date: {formatDate(explanationTest.testDate)}</p>
+                    {explanationTest.labName && <p>Lab: {explanationTest.labName}</p>}
+                    {explanationTest.certificateNumber && (
+                      <p>Certificate: #{explanationTest.certificateNumber}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              {explanationTest.notes && (
+                <div>
+                  <h4 className="font-semibold mb-2">Notes</h4>
+                  <p className="text-sm text-muted-foreground">{explanationTest.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

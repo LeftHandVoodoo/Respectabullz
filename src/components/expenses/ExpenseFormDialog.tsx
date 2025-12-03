@@ -45,12 +45,14 @@ interface ExpenseFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   expense?: Expense;
+  defaultDogId?: string;
 }
 
 export function ExpenseFormDialog({
   open,
   onOpenChange,
   expense,
+  defaultDogId,
 }: ExpenseFormDialogProps) {
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -92,9 +94,13 @@ export function ExpenseFormDialog({
         date: new Date().toISOString().split('T')[0],
         category: 'misc',
         isTaxDeductible: false,
+        relatedDogId: defaultDogId || '',
       });
+      if (defaultDogId) {
+        setValue('relatedDogId', defaultDogId);
+      }
     }
-  }, [expense, open, setValue, reset]);
+  }, [expense, open, setValue, reset, defaultDogId]);
 
   const onSubmit = async (data: ExpenseFormData) => {
     const expenseData = {

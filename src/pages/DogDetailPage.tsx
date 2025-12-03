@@ -12,6 +12,7 @@ import {
   DollarSign,
   Dna,
   Users,
+  FileDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +39,8 @@ import { HeatCyclePredictionCard } from '@/components/breeding/HeatCyclePredicti
 import { GeneticTestsList } from '@/components/genetics/GeneticTestsList';
 import { PedigreeChart } from '@/components/pedigree/PedigreeChart';
 import { RegistrationStatusCard } from '@/components/registry/RegistrationStatusCard';
+import { DogExpensesList } from '@/components/expenses/DogExpensesList';
+import { PacketExportDialog } from '@/components/packet/PacketExportDialog';
 import { calculateAge, formatDate } from '@/lib/utils';
 import { getPhotoUrlSync, initPhotoBasePath } from '@/lib/photoUtils';
 import type { DogStatus } from '@/types';
@@ -55,6 +58,7 @@ export function DogDetailPage() {
   const { data: dog, isLoading } = useDog(id);
   const deleteDog = useDeleteDog();
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showPacketDialog, setShowPacketDialog] = useState(false);
 
   // Initialize photo base path for displaying photos
   useEffect(() => {
@@ -126,6 +130,10 @@ export function DogDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={statusColors[dog.status]}>{dog.status}</Badge>
+          <Button variant="outline" size="sm" onClick={() => setShowPacketDialog(true)}>
+            <FileDown className="h-4 w-4 mr-2" />
+            Export Packet
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
@@ -306,16 +314,7 @@ export function DogDetailPage() {
         </TabsContent>
 
         <TabsContent value="financial">
-          <Card>
-            <CardHeader>
-              <CardTitle>Financial Records</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Financial records will be displayed here...
-              </p>
-            </CardContent>
-          </Card>
+          <DogExpensesList dogId={dog.id} />
         </TabsContent>
       </Tabs>
 
@@ -336,6 +335,14 @@ export function DogDetailPage() {
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
         dog={dog}
+      />
+      
+      {/* Packet Export Dialog */}
+      <PacketExportDialog
+        open={showPacketDialog}
+        onOpenChange={setShowPacketDialog}
+        dogId={dog.id}
+        dogName={dog.name}
       />
     </div>
   );

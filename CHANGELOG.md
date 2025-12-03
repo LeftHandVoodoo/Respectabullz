@@ -8,8 +8,106 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-
 - (Future features will be documented here)
+
+## [1.0.0] - 2025-12-03
+
+### 🎉 First Stable Release
+
+This marks the first stable production release of Respectabullz. All core features are production-ready and thoroughly tested.
+
+### Added
+- Seed test data now includes 4 generations of pedigree data (great-great-grandparents through breeding stock) for comprehensive pedigree testing
+- All dogs in seed data now have complete medical history including:
+  - Vaccination records (DHPP and Rabies for adults, puppy shots for puppies)
+  - Medical records (annual exams, surgeries, checkups)
+  - Weight tracking entries (multiple entries per dog showing growth/health over time)
+  - Full 4-generation pedigree with all ancestors properly linked
+  - Expense records linked to each dog's vaccinations and medical procedures (visible in Financial tab)
+- Sortable columns in Expenses page - click Date or Amount column headers to sort (ascending/descending)
+  - Date column defaults to descending (newest first)
+  - Amount column defaults to descending (highest first)
+  - Visual indicators show current sort column and direction
+- Sortable columns in Dogs page - click Name, Sex, Age, or Status column headers to sort (ascending/descending)
+  - Visual indicators show current sort column and direction
+  - Age sorting uses date of birth (older dogs first when ascending)
+- Customer Packet PDF Export - comprehensive printable packet for customers
+  - Export from any dog detail page via "Export Packet" button
+  - Configurable sections: select which information to include
+  - Premium/luxury design with brand colors and professional typography
+  - Cover page with dog photo, name, and kennel branding
+  - Comprehensive dog information section with registration details
+  - 4-generation pedigree chart (landscape, family tree style)
+  - Health records: vaccinations, medical records, genetic tests (card-style)
+  - Weight history with growth chart visualization
+  - Financial section: invoice/receipt, payment history, deposit details
+  - New owner care guide: feeding, grooming, training, vet care
+  - Photo gallery with dog and parent photos
+  - Professional headers/footers with kennel branding throughout
+  - Native save dialog in Tauri, browser download fallback
+- CSV export in Expenses page now prompts for save directory (Tauri) and shows confirmation dialog when saved
+  - Uses native file save dialog in Tauri environment
+  - Shows toast notification with file path on successful export
+  - Falls back to browser download in non-Tauri environments
+- Genetic test explanations in Genetics section - click on test name or result badge to view detailed explanation
+  - Explains what each test means and what the result indicates
+  - Includes breeding recommendations for each test type
+  - Shows test details including date, lab, and certificate number
+  - Covers all common genetic tests: DM, HUU, CMR1, EIC, vWD1, PRA-prcd, CDDY, CDPA, NCL, JHC, HSF4, MDR1
+- Financial records tab on individual dog pages now displays expenses linked to that dog
+  - Shows all expenses with relatedDogId matching the dog
+  - Displays total expenses summary
+  - Allows adding, editing, and deleting expenses directly from dog page
+  - Expense form pre-fills with the dog when adding from dog detail page
+- Enhanced Pedigree Chart with full implementation
+  - Clickable navigation - click any dog in the pedigree to view their detail page
+  - Tauri save dialog for pedigree export (with fallback for non-Tauri environments)
+  - Generation toggle - switch between 3 and 4 generation views via dropdown
+  - Improved traditional pedigree tree layout - vertical tree structure from bottom (subject) to top (ancestors)
+  - Visual connecting lines between generations
+  - Hover effects on clickable dog cards
+  - Toast notifications for successful exports
+
+### Fixed
+- Fixed monthly expenses calculation on dashboard - now correctly filters expenses for current month only
+  - Fixed date parsing in loadDb() to handle YYYY-MM-DD format dates without timezone conversion issues
+  - Improved monthly expenses filter to use year/month comparison with robust date normalization
+- Added current month expenses to seed data (daysAgo 0, 1, 2) so monthly expenses card shows non-zero values after seeding
+
+### Added
+- Seed database function to populate all entities with comprehensive dummy test data
+  - Multiple heat cycles per dam with detailed heat event tracking
+  - Active heat cycle currently in progress (proestrus phase) with ongoing event tracking
+  - Comprehensive weight tracking history with multiple entries per dog showing growth over time
+  - Extensive expense history across all categories (vet, food, supplies, transport, registration, marketing, utilities, misc)
+  - Full 4-generation pedigree entries for all breeding stock and selected puppies
+  - Puppy health tasks with mix of completed, due today, overdue, and upcoming tasks for testing task management features
+- Unseed database function to remove seeded test data with corresponding UI button in Settings
+- Seed database function now requires empty database - prevents accidental overwrite of existing data with validation check and confirmation dialog
+- Customer Packet PDF Export - comprehensive printable packet for customers
+  - Export from any dog detail page via "Export Packet" button
+  - Configurable sections: select which information to include
+  - Premium/luxury design with brand colors and professional typography
+  - Cover page with dog photo, name, and kennel branding (Logo_Vintage.png)
+  - Comprehensive dog information section with registration details
+  - 4-generation pedigree chart (landscape, family tree style)
+  - Health records: vaccinations, medical records, genetic tests (card-style)
+  - Weight history with growth chart visualization
+  - Financial section: invoice/receipt, payment history, deposit details
+  - New owner care guide: feeding, grooming, training, vet care
+  - Photo gallery with dog and parent photos
+  - Professional headers/footers with kennel branding throughout
+  - Native save dialog in Tauri, browser download fallback
+
+### Fixed
+- PDF export: Replaced emoji icons in care instructions section with text labels (F, G, E, V) for reliable PDF rendering
+- PDF export: Fixed header layout to prevent text wrapping ("RESPECTABULLZ" breaking across lines)
+- PDF export: Fixed blank page issue by adjusting header positioning and page padding
+- PDF export: Fixed font loading issues by using Helvetica as reliable fallback font
+
+### Changed
+- PDF export: Updated brand text styling to match dashboard aesthetic with proper letter spacing
+- PDF export: Added Logo_Vintage.png to cover page, headers, and thank you page for consistent branding
 
 ## [0.9.2] - 2025-12-03
 

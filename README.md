@@ -6,6 +6,8 @@
 
 # Respectabullz - Breeder Management Application
 
+**Version 1.0.0** - First Stable Release
+
 A comprehensive desktop application for managing dog breeding operations, built with Tauri, React, TypeScript, and SQLite.
 
 ## Features
@@ -19,18 +21,19 @@ A comprehensive desktop application for managing dog breeding operations, built 
 - **Transport Management**: Track shipping/transport with shipper details and costs
 - **Expense Tracking**: Comprehensive financial tracking with reports and CSV export
 
-### Puppy & Breeding Management (v0.8.0)
+### Puppy & Breeding Management
 - **Puppy Health Schedule**: Auto-generated 8-week development schedule with task tracking
 - **Pregnancy & Whelping**: Litter status pipeline, pregnancy confirmation tracking, and whelping checklists
 - **Waitlist & Reservations**: Track puppy reservations with pick order, deposits, and preferences
 - **Client Communication**: Log all client interactions with follow-up reminders
 - **Breeding Planning**: Heat cycle predictions, external stud database, and progesterone test logging
 
-### Advanced Features (v0.9.0)
+### Advanced Features
 - **Genetic Testing**: Track health testing with mating compatibility warnings
 - **Visual Pedigree**: 3-generation pedigree charts with export capabilities
 - **Registry Helpers**: Registration status tracking and litter registration export
 - **Reports & Analytics**: Breeding program insights, financials, and production metrics
+- **Customer Packet PDF Export**: Comprehensive printable packet with dog info, pedigree, health records, photos, and care instructions
 
 ### Business Features
 - **Client Management**: Track buyers and sales with contact information
@@ -138,13 +141,14 @@ The application uses a normalized SQLite database with the following main entiti
 - **SalePuppy**: Junction table for puppies in sales
 - **PedigreeEntry**: Deep lineage tracking
 
-### New Entities (v0.8.0 & v0.9.0)
+### Additional Entities
 - **PuppyHealthTask**: 8-week puppy development schedule tasks
 - **WaitlistEntry**: Puppy reservations with pick order and deposits
 - **CommunicationLog**: Client interaction tracking with follow-ups
 - **ExternalStud**: Outside breeding partner database
 - **GeneticTest**: Health testing records with compatibility checking
 - **HealthScheduleTemplate**: Configurable puppy health schedule templates
+- **DogPhoto**: Photo gallery entries for dogs
 
 **Photo Storage**: Photos are stored in `%APPDATA%/com.respectabullz.app/photos/` with unique filenames. Database stores file paths, not binary data.
 

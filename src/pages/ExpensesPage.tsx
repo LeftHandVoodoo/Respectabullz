@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, Filter, Download, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, Download, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import {
   Tooltip,
   ResponsiveContainer,
@@ -40,6 +40,10 @@ import { Badge } from '@/components/ui/badge';
 import { useExpenses, useDeleteExpense } from '@/hooks/useExpenses';
 import { ExpenseFormDialog } from '@/components/expenses/ExpenseFormDialog';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { toast } from '@/components/ui/use-toast';
+import { isTauriEnvironment } from '@/lib/backupUtils';
+import { save } from '@tauri-apps/plugin-dialog';
+import { writeFile } from '@tauri-apps/plugin-fs';
 import type { Expense, ExpenseCategory } from '@/types';
 
 const categoryColors: Record<ExpenseCategory, string> = {
@@ -53,11 +57,16 @@ const categoryColors: Record<ExpenseCategory, string> = {
   misc: '#64748b',
 };
 
+type SortColumn = 'date' | 'amount' | null;
+type SortDirection = 'asc' | 'desc';
+
 export function ExpensesPage() {
   const { data: expenses, isLoading } = useExpenses();
   const deleteExpense = useDeleteExpense();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [sortColumn, setSortColumn] = useState<SortColumn>('date');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | undefined>();
 
@@ -73,18 +82,63 @@ export function ExpensesPage() {
     }
   };
 
-  const filteredExpenses = expenses?.filter((expense) => {
-    const matchesSearch =
-      expense.vendorName?.toLowerCase().includes(search.toLowerCase()) ||
-      expense.description?.toLowerCase().includes(search.toLowerCase());
+  const filteredExpenses = useMemo(() => {
+    if (!expenses) return [];
+    
+    let filtered = expenses.filter((expense) => {
+      const matchesSearch =
+        expense.vendorName?.toLowerCase().includes(search.toLowerCase()) ||
+        expense.description?.toLowerCase().includes(search.toLowerCase());
 
-    const matchesCategory =
-      categoryFilter === 'all' || expense.category === categoryFilter;
+      const matchesCategory =
+        categoryFilter === 'all' || expense.category === categoryFilter;
 
-    return matchesSearch && matchesCategory;
-  });
+      return matchesSearch && matchesCategory;
+    });
 
-  const totalExpenses = filteredExpenses?.reduce((sum, e) => sum + e.amount, 0) || 0;
+    // Apply sorting
+    if (sortColumn) {
+      filtered = [...filtered].sort((a, b) => {
+        let comparison = 0;
+        
+        if (sortColumn === 'date') {
+          const dateA = a.date instanceof Date ? a.date.getTime() : new Date(a.date).getTime();
+          const dateB = b.date instanceof Date ? b.date.getTime() : new Date(b.date).getTime();
+          comparison = dateA - dateB;
+        } else if (sortColumn === 'amount') {
+          comparison = a.amount - b.amount;
+        }
+        
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    return filtered;
+  }, [expenses, search, categoryFilter, sortColumn, sortDirection]);
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking the same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new column with default direction
+      setSortColumn(column);
+      setSortDirection(column === 'date' ? 'desc' : 'desc'); // Default to desc for both
+    }
+  };
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="ml-2 h-4 w-4" />
+    ) : (
+      <ArrowDown className="ml-2 h-4 w-4" />
+    );
+  };
+
+  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
 
   const categoryData = useMemo(() => {
     if (!expenses) return [];
@@ -101,8 +155,15 @@ export function ExpensesPage() {
     }));
   }, [expenses]);
 
-  const handleExportCSV = () => {
-    if (!filteredExpenses) return;
+  const handleExportCSV = async () => {
+    if (!filteredExpenses || filteredExpenses.length === 0) {
+      toast({
+        title: 'No expenses to export',
+        description: 'There are no expenses to export.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     const headers = ['Date', 'Category', 'Vendor', 'Description', 'Amount', 'Tax Deductible'];
     const rows = filteredExpenses.map((e) => [
@@ -115,12 +176,60 @@ export function ExpensesPage() {
     ]);
 
     const csv = [headers, ...rows].map((row) => row.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `expenses-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
+    const filename = `expenses-${new Date().toISOString().split('T')[0]}.csv`;
+
+    // Check if running in Tauri environment
+    if (isTauriEnvironment()) {
+      try {
+        // Prompt user for save location
+        const savePath = await save({
+          defaultPath: filename,
+          filters: [{
+            name: 'CSV Files',
+            extensions: ['csv']
+          }]
+        });
+
+        if (!savePath) {
+          // User cancelled the dialog
+          return;
+        }
+
+        // Convert CSV string to Uint8Array
+        const encoder = new TextEncoder();
+        const csvData = encoder.encode(csv);
+
+        // Write the file
+        await writeFile(savePath, csvData);
+
+        // Show success confirmation
+        toast({
+          title: 'Export successful',
+          description: `Expenses exported to ${savePath}`,
+        });
+      } catch (error) {
+        console.error('Failed to export CSV:', error);
+        toast({
+          title: 'Export failed',
+          description: error instanceof Error ? error.message : 'Failed to export expenses. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } else {
+      // Fallback to browser download for non-Tauri environments
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: 'Export started',
+        description: 'Your expenses file is downloading.',
+      });
+    }
   };
 
   return (
@@ -221,11 +330,29 @@ export function ExpensesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
+              <TableHead>
+                <button
+                  onClick={() => handleSort('date')}
+                  className="flex items-center hover:text-foreground transition-colors cursor-pointer"
+                  aria-label="Sort by date"
+                >
+                  Date
+                  <SortIcon column="date" />
+                </button>
+              </TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Vendor</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="text-right">
+                <button
+                  onClick={() => handleSort('amount')}
+                  className="flex items-center justify-end ml-auto hover:text-foreground transition-colors cursor-pointer"
+                  aria-label="Sort by amount"
+                >
+                  Amount
+                  <SortIcon column="amount" />
+                </button>
+              </TableHead>
               <TableHead>Tax Deductible</TableHead>
               <TableHead className="w-[80px]">Actions</TableHead>
             </TableRow>
@@ -237,7 +364,7 @@ export function ExpensesPage() {
                   Loading...
                 </TableCell>
               </TableRow>
-            ) : filteredExpenses?.length === 0 ? (
+            ) : filteredExpenses.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8">
                   <p className="text-muted-foreground">No expenses found</p>
@@ -250,7 +377,7 @@ export function ExpensesPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredExpenses?.map((expense) => (
+              filteredExpenses.map((expense) => (
                 <TableRow key={expense.id}>
                   <TableCell>{formatDate(expense.date)}</TableCell>
                   <TableCell>
