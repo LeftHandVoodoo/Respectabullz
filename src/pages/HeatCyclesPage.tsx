@@ -101,26 +101,95 @@ export function HeatCyclesPage() {
       'Cycle Length (Days)',
       'Current Phase',
       'Is Bred',
+      'Breeding Sire',
+      'Breeding Method',
+      'Breeding Date(s)',
+      'Progesterone Tests',
+      'Progesterone Values',
+      'Vet Clinic',
       'Notes',
     ];
 
+    // Helper to get breeding events summary
+    const getBreedingSummary = (cycle: HeatCycle) => {
+      const breedingEvents = cycle.events?.filter(e => 
+        ['breeding_natural', 'breeding_ai', 'breeding_surgical'].includes(e.type)
+      ) || [];
+      
+      if (breedingEvents.length === 0) return { sire: '', method: '', dates: '' };
+      
+      const sireNames = [...new Set(breedingEvents
+        .map(e => e.sire?.name)
+        .filter(Boolean))].join('; ');
+      
+      const methods = [...new Set(breedingEvents
+        .map(e => e.breedingMethod)
+        .filter(Boolean))].join('; ');
+      
+      const dates = breedingEvents
+        .map(e => formatDateForCSV(e.date))
+        .join('; ');
+      
+      return {
+        sire: sireNames || '',
+        method: methods || '',
+        dates: dates || '',
+      };
+    };
+
+    // Helper to get progesterone test summary
+    const getProgesteroneSummary = (cycle: HeatCycle) => {
+      const progesteroneTests = cycle.events?.filter(e => e.type === 'progesterone_test') || [];
+      
+      if (progesteroneTests.length === 0) return { dates: '', values: '', clinics: '' };
+      
+      const dates = progesteroneTests
+        .map(e => formatDateForCSV(e.date))
+        .join('; ');
+      
+      const values = progesteroneTests
+        .map(e => e.value && e.unit ? `${e.value} ${e.unit}` : e.value || '')
+        .join('; ');
+      
+      const clinics = [...new Set(progesteroneTests
+        .map(e => e.vetClinic)
+        .filter(Boolean))].join('; ');
+      
+      return {
+        dates: dates || '',
+        values: values || '',
+        clinics: clinics || '',
+      };
+    };
+
     // Convert heat cycles to CSV rows
-    const rows = heatCycles.map((cycle) => [
-      escapeCSV(cycle.bitch?.name || 'Unknown'),
-      formatDateForCSV(cycle.startDate),
-      formatDateForCSV(cycle.standingHeatStart),
-      formatDateForCSV(cycle.standingHeatEnd),
-      formatDateForCSV(cycle.ovulationDate),
-      formatDateForCSV(cycle.optimalBreedingStart),
-      formatDateForCSV(cycle.optimalBreedingEnd),
-      formatDateForCSV(cycle.endDate),
-      formatDateForCSV(cycle.expectedDueDate),
-      formatDateForCSV(cycle.nextHeatEstimate),
-      cycle.cycleLength?.toString() || '',
-      cycle.currentPhase ? phaseLabels[cycle.currentPhase] : '',
-      cycle.isBred ? 'Yes' : 'No',
-      escapeCSV(cycle.notes),
-    ]);
+    const rows = heatCycles.map((cycle) => {
+      const breeding = getBreedingSummary(cycle);
+      const progesterone = getProgesteroneSummary(cycle);
+      
+      return [
+        escapeCSV(cycle.bitch?.name || 'Unknown'),
+        formatDateForCSV(cycle.startDate),
+        formatDateForCSV(cycle.standingHeatStart),
+        formatDateForCSV(cycle.standingHeatEnd),
+        formatDateForCSV(cycle.ovulationDate),
+        formatDateForCSV(cycle.optimalBreedingStart),
+        formatDateForCSV(cycle.optimalBreedingEnd),
+        formatDateForCSV(cycle.endDate),
+        formatDateForCSV(cycle.expectedDueDate),
+        formatDateForCSV(cycle.nextHeatEstimate),
+        cycle.cycleLength?.toString() || '',
+        cycle.currentPhase ? phaseLabels[cycle.currentPhase] : '',
+        cycle.isBred ? 'Yes' : 'No',
+        escapeCSV(breeding.sire),
+        escapeCSV(breeding.method),
+        escapeCSV(breeding.dates),
+        escapeCSV(progesterone.dates),
+        escapeCSV(progesterone.values),
+        escapeCSV(progesterone.clinics),
+        escapeCSV(cycle.notes),
+      ];
+    });
 
     // Build CSV content
     const csvContent = [

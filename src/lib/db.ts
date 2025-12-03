@@ -175,9 +175,19 @@ function loadDb(): Database {
           startDate: new Date(h.startDate),
           standingHeatStart: h.standingHeatStart ? new Date(h.standingHeatStart) : null,
           standingHeatEnd: h.standingHeatEnd ? new Date(h.standingHeatEnd) : null,
+          ovulationDate: h.ovulationDate ? new Date(h.ovulationDate) : null,
+          optimalBreedingStart: h.optimalBreedingStart ? new Date(h.optimalBreedingStart) : null,
+          optimalBreedingEnd: h.optimalBreedingEnd ? new Date(h.optimalBreedingEnd) : null,
           endDate: h.endDate ? new Date(h.endDate) : null,
+          expectedDueDate: h.expectedDueDate ? new Date(h.expectedDueDate) : null,
+          nextHeatEstimate: h.nextHeatEstimate ? new Date(h.nextHeatEstimate) : null,
           createdAt: new Date(h.createdAt),
           updatedAt: new Date(h.updatedAt),
+        })),
+        heatEvents: (parsed.heatEvents || []).map((e: HeatEvent) => ({
+          ...e,
+          date: new Date(e.date),
+          createdAt: new Date(e.createdAt),
         })),
         vaccinations: (parsed.vaccinations || []).map((v: VaccinationRecord) => ({
           ...v,
@@ -323,6 +333,7 @@ export async function getDog(id: string): Promise<Dog | null> {
     heatCycles: db.heatCycles.filter(h => h.bitchId === id),
     transports: db.transports.filter(t => t.dogId === id),
     photos: db.dogPhotos.filter(p => p.dogId === id),
+    geneticTests: db.geneticTests.filter(g => g.dogId === id),
   };
 }
 
@@ -398,6 +409,7 @@ export async function getLitter(id: string): Promise<Litter | null> {
     puppies: db.dogs.filter(d => d.litterId === id),
     expenses: db.expenses.filter(e => e.relatedLitterId === id),
     photos: db.litterPhotos.filter(p => p.litterId === id).sort((a, b) => a.sortOrder - b.sortOrder),
+    healthTasks: db.puppyHealthTasks.filter(t => t.litterId === id),
   };
 }
 

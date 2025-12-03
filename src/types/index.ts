@@ -130,6 +130,7 @@ export interface Dog {
   photos?: DogPhoto[];
   salePuppies?: SalePuppy[];
   clientInterests?: ClientInterest[];
+  geneticTests?: GeneticTest[];
 }
 
 export interface Litter {

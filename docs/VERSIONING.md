@@ -88,6 +88,13 @@ For testing releases:
 
 ## Current Version
 
+**0.9.1** (2025-12-03)
+
+Bug fixes in this version:
+- Fixed database date parsing for HeatCycle and HeatEvent fields
+- Enhanced heat cycle CSV export with breeding and progesterone data
+- Added missing relation populations in database functions
+
 **0.9.0** (2025-12-03)
 
 Major features in this version:

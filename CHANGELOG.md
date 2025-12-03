@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (Future features will be documented here)
 
+## [0.9.1] - 2025-12-03
+
+### Fixed
+
+- Fixed missing date parsing for HeatCycle fields (ovulationDate, optimalBreedingStart, optimalBreedingEnd, expectedDueDate, nextHeatEstimate) in database load function
+- Fixed missing date parsing for HeatEvent date field in database load function
+- Added geneticTests relation population in getDog() function
+- Added healthTasks relation population in getLitter() function
+- Enhanced heat cycle CSV export to include HeatEvent data (breeding sire, method, dates, progesterone tests, vet clinic)
+
 ## [0.9.0] - 2025-12-03
 
 ### Added

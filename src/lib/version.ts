@@ -1,3 +1,3 @@
 // Version constant - updated by bump-version script
 // This file is auto-generated, do not edit manually
-export const VERSION = '0.9.0';
+export const VERSION = '0.9.1';
