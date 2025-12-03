@@ -88,7 +88,7 @@ For testing releases:
 
 ## Current Version
 
-**0.10.0** (2025-12-03)
+**0.9.2** (2025-12-03)
 
 Bug fixes in this version:
 - Added invalid date validation to `formatDate()` and `calculateAge()` utility functions to prevent runtime errors with corrupted date data
