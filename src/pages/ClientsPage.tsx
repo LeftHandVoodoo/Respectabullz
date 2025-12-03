@@ -95,7 +95,7 @@ export function ClientsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Clients</h2>
+          <h2 className="text-2xl font-bold tracking-tight font-display">Clients</h2>
           <p className="text-muted-foreground">Manage buyers and customers</p>
         </div>
         <Button onClick={() => setShowAddDialog(true)}>

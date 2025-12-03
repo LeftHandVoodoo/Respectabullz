@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Dog, Baby, Heart, Syringe, Calendar, DollarSign, Truck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { SkeletonCard, Spinner } from '@/components/ui/skeleton';
 import { useDashboardStats } from '@/hooks/useDashboard';
 import { useDogs } from '@/hooks/useDogs';
 import { formatCurrency } from '@/lib/utils';
@@ -17,17 +18,21 @@ interface StatCardProps {
   value: string | number;
   icon: React.ReactNode;
   description?: string;
+  index?: number;
 }
 
-function StatCard({ title, value, icon, description }: StatCardProps) {
+function StatCard({ title, value, icon, description, index = 0 }: StatCardProps) {
   return (
-    <Card>
+    <Card 
+      className="animate-slide-up-fade opacity-0" 
+      style={{ animationDelay: `${index * 0.1}s`, animationFillMode: 'forwards' }}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div className="h-4 w-4 text-muted-foreground">{icon}</div>
+        <div className="h-4 w-4 text-muted-foreground animate-float">{icon}</div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-2xl font-bold font-display">{value}</div>
         {description && (
           <p className="text-xs text-muted-foreground">{description}</p>
         )}
@@ -50,8 +55,20 @@ export function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      <div className="space-y-6 animate-fade-in">
+        <div className="space-y-1">
+          <div className="h-8 w-64 shimmer-bg rounded animate-shimmer" />
+          <div className="h-4 w-48 shimmer-bg rounded animate-shimmer" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+        <div className="flex items-center justify-center gap-3 py-4">
+          <Spinner size="md" />
+          <span className="text-muted-foreground">Loading dashboard...</span>
+        </div>
       </div>
     );
   }
@@ -59,8 +76,8 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="space-y-1">
-        <h2 className="text-2xl font-bold tracking-tight">
+      <div className="space-y-1 animate-fade-in">
+        <h2 className="text-2xl font-bold tracking-tight font-display">
           Welcome to Respectabullz
         </h2>
         <p className="text-muted-foreground">
@@ -75,30 +92,35 @@ export function DashboardPage() {
           value={stats?.totalDogs || 0}
           icon={<Dog className="h-4 w-4" />}
           description={`${stats?.activeDogs || 0} active`}
+          index={0}
         />
         <StatCard
           title="Dogs in Heat"
           value={stats?.dogsInHeat || 0}
           icon={<Heart className="h-4 w-4" />}
           description="Requiring attention"
+          index={1}
         />
         <StatCard
           title="Upcoming Shots"
           value={stats?.upcomingShots || 0}
           icon={<Syringe className="h-4 w-4" />}
           description="Next 30 days"
+          index={2}
         />
         <StatCard
           title="Due Dates"
           value={stats?.upcomingDueDates || 0}
           icon={<Calendar className="h-4 w-4" />}
           description="Upcoming litters"
+          index={3}
         />
         <StatCard
           title="Monthly Expenses"
           value={formatCurrency(stats?.monthlyExpenses || 0)}
           icon={<DollarSign className="h-4 w-4" />}
           description="This month"
+          index={4}
         />
       </div>
 

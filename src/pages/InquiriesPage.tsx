@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Edit, Trash2, ArrowRight, Filter, Phone, Mail, Globe, Users, MessageSquare, FileText } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, ArrowRight, Filter, Phone, Mail, Globe, Users, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +34,6 @@ import { useClientInterests, useDeleteClientInterest } from '@/hooks/useClientIn
 import { ClientInterestFormDialog } from '@/components/inquiries/ClientInterestFormDialog';
 import { SaleFormDialog } from '@/components/sales/SaleFormDialog';
 import { ContractFormDialog } from '@/components/sales/ContractFormDialog';
-import { useDog } from '@/hooks/useDogs';
 import { formatDate } from '@/lib/utils';
 import type { ClientInterest, InterestStatus, ContactMethod, ContractData } from '@/types';
 
@@ -159,7 +158,7 @@ export function InquiriesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Client Inquiries</h2>
+          <h2 className="text-2xl font-bold tracking-tight font-display">Client Inquiries</h2>
           <p className="text-muted-foreground">Track client interests and convert them to sales</p>
         </div>
         <Button onClick={() => setShowAddDialog(true)}>

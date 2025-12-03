@@ -105,7 +105,7 @@ export function SettingsPage() {
     <div className="space-y-6 max-w-2xl">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+        <h2 className="text-2xl font-bold tracking-tight font-display">Settings</h2>
         <p className="text-muted-foreground">
           Manage your application preferences
         </p>

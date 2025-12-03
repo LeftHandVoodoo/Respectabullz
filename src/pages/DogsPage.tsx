@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SkeletonTableRow } from '@/components/ui/skeleton';
 import { useDogs } from '@/hooks/useDogs';
 import { DogFormDialog } from '@/components/dogs/DogFormDialog';
 import { calculateAge } from '@/lib/utils';
@@ -57,9 +58,9 @@ export function DogsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-fade-in">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Dogs</h2>
+          <h2 className="text-2xl font-bold tracking-tight font-display">Dogs</h2>
           <p className="text-muted-foreground">
             Manage your dogs and puppies
           </p>
@@ -107,7 +108,7 @@ export function DogsPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-lg border bg-card animate-slide-up-fade">
         <Table>
           <TableHeader>
             <TableRow>
@@ -121,11 +122,11 @@ export function DogsPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  Loading...
-                </TableCell>
-              </TableRow>
+              <>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <SkeletonTableRow key={i} columns={6} />
+                ))}
+              </>
             ) : filteredDogs?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8">

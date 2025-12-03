@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useVaccinations } from './useHealth';
 import { useLitters } from './useLitters';
 import { formatDate } from '@/lib/utils';
-import type { VaccinationRecord } from '@/types';
 
 export interface NotificationItem {
   id: string;

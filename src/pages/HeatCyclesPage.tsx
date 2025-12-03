@@ -69,7 +69,7 @@ export function HeatCyclesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Heat Cycles</h2>
+          <h2 className="text-2xl font-bold tracking-tight font-display">Heat Cycles</h2>
           <p className="text-muted-foreground">
             Track heat cycles and breeding timing for your females
           </p>

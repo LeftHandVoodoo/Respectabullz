@@ -77,7 +77,7 @@ export function TransportPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Transport</h2>
+          <h2 className="text-2xl font-bold tracking-tight font-display">Transport</h2>
           <p className="text-muted-foreground">
             Manage shipping and transport records
           </p>

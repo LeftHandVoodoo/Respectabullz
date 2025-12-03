@@ -114,7 +114,7 @@ export function numberToWords(num: number): string {
   
   // Handle decimal part
   const intPart = Math.floor(num);
-  const decimalPart = Math.round((num - intPart) * 100);
+  // Note: decimal part is computed but currently unused as we handle it in formatPriceWords
   
   let result = '';
   let scaleIndex = 0;
@@ -426,7 +426,7 @@ function resolveStyle(styleName: string): ContractTemplateStyle {
   return contractTemplate.styles[styleName] || contractTemplate.styles.normal;
 }
 
-function mapAlignment(align?: TemplateAlignment): AlignmentType {
+function mapAlignment(align?: TemplateAlignment): (typeof AlignmentType)[keyof typeof AlignmentType] {
   switch ((align || 'left').toLowerCase()) {
     case 'center':
       return AlignmentType.CENTER;
@@ -489,7 +489,7 @@ function applyTokenReplacements(text: string, data: TemplateDataMap): string {
   if (result.includes("Breeder's kennel prefix of (____)")) {
     result = result.replace(
       /\(____\)/,
-      data.kennelPrefix || data.kennelName || '(____)'
+      String(data.kennelPrefix || data.kennelName || '(____)')
     );
   }
 
@@ -649,7 +649,6 @@ export async function generateContractDocumentFromJson(contractData: ContractDat
               width: inchesToTwip(isLandscape ? pageSize.height : pageSize.width),
               height: inchesToTwip(isLandscape ? pageSize.width : pageSize.height),
             },
-            orientation: isLandscape ? 'landscape' : 'portrait',
           },
         },
         children,
@@ -682,7 +681,7 @@ export async function saveContractToAppData(
   try {
     // Check if we're in a Tauri environment
     if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
-      const { writeBinaryFile, BaseDirectory } = await import('@tauri-apps/plugin-fs');
+      const { writeFile, BaseDirectory } = await import('@tauri-apps/plugin-fs');
       
       // Convert blob to Uint8Array
       const arrayBuffer = await blob.arrayBuffer();
@@ -690,8 +689,8 @@ export async function saveContractToAppData(
       
       // Save to contracts folder in app data directory
       const contractsPath = `contracts/${filename}`;
-      await writeBinaryFile(contractsPath, uint8Array, {
-        dir: BaseDirectory.AppData,
+      await writeFile(contractsPath, uint8Array, {
+        baseDir: BaseDirectory.AppData,
       });
       
       // Return the relative path (full path construction would require Tauri path API)

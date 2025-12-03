@@ -15,7 +15,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { useNotifications } from '@/hooks/useNotifications';
 import { formatDate } from '@/lib/utils';
 
@@ -52,7 +51,7 @@ export function Header() {
 
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-6">
-      <h1 className="text-xl font-semibold text-foreground">
+      <h1 className="text-xl font-semibold text-foreground font-display animate-fade-in">
         {getTitle()}
       </h1>
 
@@ -65,10 +64,10 @@ export function Header() {
         {/* Notifications */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="relative group">
+              <Bell className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
               {count > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground animate-glow-pulse shadow-[0_0_8px_hsl(var(--destructive)/0.5)]">
                   {count > 9 ? '9+' : count}
                 </span>
               )}

@@ -37,11 +37,11 @@ export function Sidebar() {
     <aside className="flex h-full w-64 flex-col border-r bg-card">
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 px-6 border-b">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-blue text-white font-bold text-lg">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-blue text-white font-bold text-lg shadow-[0_0_15px_hsl(215_18%_24%/0.4)] animate-glow-pulse">
           R
         </div>
         <div className="flex flex-col">
-          <span className="font-semibold text-foreground">Respectabullz</span>
+          <span className="font-semibold text-foreground font-display">Respectabullz</span>
           <span className="text-xs text-muted-foreground">Breeder Management</span>
         </div>
       </div>
@@ -49,7 +49,7 @@ export function Sidebar() {
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="flex flex-col gap-1">
-          {navigation.map((item) => {
+          {navigation.map((item, index) => {
             const isActive = location.pathname === item.href || 
               (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
             
@@ -58,13 +58,21 @@ export function Sidebar() {
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium font-nav transition-all duration-200 ease-out',
+                  'animate-slide-up-fade opacity-0',
                   isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    ? 'bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:scale-[1.02] hover:shadow-sm'
                 )}
+                style={{ animationDelay: `${index * 0.05}s`, animationFillMode: 'forwards' }}
               >
-                <item.icon className="h-5 w-5" />
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/5 bg-primary-foreground rounded-r-full shadow-[0_0_8px_hsl(var(--primary-foreground)/0.5)]" />
+                )}
+                <item.icon className={cn(
+                  "h-5 w-5 transition-transform duration-200",
+                  !isActive && "group-hover:scale-110"
+                )} />
                 {item.name}
               </NavLink>
             );
@@ -77,13 +85,19 @@ export function Sidebar() {
         <NavLink
           to="/settings"
           className={cn(
-            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+            'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium font-nav transition-all duration-200 ease-out',
             location.pathname === '/settings'
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              ? 'bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
+              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:scale-[1.02] hover:shadow-sm'
           )}
         >
-          <Settings className="h-5 w-5" />
+          {location.pathname === '/settings' && (
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/5 bg-primary-foreground rounded-r-full shadow-[0_0_8px_hsl(var(--primary-foreground)/0.5)]" />
+          )}
+          <Settings className={cn(
+            "h-5 w-5 transition-transform duration-200",
+            location.pathname !== '/settings' && "group-hover:rotate-45"
+          )} />
           Settings
         </NavLink>
       </ScrollArea>

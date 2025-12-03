@@ -128,7 +128,7 @@ export function ExpensesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Expenses</h2>
+          <h2 className="text-2xl font-bold tracking-tight font-display">Expenses</h2>
           <p className="text-muted-foreground">
             Track and manage business expenses
           </p>

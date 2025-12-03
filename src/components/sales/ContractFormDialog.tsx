@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { FileText, User, Building2, Dog, DollarSign, AlertCircle, Printer, Eye, ArrowRight } from 'lucide-react';
+import { FileText, User, Building2, Dog, DollarSign, AlertCircle, Printer, ArrowRight } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -97,7 +97,6 @@ export function ContractFormDialog({
   const { breederSettings, isConfigured: isBreederConfigured } = useBreederSettings();
   const generateContract = useGenerateContract();
   const [activeTab, setActiveTab] = useState('buyer');
-  const [showPreview, setShowPreview] = useState(false);
 
   const {
     control,
@@ -222,11 +221,6 @@ export function ContractFormDialog({
     } catch (error) {
       console.error('Failed to generate contract:', error);
     }
-  };
-
-  const handlePreview = (data: ContractFormData) => {
-    // Build contract data and show preview
-    setShowPreview(true);
   };
 
   const handleProceedToSale = (data: ContractFormData) => {

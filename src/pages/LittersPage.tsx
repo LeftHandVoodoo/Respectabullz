@@ -45,7 +45,7 @@ export function LittersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Litters</h2>
+          <h2 className="text-2xl font-bold tracking-tight font-display">Litters</h2>
           <p className="text-muted-foreground">Manage breeding litters</p>
         </div>
         <Button onClick={() => setShowAddDialog(true)}>

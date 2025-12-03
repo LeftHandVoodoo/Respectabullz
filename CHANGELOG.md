@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2025-12-03
+
+### Fixed
+
+- Removed unused imports across 8 files causing TypeScript errors:
+  - ErrorBoundary.tsx: Removed unused `React` import
+  - Header.tsx: Removed unused `Separator` import
+  - ContractFormDialog.tsx: Removed unused `Eye` import and `showPreview` state/handler
+  - ContractPreview.tsx: Removed unused `formatPriceWords`, `formatSignatureDate` imports
+  - useNotifications.ts: Removed unused `VaccinationRecord` type import
+  - InquiriesPage.tsx: Removed unused `FileText`, `useDog` imports
+  - ReportsPage.tsx: Removed unused `Dog` type import
+- Fixed type errors in contractUtils.ts:
+  - Fixed `AlignmentType` return type annotation using `typeof` pattern
+  - Fixed string replacement type error with explicit `String()` conversion
+  - Removed unsupported `orientation` property from docx page settings
+  - Updated Tauri fs API from deprecated `writeBinaryFile` to `writeFile`
+
+## [0.5.0] - 2025-12-02
+
+### Added
+
+- GUI Visual Enhancements for a more polished, professional appearance
+  - Typography: Added Playfair Display (serif) for page titles and Outfit (sans-serif) for navigation
+  - Animation system: Added glow-pulse, shimmer, scale-in, slide-up-fade, float, and icon-bounce keyframes
+  - CSS utilities: glow effects, hover-lift, transition presets, staggered animation delays
+  - Skeleton component with shimmer effect for loading states
+  - Spinner component with animated loading indicator
+
+### Changed
+
+- Button component: Added glow effects on hover, active scale transitions
+- Card component: Added hover lift effect with enhanced shadow
+- Sidebar: Nav items have glow effects, animated indicators, staggered entrance, icon hover animations
+- Table component: Row hover accent border, enhanced header typography
+- Dialog component: Backdrop blur, smoother animations, rotate close button on hover
+- Header component: Display font for page titles, animated notification badge
+- Dashboard page: Staggered card animations, floating stat icons, skeleton loading state
+- Dogs page: Skeleton table rows for loading state
+- All page titles now use elegant serif display font
+
 ## [0.4.0] - 2025-12-02
 
 ### Added

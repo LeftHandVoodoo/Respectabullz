@@ -35,7 +35,7 @@ import { useLitters } from '@/hooks/useLitters';
 import { useVaccinations } from '@/hooks/useHealth';
 import { useSales } from '@/hooks/useClients';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import type { VaccinationRecord, Dog, Sale } from '@/types';
+import type { VaccinationRecord, Sale } from '@/types';
 
 const COLORS = ['#303845', '#6e5e44', '#fbf1e5', '#3b82f6', '#22c55e', '#f59e0b'];
 
@@ -237,7 +237,7 @@ export function ReportsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
+        <h2 className="text-2xl font-bold tracking-tight font-display">Reports</h2>
         <p className="text-muted-foreground">
           Analytics and insights for your breeding operation
         </p>
