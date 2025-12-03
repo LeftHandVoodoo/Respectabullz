@@ -71,7 +71,7 @@ The central entity representing individual dogs and puppies.
 | color | String? | Coat color |
 | microchipNumber | String? | Microchip ID |
 | status | String | 'active', 'sold', 'retired', 'deceased' |
-| profilePhotoPath | String? | Path to profile photo |
+| profilePhotoPath | String? | Filename of profile photo (stored in photos/) |
 | notes | String? | Free-form notes |
 | sireId | String? | FK to Dog (father) |
 | damId | String? | FK to Dog (mother) |
@@ -83,6 +83,8 @@ The central entity representing individual dogs and puppies.
 - Self-referential: sire, dam (parents), offspring
 - Belongs to: Litter (birth litter)
 - Has many: VaccinationRecord, WeightEntry, MedicalRecord, HeatCycle, Transport, DogPhoto, PedigreeEntry, SalePuppy, ClientInterest
+
+**Photo Storage:** `profilePhotoPath` stores just the filename (e.g., `"1733241234567-abc123.jpg"`). Full path is `%APPDATA%/com.respectabullz.app/photos/{filename}`.
 
 ### Litter
 Represents a breeding event and resulting puppies.
@@ -105,7 +107,24 @@ Represents a breeding event and resulting puppies.
 
 **Relationships:**
 - Belongs to: Dog (sire), Dog (dam)
-- Has many: Dog (puppies), Expense
+- Has many: Dog (puppies), Expense, LitterPhoto
+
+### LitterPhoto
+Multiple photos per litter for documenting breeding and puppies over time.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| litterId | String | FK to Litter |
+| filePath | String | Filename of photo (stored in photos/) |
+| caption | String? | Optional photo caption |
+| sortOrder | Int | Display order (default: 0) |
+| uploadedAt | DateTime | Upload timestamp |
+
+**Relationships:**
+- Belongs to: Litter (cascade delete)
+
+**Photo Storage:** `filePath` stores just the filename. Full path is `%APPDATA%/com.respectabullz.app/photos/{filename}`.
 
 ## Health Entities
 
@@ -358,16 +377,18 @@ Deep lineage tracking (4+ generations).
 ## Supporting Entities
 
 ### DogPhoto
-Multiple photos per dog.
+Multiple photos per dog (legacy model - currently using profilePhotoPath on Dog).
 
 | Field | Type | Description |
 |-------|------|-------------|
 | id | String (CUID) | Primary key |
 | dogId | String | FK to Dog |
-| filePath | String | Path to image |
+| filePath | String | Filename of photo (stored in photos/) |
 | caption | String? | Photo caption |
 | isPrimary | Boolean | Primary photo? |
 | uploadedAt | DateTime | Upload timestamp |
+
+**Note:** Currently, dogs use a single `profilePhotoPath` field. The `DogPhoto` model exists for future multi-photo support.
 
 ### Attachment
 Generic file attachments.

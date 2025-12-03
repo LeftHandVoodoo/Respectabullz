@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +33,7 @@ import { VaccinationsList } from '@/components/health/VaccinationsList';
 import { WeightChart } from '@/components/health/WeightChart';
 import { MedicalRecordsList } from '@/components/health/MedicalRecordsList';
 import { calculateAge, formatDate } from '@/lib/utils';
+import { getPhotoUrlSync, initPhotoBasePath } from '@/lib/photoUtils';
 import type { DogStatus } from '@/types';
 
 const statusColors: Record<DogStatus, 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'> = {
@@ -48,6 +49,11 @@ export function DogDetailPage() {
   const { data: dog, isLoading } = useDog(id);
   const deleteDog = useDeleteDog();
   const [showEditDialog, setShowEditDialog] = useState(false);
+
+  // Initialize photo base path for displaying photos
+  useEffect(() => {
+    initPhotoBasePath();
+  }, []);
 
   const handleDelete = async () => {
     if (id) {
@@ -83,9 +89,16 @@ export function DogDetailPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-12 w-12">
-              <AvatarFallback className="bg-primary/10 text-primary text-lg">
+          <div className="flex items-center gap-4">
+            <Avatar className="h-16 w-16 border-2 border-border">
+              {dog.profilePhotoPath && (
+                <AvatarImage 
+                  src={getPhotoUrlSync(dog.profilePhotoPath) || undefined} 
+                  alt={dog.name}
+                  className="object-cover"
+                />
+              )}
+              <AvatarFallback className="bg-primary/10 text-primary text-xl">
                 {dog.name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>

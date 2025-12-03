@@ -11,6 +11,7 @@ A comprehensive desktop application for managing dog breeding operations, built 
 ## Features
 
 - **Dog Management**: Track individual dogs/puppies with full profiles, lineage, and status
+- **Photo Management**: Upload and display profile photos for dogs with rounded avatars, plus photo galleries for litters
 - **Litter Tracking**: Manage breeding litters with parent associations and puppy counts
 - **Health Records**: Vaccinations, weights, and medical records with reminders
 - **Heat Cycle Tracking**: Monitor breeding females' cycles with calendar views
@@ -22,7 +23,7 @@ A comprehensive desktop application for managing dog breeding operations, built 
 - **Sales Pipeline**: Track interest status, payment status, shipping, and delivery
 - **Contract Generation**: Automated contract document generation from JSON template with auto-filled client, puppy, and breeder information
 - **Reports & Analytics**: Charts and insights for your breeding operation
-- **Data Backup**: Export and import database backups
+- **Full Backup System**: Export and import complete backups including database and all photos in ZIP format
 
 ## Tech Stack
 
@@ -32,6 +33,7 @@ A comprehensive desktop application for managing dog breeding operations, built 
 - **Database**: SQLite via Prisma ORM
 - **Charts**: Recharts
 - **State Management**: TanStack Query
+- **Backup**: JSZip for ZIP archive creation
 
 ## Brand Colors
 
@@ -98,8 +100,9 @@ respectabullz/
 
 The application uses a normalized SQLite database with the following main entities:
 
-- **Dog**: Individual dog profiles with lineage
-- **Litter**: Breeding litter records
+- **Dog**: Individual dog profiles with lineage and profile photos
+- **Litter**: Breeding litter records with photo galleries
+- **LitterPhoto**: Multiple photos per litter for documentation
 - **HeatCycle/HeatEvent**: Female heat tracking
 - **VaccinationRecord**: Vaccination history
 - **WeightEntry**: Weight tracking
@@ -111,6 +114,8 @@ The application uses a normalized SQLite database with the following main entiti
 - **Sale**: Sales records with multi-puppy support
 - **SalePuppy**: Junction table for puppies in sales
 - **PedigreeEntry**: Deep lineage tracking
+
+**Photo Storage**: Photos are stored in `%APPDATA%/com.respectabullz.app/photos/` with unique filenames. Database stores file paths, not binary data.
 
 ## Development
 

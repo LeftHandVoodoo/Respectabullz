@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,11 +19,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SkeletonTableRow } from '@/components/ui/skeleton';
 import { useDogs } from '@/hooks/useDogs';
 import { DogFormDialog } from '@/components/dogs/DogFormDialog';
 import { calculateAge } from '@/lib/utils';
+import { getPhotoUrlSync, initPhotoBasePath } from '@/lib/photoUtils';
 import type { DogStatus } from '@/types';
 
 const statusColors: Record<DogStatus, 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'> = {
@@ -40,6 +41,11 @@ export function DogsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sexFilter, setSexFilter] = useState<string>('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
+
+  // Initialize photo base path for displaying photos
+  useEffect(() => {
+    initPhotoBasePath();
+  }, []);
 
   const filteredDogs = dogs?.filter((dog) => {
     const matchesSearch =
@@ -149,6 +155,13 @@ export function DogsPage() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
+                        {dog.profilePhotoPath && (
+                          <AvatarImage 
+                            src={getPhotoUrlSync(dog.profilePhotoPath) || undefined} 
+                            alt={dog.name}
+                            className="object-cover"
+                          />
+                        )}
                         <AvatarFallback className="bg-primary/10 text-primary text-xs">
                           {dog.name.substring(0, 2).toUpperCase()}
                         </AvatarFallback>

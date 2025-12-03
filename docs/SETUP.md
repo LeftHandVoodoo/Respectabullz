@@ -109,11 +109,16 @@ By default, the database is stored in:
 
 ### Data Directories
 
-The app creates these directories automatically:
-- `photos/` - Dog profile photos
+The app creates these directories automatically in `%APPDATA%/com.respectabullz.app/`:
+- `photos/` - Dog profile photos and litter photo galleries
 - `attachments/` - Documents and files
-- `backups/` - Database backups
 - `contracts/` - Generated contract documents
+- `data/` - SQLite database (if using Prisma)
+
+**Photo Storage:**
+- Photos are stored with unique filenames (timestamp + random)
+- Database stores only filenames, not full paths
+- Photos are included in full backup ZIP files
 
 ## Build for Production
 

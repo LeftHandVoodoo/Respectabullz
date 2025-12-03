@@ -129,6 +129,8 @@ respectabullz/
 │   │   ├── db.ts            # Database client
 │   │   ├── utils.ts         # Helper functions
 │   │   ├── contractUtils.ts # Contract generation utilities
+│   │   ├── photoUtils.ts    # Photo upload and display utilities
+│   │   ├── backupUtils.ts   # Full backup with photos (ZIP)
 │   │   └── notifications.ts # Notification utilities
 │   ├── pages/               # Route page components
 │   ├── types/               # TypeScript type definitions
@@ -208,7 +210,9 @@ User Action → Form Submit → Data Hook (useMutation)
 ### Data Protection
 - All data stored locally on user's machine
 - No data transmitted to external servers
-- File paths stored instead of file contents (for attachments)
+- File paths stored instead of file contents (for attachments and photos)
+- Photos stored in app data directory with unique filenames
+- Full backups include all photos in ZIP format for portability
 
 ### Input Validation
 - Zod schemas validate all user input
@@ -238,11 +242,12 @@ User Action → Form Submit → Data Hook (useMutation)
 
 ### Planned Improvements
 1. Full Prisma integration with Tauri IPC
-2. Photo storage with image optimization
+2. Photo image optimization and thumbnail generation
 3. PDF generation for printable reports (contracts currently generate as Word documents)
 4. Calendar integration with external calendars
 5. Multi-device sync (optional cloud backup)
 6. Contract template editor UI
+7. Photo deletion cleanup (orphaned files)
 
 ### Scalability
 - Current architecture supports ~10,000 dogs

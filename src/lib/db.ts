@@ -17,11 +17,14 @@ import type {
   ClientInterest,
   PedigreeEntry,
   DogPhoto,
+  LitterPhoto,
   Setting,
   CreateDogInput,
   UpdateDogInput,
   CreateLitterInput,
   UpdateLitterInput,
+  CreateLitterPhotoInput,
+  UpdateLitterPhotoInput,
   CreateClientInput,
   UpdateClientInput,
   CreateExpenseInput,
@@ -57,6 +60,7 @@ interface Database {
   clientInterests: ClientInterest[];
   pedigreeEntries: PedigreeEntry[];
   dogPhotos: DogPhoto[];
+  litterPhotos: LitterPhoto[];
   settings: Setting[];
 }
 
@@ -76,6 +80,7 @@ const emptyDb: Database = {
   clientInterests: [],
   pedigreeEntries: [],
   dogPhotos: [],
+  litterPhotos: [],
   settings: [],
 };
 
@@ -321,6 +326,7 @@ export async function getLitter(id: string): Promise<Litter | null> {
     dam: litter.damId ? db.dogs.find(d => d.id === litter.damId) || null : null,
     puppies: db.dogs.filter(d => d.litterId === id),
     expenses: db.expenses.filter(e => e.relatedLitterId === id),
+    photos: db.litterPhotos.filter(p => p.litterId === id).sort((a, b) => a.sortOrder - b.sortOrder),
   };
 }
 
@@ -360,6 +366,8 @@ export async function deleteLitter(id: string): Promise<boolean> {
   db.litters.splice(index, 1);
   // Update dogs that were in this litter
   db.dogs = db.dogs.map(d => d.litterId === id ? { ...d, litterId: null } : d);
+  // Delete associated litter photos
+  db.litterPhotos = db.litterPhotos.filter(p => p.litterId !== id);
   
   saveDb(db);
   return true;
@@ -1565,6 +1573,82 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     monthlyExpenses,
     recentActivity: [], // TODO: Implement activity tracking
   };
+}
+
+// ============================================
+// LITTER PHOTO OPERATIONS
+// ============================================
+
+export async function getLitterPhotos(litterId: string): Promise<LitterPhoto[]> {
+  const db = loadDb();
+  return db.litterPhotos
+    .filter(p => p.litterId === litterId)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export async function getLitterPhoto(id: string): Promise<LitterPhoto | null> {
+  const db = loadDb();
+  const photo = db.litterPhotos.find(p => p.id === id);
+  return photo || null;
+}
+
+export async function createLitterPhoto(input: CreateLitterPhotoInput): Promise<LitterPhoto> {
+  const db = loadDb();
+  
+  // Determine sort order (put new photo at the end)
+  const existingPhotos = db.litterPhotos.filter(p => p.litterId === input.litterId);
+  const maxSortOrder = existingPhotos.length > 0 
+    ? Math.max(...existingPhotos.map(p => p.sortOrder)) 
+    : -1;
+  
+  const photo: LitterPhoto = {
+    id: generateId(),
+    litterId: input.litterId,
+    filePath: input.filePath,
+    caption: input.caption ?? null,
+    sortOrder: input.sortOrder ?? maxSortOrder + 1,
+    uploadedAt: new Date(),
+  };
+  db.litterPhotos.push(photo);
+  saveDb(db);
+  return photo;
+}
+
+export async function updateLitterPhoto(id: string, input: UpdateLitterPhotoInput): Promise<LitterPhoto | null> {
+  const db = loadDb();
+  const index = db.litterPhotos.findIndex(p => p.id === id);
+  if (index === -1) return null;
+  
+  db.litterPhotos[index] = {
+    ...db.litterPhotos[index],
+    ...input,
+  };
+  saveDb(db);
+  return db.litterPhotos[index];
+}
+
+export async function deleteLitterPhoto(id: string): Promise<boolean> {
+  const db = loadDb();
+  const index = db.litterPhotos.findIndex(p => p.id === id);
+  if (index === -1) return false;
+  
+  db.litterPhotos.splice(index, 1);
+  saveDb(db);
+  return true;
+}
+
+export async function reorderLitterPhotos(litterId: string, photoIds: string[]): Promise<void> {
+  const db = loadDb();
+  
+  // Update sort order based on the provided order
+  photoIds.forEach((photoId, index) => {
+    const photoIndex = db.litterPhotos.findIndex(p => p.id === photoId && p.litterId === litterId);
+    if (photoIndex !== -1) {
+      db.litterPhotos[photoIndex].sortOrder = index;
+    }
+  });
+  
+  saveDb(db);
 }
 
 // ============================================

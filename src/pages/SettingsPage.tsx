@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Moon, Sun, Download, Upload, Trash2, Database, Building2, Save } from 'lucide-react';
+import { Moon, Sun, Download, Upload, Trash2, Database, Building2, Save, Image, FileArchive, FileJson } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -30,10 +31,14 @@ import {
   useExportDatabase,
   useImportDatabase,
   useClearDatabase,
+  useExportBackupWithPhotos,
+  useImportBackupWithPhotos,
+  useBackupInfo,
 } from '@/hooks/useSettings';
 import { useBreederSettings } from '@/hooks/useBreederSettings';
 import { toast } from '@/components/ui/use-toast';
 import { VERSION } from '@/lib/version';
+import { formatBytes, isTauriEnvironment } from '@/lib/backupUtils';
 import type { BreederSettings } from '@/types';
 
 export function SettingsPage() {
@@ -43,7 +48,11 @@ export function SettingsPage() {
   const exportDb = useExportDatabase();
   const importDb = useImportDatabase();
   const clearDb = useClearDatabase();
+  const exportWithPhotos = useExportBackupWithPhotos();
+  const importWithPhotos = useImportBackupWithPhotos();
+  const { data: backupInfo } = useBackupInfo();
   const { breederSettings, updateBreederSettings, isPending: isBreederPending } = useBreederSettings();
+  const isTauri = isTauriEnvironment();
 
   // Local state for breeder form
   const [breederForm, setBreederForm] = useState<BreederSettings>(breederSettings);
@@ -355,27 +364,76 @@ export function SettingsPage() {
             Backup, restore, or clear your data
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-4">
-            <Button
-              variant="outline"
-              onClick={() => exportDb.mutate()}
-              disabled={exportDb.isPending}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              {exportDb.isPending ? 'Exporting...' : 'Export Backup'}
-            </Button>
+        <CardContent className="space-y-6">
+          {/* Full Backup with Photos (Recommended) */}
+          {isTauri && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <FileArchive className="h-4 w-4 text-primary" />
+                <Label className="text-base font-medium">Full Backup (Recommended)</Label>
+                <Badge variant="secondary" className="text-xs">ZIP</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Creates a complete backup including database and all photos.
+                {backupInfo && backupInfo.photoCount > 0 && (
+                  <span className="ml-1">
+                    ({backupInfo.photoCount} photos, {formatBytes(backupInfo.photosSize)})
+                  </span>
+                )}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  onClick={() => exportWithPhotos.mutate()}
+                  disabled={exportWithPhotos.isPending}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  {exportWithPhotos.isPending ? 'Creating backup...' : 'Export Full Backup'}
+                </Button>
 
-            <Button
-              variant="outline"
-              onClick={handleImport}
-              disabled={importDb.isPending}
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              {importDb.isPending ? 'Importing...' : 'Import Backup'}
-            </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => importWithPhotos.mutate()}
+                  disabled={importWithPhotos.isPending}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  {importWithPhotos.isPending ? 'Restoring...' : 'Restore Full Backup'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Data Only Backup */}
+          <div className="space-y-3 pt-4 border-t">
+            <div className="flex items-center gap-2">
+              <FileJson className="h-4 w-4 text-muted-foreground" />
+              <Label className="text-base font-medium">Data Only Backup</Label>
+              <Badge variant="outline" className="text-xs">JSON</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Export only the database (no photos). Useful for quick backups or transferring data.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="outline"
+                onClick={() => exportDb.mutate()}
+                disabled={exportDb.isPending}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                {exportDb.isPending ? 'Exporting...' : 'Export Data Only'}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={handleImport}
+                disabled={importDb.isPending}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                {importDb.isPending ? 'Importing...' : 'Import Data Only'}
+              </Button>
+            </div>
           </div>
 
+          {/* Danger Zone */}
           <div className="pt-4 border-t">
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -389,7 +447,7 @@ export function SettingsPage() {
                   <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                   <AlertDialogDescription>
                     This will permanently delete all your data including dogs,
-                    litters, health records, expenses, and clients. This action
+                    litters, health records, expenses, clients, and photos. This action
                     cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>

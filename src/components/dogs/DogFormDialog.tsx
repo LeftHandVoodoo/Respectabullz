@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Camera, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -20,8 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useToast } from '@/components/ui/use-toast';
 import { useCreateDog, useUpdateDog, useDogs } from '@/hooks/useDogs';
 import { useLitters } from '@/hooks/useLitters';
+import { selectAndCopyImage, getPhotoUrlAsync, initPhotoBasePath } from '@/lib/photoUtils';
 import type { Dog, DogStatus, DogSex } from '@/types';
 
 // Standard dog breeds
@@ -91,14 +95,84 @@ interface DogFormDialogProps {
 }
 
 export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogFormDialogProps) {
+  const { toast } = useToast();
   const createDog = useCreateDog();
   const updateDog = useUpdateDog();
   const { data: allDogs } = useDogs();
   const { data: litters } = useLitters();
   const [isCustomColor, setIsCustomColor] = useState(false);
   const [isCustomBreed, setIsCustomBreed] = useState(false);
+  const [profilePhotoPath, setProfilePhotoPath] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   const isEditing = !!dog;
+
+  // Initialize photo base path on mount
+  useEffect(() => {
+    initPhotoBasePath();
+  }, []);
+
+  // Update photo URL when profile photo path changes
+  useEffect(() => {
+    let cancelled = false;
+    
+    async function loadPhotoUrl() {
+      if (profilePhotoPath) {
+        const url = await getPhotoUrlAsync(profilePhotoPath);
+        if (!cancelled) {
+          setPhotoUrl(url);
+        }
+      } else {
+        setPhotoUrl(null);
+      }
+    }
+    
+    loadPhotoUrl();
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [profilePhotoPath]);
+
+  const handlePhotoUpload = async () => {
+    setIsUploadingPhoto(true);
+    try {
+      console.log('Starting photo upload...');
+      const filename = await selectAndCopyImage();
+      console.log('Photo upload result:', filename);
+      if (filename) {
+        console.log('Setting profile photo path to:', filename);
+        setProfilePhotoPath(filename);
+        // Force reload photo URL after setting path
+        const url = await getPhotoUrlAsync(filename);
+        console.log('Photo URL generated:', url);
+        setPhotoUrl(url);
+        toast({
+          title: 'Photo uploaded',
+          description: 'Profile photo has been uploaded successfully.',
+        });
+      } else {
+        console.log('No filename returned from photo upload (user cancelled or error)');
+        // Only show error if user didn't just cancel the dialog
+        // We can't easily tell the difference, so just log it
+      }
+    } catch (error) {
+      console.error('Failed to upload photo:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'Failed to upload photo. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setProfilePhotoPath(null);
+    setPhotoUrl(null);
+  };
 
   const {
     register,
@@ -126,6 +200,9 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
       const dogBreed = dog.breed || '';
       const isStandardBreed = standardBreeds.includes(dogBreed);
       setIsCustomBreed(!isStandardBreed && dogBreed !== '');
+      
+      // Set profile photo
+      setProfilePhotoPath(dog.profilePhotoPath || null);
       
       reset({
         name: dog.name,
@@ -158,6 +235,8 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
       });
       setIsCustomColor(false);
       setIsCustomBreed(false);
+      setProfilePhotoPath(null);
+      setPhotoUrl(null);
     }
   }, [dog, reset, defaultLitterId]);
 
@@ -185,7 +264,7 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
       damId: data.damId || null,
       litterId: data.litterId || null,
       notes: data.notes || null,
-      profilePhotoPath: dog?.profilePhotoPath || null,
+      profilePhotoPath: profilePhotoPath,
     };
 
     if (isEditing && dog) {
@@ -208,6 +287,57 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Profile Photo */}
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Avatar className="h-20 w-20 border-2 border-dashed border-muted-foreground/50">
+                {photoUrl ? (
+                  <AvatarImage 
+                    src={photoUrl} 
+                    alt="Profile photo" 
+                    className="object-cover"
+                    onError={(e) => {
+                      console.error('Image failed to load:', photoUrl);
+                      console.error('Error event:', e);
+                    }}
+                    onLoad={() => {
+                      console.log('Image loaded successfully:', photoUrl);
+                    }}
+                  />
+                ) : null}
+                <AvatarFallback className="bg-muted text-muted-foreground">
+                  <Camera className="h-8 w-8" />
+                </AvatarFallback>
+              </Avatar>
+              {photoUrl && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full"
+                  onClick={handleRemovePhoto}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-col gap-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePhotoUpload}
+                disabled={isUploadingPhoto}
+              >
+                <Camera className="mr-2 h-4 w-4" />
+                {isUploadingPhoto ? 'Uploading...' : photoUrl ? 'Change Photo' : 'Add Photo'}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Profile photo (JPG, PNG, GIF, WebP)
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             {/* Name */}
             <div className="space-y-2">

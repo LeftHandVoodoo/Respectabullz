@@ -111,26 +111,24 @@
   .brand-title {
     font-family: 'Techna Sans', system-ui, sans-serif;
     color: #fbf1e5;
-    -webkit-text-stroke: 0.5px #6e5e44;
+    -webkit-text-stroke: 0.35px #6e5e44;
     text-shadow: 
-      0.5px 0.5px 0 #6e5e44,
-      -0.5px -0.5px 0 #6e5e44,
-      0.5px -0.5px 0 #6e5e44,
-      -0.5px 0.5px 0 #6e5e44,
+      0 0 0.5px #6e5e44,
+      0 0 1px #6e5e44,
+      0 0 1.5px rgba(110, 94, 68, 0.8),
       0 1px 2px rgba(0, 0, 0, 0.2);
     letter-spacing: 0.08em;
     display: inline-flex;
     align-items: flex-start;
   }
   
-  .brand-letter-large {
-    font-size: 1.15em;
+  .brand-title span {
+    display: inline-block;
     line-height: 1;
   }
   
-  .brand-title span:not(.brand-letter-large) {
-    line-height: 1;
-    padding-top: 0.02em;
+  .brand-letter-large {
+    font-size: 1.15em;
   }
   
   /* Custom scrollbar */

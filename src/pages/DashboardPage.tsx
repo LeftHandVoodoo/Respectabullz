@@ -91,12 +91,22 @@ export function DashboardPage() {
             />
           </div>
           
-          {/* Brand Text */}
+          {/* Brand Text - with subtle upward arc */}
           <div className="flex-1 flex justify-center px-4">
-            <h1 className="brand-title text-3xl md:text-4xl lg:text-5xl font-bold tracking-wider select-none drop-shadow-[0_4px_8px_rgba(0,0,0,0.4)]">
-              <span className="brand-letter-large">R</span>
-              <span>ESPECTABULL</span>
-              <span className="brand-letter-large">Z</span>
+            <h1 className="brand-title text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-wider select-none drop-shadow-[0_4px_8px_rgba(0,0,0,0.4)]">
+              <span className="brand-letter-large" style={{ transform: 'translateY(0px)' }}>R</span>
+              <span style={{ transform: 'translateY(-1px)' }}>E</span>
+              <span style={{ transform: 'translateY(-2px)' }}>S</span>
+              <span style={{ transform: 'translateY(-2.5px)' }}>P</span>
+              <span style={{ transform: 'translateY(-3px)' }}>E</span>
+              <span style={{ transform: 'translateY(-3.5px)' }}>C</span>
+              <span style={{ transform: 'translateY(-4px)' }}>T</span>
+              <span style={{ transform: 'translateY(-3.5px)' }}>A</span>
+              <span style={{ transform: 'translateY(-3px)' }}>B</span>
+              <span style={{ transform: 'translateY(-2.5px)' }}>U</span>
+              <span style={{ transform: 'translateY(-2px)' }}>L</span>
+              <span style={{ transform: 'translateY(-1px)' }}>L</span>
+              <span className="brand-letter-large" style={{ transform: 'translateY(0px)' }}>Z</span>
             </h1>
           </div>
           

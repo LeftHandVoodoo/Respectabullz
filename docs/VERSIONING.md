@@ -86,6 +86,15 @@ For testing releases:
 1.0.0-rc.1
 ```
 
+## Current Version
+
+**0.7.0** (2025-12-03)
+
+Major features in this version:
+- Photo management (dog profile photos, litter photo galleries)
+- Full backup system with ZIP archives including photos
+- Base64 data URL display for reliable photo rendering
+
 ## Version History
 
 See [CHANGELOG.md](../CHANGELOG.md) for complete version history.

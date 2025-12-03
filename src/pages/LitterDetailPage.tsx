@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Dog, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,8 +26,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useLitter, useDeleteLitter } from '@/hooks/useLitters';
 import { LitterFormDialog } from '@/components/litters/LitterFormDialog';
+import { LitterPhotoGallery } from '@/components/litters/LitterPhotoGallery';
 import { DogFormDialog } from '@/components/dogs/DogFormDialog';
 import { formatDate } from '@/lib/utils';
+import { getPhotoUrlSync, initPhotoBasePath } from '@/lib/photoUtils';
 
 export function LitterDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +38,11 @@ export function LitterDetailPage() {
   const deleteLitter = useDeleteLitter();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showAddPuppyDialog, setShowAddPuppyDialog] = useState(false);
+
+  // Initialize photo base path for displaying photos
+  useEffect(() => {
+    initPhotoBasePath();
+  }, []);
 
   const handleDelete = async () => {
     if (id) {
@@ -126,24 +133,76 @@ export function LitterDetailPage() {
         </div>
       </div>
 
+      {/* Parents Cards with Photos */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Sire (Father)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {litter.sire ? (
+              <div 
+                className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => navigate(`/dogs/${litter.sire?.id}`)}
+              >
+                <Avatar className="h-12 w-12 border-2 border-border">
+                  {litter.sire.profilePhotoPath && (
+                    <AvatarImage 
+                      src={getPhotoUrlSync(litter.sire.profilePhotoPath) || undefined} 
+                      alt={litter.sire.name}
+                      className="object-cover"
+                    />
+                  )}
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {litter.sire.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">{litter.sire.name}</p>
+                  <p className="text-sm text-muted-foreground">{litter.sire.breed}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Unknown</p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Dam (Mother)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {litter.dam ? (
+              <div 
+                className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => navigate(`/dogs/${litter.dam?.id}`)}
+              >
+                <Avatar className="h-12 w-12 border-2 border-border">
+                  {litter.dam.profilePhotoPath && (
+                    <AvatarImage 
+                      src={getPhotoUrlSync(litter.dam.profilePhotoPath) || undefined} 
+                      alt={litter.dam.name}
+                      className="object-cover"
+                    />
+                  )}
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {litter.dam.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">{litter.dam.name}</p>
+                  <p className="text-sm text-muted-foreground">{litter.dam.breed}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Unknown</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Info Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Sire</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="font-medium">{litter.sire?.name || 'Unknown'}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Dam</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="font-medium">{litter.dam?.name || 'Unknown'}</p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Due Date</CardTitle>
@@ -231,12 +290,19 @@ export function LitterDetailPage() {
                   >
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-xs">
+                        <Avatar className="h-8 w-8">
+                          {puppy.profilePhotoPath && (
+                            <AvatarImage 
+                              src={getPhotoUrlSync(puppy.profilePhotoPath) || undefined} 
+                              alt={puppy.name}
+                              className="object-cover"
+                            />
+                          )}
+                          <AvatarFallback className="text-xs bg-primary/10 text-primary">
                             {puppy.name.substring(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        {puppy.name}
+                        <span className="font-medium">{puppy.name}</span>
                       </div>
                     </TableCell>
                     <TableCell>{puppy.sex === 'M' ? 'Male' : 'Female'}</TableCell>
@@ -251,6 +317,9 @@ export function LitterDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Photo Gallery */}
+      <LitterPhotoGallery litterId={litter.id} />
 
       {/* Notes */}
       {litter.notes && (

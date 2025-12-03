@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2025-12-03
+
+### Added
+
+- Photo management for dogs and litters
+  - Profile photo upload for individual dogs with rounded avatar display
+  - Photo picker dialog using Tauri's native file dialog
+  - Photos stored in app's local data directory with unique filenames
+  - Photo gallery for litters to document breeding over time
+  - Caption support for litter photos with edit functionality
+  - LitterPhoto model in database schema with sortOrder for ordering
+  - Sire and dam profile photos displayed in litter detail page
+  - Puppy profile photos in litter puppies table
+  - Photo utilities module (photoUtils.ts) for file handling
+  - useLitterPhotos hook for managing litter photo state
+- Full backup with photos (ZIP format)
+  - Creates complete backup including database JSON and all photo files
+  - ZIP archive with compression for efficient storage
+  - Import/restore functionality extracts photos and database together
+  - Backup info display showing photo count and total size
+  - Maintains backward compatibility with JSON-only data exports
+
+### Changed
+
+- Enhanced dashboard hero banner text styling
+  - Increased RESPECTABULLZ text size (text-4xl to text-7xl responsive scaling)
+  - Reduced brown border thickness from 0.5px to 0.35px for subtler appearance
+  - Smoothed border edges using blurred text-shadow effects for softer appearance
+  - Added subtle upward arc curve to text string with center letters elevated
+- DogFormDialog now includes profile photo upload UI with preview
+- DogsPage displays profile photos in table avatars
+- DogDetailPage shows larger profile photo in header (16x16 with border)
+- LitterDetailPage redesigned with parent photos section and photo gallery
+
 ## [0.6.0] - 2025-12-03
 
 ### Changed

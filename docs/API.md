@@ -597,10 +597,75 @@ getDashboardStats(): Promise<DashboardStats>
 
 ---
 
+## Photo Operations
+
+### Photo Utilities (`lib/photoUtils.ts`)
+
+#### selectAndCopyImage
+Selects an image file and copies it to the app's photos directory.
+
+```typescript
+selectAndCopyImage(): Promise<string | null>
+```
+
+**Returns:** Filename of the copied photo (e.g., `"1733241234567-abc123.jpg"`) or null if cancelled/failed.
+
+**Storage:** Photos are saved to `%APPDATA%/com.respectabullz.app/photos/` with unique filenames.
+
+#### getPhotoUrlAsync
+Converts a photo filename to a displayable data URL.
+
+```typescript
+getPhotoUrlAsync(filename: string | null | undefined): Promise<string | null>
+```
+
+**Returns:** Base64 data URL (`data:image/jpeg;base64,...`) or null if file not found.
+
+#### selectAndCopyMultipleImages
+Selects multiple images and copies them to the photos directory.
+
+```typescript
+selectAndCopyMultipleImages(): Promise<string[]>
+```
+
+**Returns:** Array of filenames for the copied photos.
+
+### Litter Photo Operations (`lib/db.ts`)
+
+#### getLitterPhotos
+Retrieves all photos for a litter.
+
+```typescript
+getLitterPhotos(litterId: string): Promise<LitterPhoto[]>
+```
+
+#### createLitterPhoto
+Creates a new litter photo record.
+
+```typescript
+createLitterPhoto(input: Omit<LitterPhoto, 'id' | 'uploadedAt'>): Promise<LitterPhoto>
+```
+
+**Parameters:**
+- `input.litterId`: Litter ID
+- `input.filePath`: Photo filename (from `selectAndCopyImage`)
+- `input.caption`: Optional caption
+
+#### deleteLitterPhoto
+Deletes a litter photo.
+
+```typescript
+deleteLitterPhoto(id: string): Promise<boolean>
+```
+
+**Side Effects:** Photo file is not automatically deleted (stored separately).
+
+---
+
 ## Backup Operations
 
 ### exportDatabase
-Exports the entire database as JSON.
+Exports the entire database as JSON (data only, no photos).
 
 ```typescript
 exportDatabase(): Promise<string>
@@ -608,8 +673,10 @@ exportDatabase(): Promise<string>
 
 **Returns:** JSON string of all database contents.
 
+**Note:** This does not include photo files. Use `exportBackupWithPhotos` for complete backups.
+
 ### importDatabase
-Imports a database backup.
+Imports a database backup (JSON format).
 
 ```typescript
 importDatabase(data: string): Promise<boolean>
@@ -620,6 +687,8 @@ importDatabase(data: string): Promise<boolean>
 
 **Returns:** true if successful, false if parsing failed.
 
+**Note:** Photo files must be restored separately. Use `importBackupWithPhotos` for complete restore.
+
 ### clearDatabase
 Deletes all data from the database.
 
@@ -627,7 +696,62 @@ Deletes all data from the database.
 clearDatabase(): Promise<void>
 ```
 
-**Warning:** This is irreversible!
+**Warning:** This is irreversible! Does not delete photo files.
+
+---
+
+## Full Backup with Photos (`lib/backupUtils.ts`)
+
+### exportBackupWithPhotos
+Creates a ZIP archive containing database and all photos.
+
+```typescript
+exportBackupWithPhotos(databaseJson: string): Promise<boolean>
+```
+
+**Parameters:**
+- `databaseJson`: JSON string from `exportDatabase()`
+
+**Returns:** true if ZIP file was saved successfully, false if user cancelled.
+
+**ZIP Structure:**
+```
+backup.zip
+├── metadata.json      # Backup version, date, photo count
+├── database.json      # Full database export
+└── photos/
+    ├── photo1.jpg
+    ├── photo2.png
+    └── ...
+```
+
+**Storage:** ZIP file is saved to user-selected location via file dialog.
+
+### importBackupWithPhotos
+Restores database and photos from a ZIP backup.
+
+```typescript
+importBackupWithPhotos(): Promise<{ success: boolean; databaseJson?: string; photoCount?: number; error?: string }>
+```
+
+**Returns:**
+- `success`: true if restore completed
+- `databaseJson`: Extracted database JSON (if successful)
+- `photoCount`: Number of photos restored
+- `error`: Error message if failed
+
+**Side Effects:**
+- Extracts all photos to `%APPDATA%/com.respectabullz.app/photos/`
+- Database JSON must be imported separately using `importDatabase()`
+
+### getBackupInfo
+Gets information about current photo storage.
+
+```typescript
+getBackupInfo(): Promise<{ photoCount: number; photosSize: number }>
+```
+
+**Returns:** Photo count and total size in bytes.
 
 ---
 
@@ -667,6 +791,8 @@ useDeleteEntity()       // Delete
 | Settings | useSettings, useSetting | - | useUpdateSetting | - | - |
 | BreederSettings | useBreederSettings | - | useBreederSettings (update) | - | - |
 | Contract | - | - | useGenerateContract | - | - |
+| LitterPhoto | useLitterPhotos | - | useCreateLitterPhoto | - | useDeleteLitterPhoto |
+| Backup | useBackupInfo | - | useExportBackupWithPhotos | - | - |
 
 ### Mutation Hook Features
 

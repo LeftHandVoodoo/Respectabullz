@@ -98,6 +98,9 @@ model Litter {
 
   // Associated expenses
   expenses Expense[] @relation("LitterExpenses")
+
+  // Photo gallery
+  photos LitterPhoto[]
 }
 
 // ============================================
@@ -381,6 +384,18 @@ model DogPhoto {
 
   dogId String
   dog   Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+}
+
+/// Litter photos (gallery for documenting litter over time)
+model LitterPhoto {
+  id         String   @id @default(cuid())
+  filePath   String
+  caption    String?
+  sortOrder  Int      @default(0)
+  uploadedAt DateTime @default(now())
+
+  litterId String
+  litter   Litter @relation(fields: [litterId], references: [id], onDelete: Cascade)
 }
 
 /// General file attachments

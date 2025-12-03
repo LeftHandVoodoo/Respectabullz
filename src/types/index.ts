@@ -110,6 +110,7 @@ export interface Litter {
   dam?: Dog | null;
   puppies?: Dog[];
   expenses?: Expense[];
+  photos?: LitterPhoto[];
 }
 
 export interface HeatCycle {
@@ -341,6 +342,17 @@ export interface DogPhoto {
   uploadedAt: Date;
 }
 
+export interface LitterPhoto {
+  id: string;
+  litterId: string;
+  filePath: string;
+  caption?: string | null;
+  sortOrder: number;
+  uploadedAt: Date;
+  // Relations
+  litter?: Litter;
+}
+
 export interface Attachment {
   id: string;
   entityType: string;
@@ -362,8 +374,12 @@ export interface Setting {
 export type CreateDogInput = Omit<Dog, 'id' | 'createdAt' | 'updatedAt' | 'sire' | 'dam' | 'birthLitter' | 'vaccinations' | 'weightEntries' | 'medicalRecords' | 'heatCycles' | 'transports' | 'photos' | 'sale'>;
 export type UpdateDogInput = Partial<CreateDogInput>;
 
-export type CreateLitterInput = Omit<Litter, 'id' | 'createdAt' | 'updatedAt' | 'sire' | 'dam' | 'puppies' | 'expenses'>;
+export type CreateLitterInput = Omit<Litter, 'id' | 'createdAt' | 'updatedAt' | 'sire' | 'dam' | 'puppies' | 'expenses' | 'photos'>;
 export type UpdateLitterInput = Partial<CreateLitterInput>;
+
+// LitterPhoto input types
+export type CreateLitterPhotoInput = Omit<LitterPhoto, 'id' | 'uploadedAt' | 'litter'>;
+export type UpdateLitterPhotoInput = Partial<CreateLitterPhotoInput>;
 
 export type CreateClientInput = Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'sales'>;
 export type UpdateClientInput = Partial<CreateClientInput>;
