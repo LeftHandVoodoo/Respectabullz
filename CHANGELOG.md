@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2025-01-27
+
+### Changed
+
+- Updated all fonts to use Techna Sans-Regular throughout the application
+  - Added @font-face declaration for Techna Sans-Regular from local font file
+  - Updated Tailwind font family configuration to use Techna Sans for all font families (sans, display, nav)
+  - Removed Google Fonts import (Inter, Playfair Display, Outfit)
+- Increased letter-spacing for bold text (b, strong, .font-bold, .font-semibold) to 0.08em for improved readability
+- Added branded hero section to dashboard with logo and styled brand text
+  - Displays Emblem Logo Transparent on the left with drop shadow
+  - Styled "RESPECTABULLZ" text centered with R and Z slightly larger (1.15em)
+  - Text uses Techna Sans font with cream color and brown border/stroke effect
+  - Added drop shadows to both logo and brand text for depth
+  - Professional gradient background using brand blue color
+- Reorganized sidebar navigation into logical productivity-focused groups
+  - Core Management: Dashboard, Dogs, Litters, Heat Cycles
+  - Operations: Transport, Expenses
+  - Business: Clients, Inquiries, Sales
+  - Analytics: Reports
+  - Visual separators between each group for better organization
+  - Replaced placeholder "R" icon with Emblem Logo image in sidebar header
+  - Removed text from sidebar header, centered emblem icon at 56x56px
+  - Removed pulsing glow animation from sidebar emblem icon
+
 ## [0.5.1] - 2025-12-03
 
 ### Fixed

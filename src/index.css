@@ -1,6 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&family=Outfit:wght@400;500;600&display=swap');
-
 @tailwind base;
+
+@font-face {
+  font-family: 'Techna Sans';
+  src: url('/fonts/TechnaSans-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 @tailwind components;
 @tailwind utilities;
 
@@ -91,6 +97,40 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Increased letter spacing for bold text */
+  b,
+  strong,
+  .font-bold,
+  .font-semibold {
+    letter-spacing: 0.08em;
+  }
+  
+  /* Brand title styling - mimics the banner text */
+  .brand-title {
+    font-family: 'Techna Sans', system-ui, sans-serif;
+    color: #fbf1e5;
+    -webkit-text-stroke: 0.5px #6e5e44;
+    text-shadow: 
+      0.5px 0.5px 0 #6e5e44,
+      -0.5px -0.5px 0 #6e5e44,
+      0.5px -0.5px 0 #6e5e44,
+      -0.5px 0.5px 0 #6e5e44,
+      0 1px 2px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.08em;
+    display: inline-flex;
+    align-items: flex-start;
+  }
+  
+  .brand-letter-large {
+    font-size: 1.15em;
+    line-height: 1;
+  }
+  
+  .brand-title span:not(.brand-letter-large) {
+    line-height: 1;
+    padding-top: 0.02em;
   }
   
   /* Custom scrollbar */
@@ -202,5 +242,41 @@
   .stagger-4 { animation-delay: 0.2s; }
   .stagger-5 { animation-delay: 0.25s; }
   .stagger-6 { animation-delay: 0.3s; }
+  
+  /* Card elevation shadow with inset highlight */
+  .card-shadow {
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.15),
+      0 2px 4px -2px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  }
+  
+  .dark .card-shadow {
+    box-shadow: 
+      0 4px 8px -1px rgba(0, 0, 0, 0.4),
+      0 2px 4px -2px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
+  }
+  
+  /* Card radial gradient highlight */
+  .card-gradient {
+    background: 
+      radial-gradient(
+        ellipse at 30% 20%,
+        rgba(255, 255, 255, 0.03) 0%,
+        transparent 50%
+      ),
+      hsl(var(--card));
+  }
+  
+  .dark .card-gradient {
+    background: 
+      radial-gradient(
+        ellipse at 30% 20%,
+        rgba(255, 255, 255, 0.04) 0%,
+        transparent 50%
+      ),
+      hsl(var(--card));
+  }
 }
 

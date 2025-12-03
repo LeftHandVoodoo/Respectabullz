@@ -62,9 +62,9 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Playfair Display', 'Georgia', 'serif'],
-        nav: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['Techna Sans', 'system-ui', 'sans-serif'],
+        display: ['Techna Sans', 'system-ui', 'sans-serif'],
+        nav: ['Techna Sans', 'system-ui', 'sans-serif'],
       },
       keyframes: {
         'accordion-down': {

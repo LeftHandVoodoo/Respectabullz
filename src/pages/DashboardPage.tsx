@@ -75,13 +75,50 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Hero Banner Section */}
+      <div className="relative overflow-hidden rounded-xl animate-fade-in">
+        {/* Background with gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-brand-blue/90 via-brand-blue/70 to-brand-blue/90" />
+        
+        {/* Content */}
+        <div className="relative flex items-center justify-between px-6 py-6 md:px-8 md:py-8">
+          {/* Logo */}
+          <div className="flex-shrink-0">
+            <img 
+              src="/assets/Emblem_Logo_Transparent.png" 
+              alt="Respectabullz Logo" 
+              className="h-24 w-24 md:h-32 md:w-32 object-contain drop-shadow-[0_6px_12px_rgba(0,0,0,0.5)]"
+            />
+          </div>
+          
+          {/* Brand Text */}
+          <div className="flex-1 flex justify-center px-4">
+            <h1 className="brand-title text-3xl md:text-4xl lg:text-5xl font-bold tracking-wider select-none drop-shadow-[0_4px_8px_rgba(0,0,0,0.4)]">
+              <span className="brand-letter-large">R</span>
+              <span>ESPECTABULL</span>
+              <span className="brand-letter-large">Z</span>
+            </h1>
+          </div>
+          
+          {/* Welcome Text */}
+          <div className="flex-shrink-0 text-right hidden md:block">
+            <p className="text-brand-beige/90 text-[0.96rem] font-medium">
+              Breeder Management
+            </p>
+            <p className="text-brand-beige/70 text-[0.83rem]">
+              Respect the Difference
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Welcome Section */}
-      <div className="space-y-1 animate-fade-in">
+      <div className="space-y-1 animate-fade-in" style={{ animationDelay: '0.1s' }}>
         <h2 className="text-2xl font-bold tracking-tight font-display">
-          Welcome to Respectabullz
+          Dashboard Overview
         </h2>
         <p className="text-muted-foreground">
-          Your comprehensive breeder management dashboard
+          Your comprehensive breeder management at a glance
         </p>
       </div>
 
