@@ -17,6 +17,7 @@ import { useHeatCycles } from '@/hooks/useHeatCycles';
 import type { HeatCycle, HeatPhase } from '@/types';
 import { useDogs } from '@/hooks/useDogs';
 import { HeatCycleFormDialog } from '@/components/heat-cycles/HeatCycleFormDialog';
+import { HeatCycleCalendar } from '@/components/heat-cycles/HeatCycleCalendar';
 import { formatDate } from '@/lib/utils';
 
 // Phase badge colors
@@ -477,20 +478,7 @@ export function HeatCyclesPage() {
         </TabsContent>
 
         <TabsContent value="calendar">
-          <Card>
-            <CardHeader>
-              <CardTitle>Calendar View</CardTitle>
-              <CardDescription>
-                Visual timeline of heat cycles
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Calendar visualization coming soon. Use the list view to manage
-                heat cycles.
-              </p>
-            </CardContent>
-          </Card>
+          <HeatCycleCalendar heatCycles={heatCycles || []} isLoading={isLoading} />
         </TabsContent>
       </Tabs>
 

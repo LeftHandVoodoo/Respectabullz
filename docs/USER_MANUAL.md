@@ -1,7 +1,7 @@
 # Respectabullz User Manual
 
-**Version 1.0.1**  
-**Last Updated: December 2025**
+**Version 1.0.2**  
+**Last Updated: December 4, 2025**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
 
@@ -49,7 +49,8 @@ When you first open Respectabullz, you'll see a **Welcome Dialog** that lets you
   - Expenses and transport records
   - 4-generation pedigree data
 - Great for learning the features and seeing how everything works together
-- You can clear this data later from Settings → Clear All Data
+- You can clear this data later from Settings → Data Management → Clear All Data
+- You can also load sample data later from Settings → Data Management → Seed Test Data (requires empty database)
 
 After making your choice, you'll see the **Dashboard** page. This is your command center, showing key metrics and reminders at a glance.
 
@@ -218,10 +219,10 @@ Litters represent breeding events and their resulting puppies.
 
 1. Click **"Add Litter"** on the Litters page
 2. Required information:
-   - **Dam**: Select the female
-   - **Sire**: Select the male (or external stud)
+   - **Dam**: Select the female from your kennel
+   - **Sire**: Select the male from your kennel, or choose **"External Stud"** to select or add an external stud
    - **Breeding Date**: Date of breeding
-   - **Due Date**: Estimated whelp date (auto-calculated)
+   - **Due Date**: Estimated whelp date (auto-calculated, typically 63 days after breeding)
 3. Optional:
    - **Litter Code**: Auto-generated or custom
    - **Status**: Planned, Bred, Confirmed, Whelped, etc.
@@ -338,7 +339,7 @@ Track breeding females' reproductive cycles.
 Record important events during the cycle:
 1. On heat cycle detail page, click **"Add Event"**
 2. Event types:
-   - **Breeding**: Record breeding date, sire, method (natural/AI/chilled/frozen)
+   - **Breeding**: Record breeding date, sire (internal dog or external stud), method (natural/AI/chilled/frozen)
    - **Progesterone Test**: Log test value, date, and vet clinic
    - **Vet Visit**: General veterinary notes
    - **Notes**: Other observations
@@ -361,6 +362,27 @@ The system predicts future cycles:
 3. Confidence indicator based on data points available
 4. View predictions on dog detail page or dashboard
 
+#### Calendar Visualization
+
+View heat cycles on a visual calendar timeline:
+
+1. On Heat Cycles page, click the **"Calendar"** tab
+2. The calendar shows:
+   - **Color-coded phases**: Each cycle phase is color-coded (Proestrus, Estrus/Fertile, Diestrus)
+   - **Bred indicator**: Cycles that have been bred show a blue border
+   - **Fertile windows**: Optimal breeding periods are highlighted
+   - **Multiple cycles**: Overlapping cycles on the same date are shown
+3. **Navigate months**: Use arrow buttons to move between months
+4. **View details**: Click on any highlighted date to navigate to that cycle's detail page
+5. **Tooltips**: Hover over dates to see cycle information
+6. **Legend**: Color legend shows what each color represents
+
+**Benefits:**
+- Visual overview of all heat cycles at once
+- Quickly identify fertile windows
+- Plan breeding schedules
+- See breeding history at a glance
+
 #### Export Heat Cycles
 
 Export cycle data to CSV:
@@ -371,6 +393,39 @@ Export cycle data to CSV:
    - Progesterone test results
    - Vet clinic information
 3. Useful for record-keeping and analysis
+
+### External Studs
+
+Manage breeding partners that are not part of your kennel.
+
+#### Adding an External Stud
+
+When creating a litter or recording a breeding event:
+1. In the **Sire** field, select **"External Stud"** option
+2. Click **"Add External Stud"** if the stud isn't in your database yet
+3. Fill in stud information:
+   - **Name**: Stud's registered name
+   - **Breed**: Primary breed
+   - **Registration Number**: AKC, UKC, etc.
+   - **Owner Information**: Name, email, phone
+   - **Semen Type**: Fresh, Chilled, or Frozen (if applicable)
+   - **Health Testing Notes**: Genetic test results or health clearances
+   - **Notes**: Additional information
+4. Save to add stud to your database
+
+#### Managing External Studs
+
+External studs are stored in your database and can be:
+- Selected when creating litters
+- Referenced in breeding events
+- Edited or updated as needed
+- Used for tracking breeding partnerships
+
+**Benefits:**
+- Track breeding history with outside studs
+- Maintain contact information for stud owners
+- Record health testing information
+- Document semen type for AI breedings
 
 ---
 
@@ -573,112 +628,236 @@ If shipping a puppy:
 
 #### Contract Generation
 
-Generate sales contracts:
-1. On sale detail page, click **"Generate Contract"**
-2. System creates contract document with:
-   - Buyer and seller information
-   - Puppy details (name, registration, microchip)
-   - Sale price and payment terms
-   - Health guarantee
-   - Registration transfer information
-3. Contract is saved and can be printed or emailed
+Generate professional sales contracts:
+1. When creating or editing a sale, click **"Generate Contract"** button
+2. Fill in contract details:
+   - **Buyer Information**: Name, address, contact details (pre-filled from client)
+   - **Puppy Information**: Name, breed, sex, color, date of birth, microchip, registration number
+   - **Sale Details**: Sale price, registration type (pet or full rights), agreement date
+   - **Sire and Dam**: Parent information (pre-filled if available)
+   - **Co-Buyer**: Optional second buyer name
+3. Click **"Generate Contract"** to create the document
+4. Contract is automatically saved to your app data directory and can be:
+   - Printed for signatures
+   - Emailed to clients
+   - Linked to the sale record
+
+**Contract Features:**
+- Professional formatting with your kennel branding
+- Auto-filled from breeder settings (configured in Settings → Breeder Information)
+- Includes health guarantee and registration transfer terms
+- Legal document ready for signatures
 
 ---
 
 ## Analytics & Reports
 
-The Reports page provides insights into your breeding program.
+The Reports page provides comprehensive insights into your breeding program with four main tabs: Financial, Breeding, Dogs, and Health.
 
 ### Financial Reports
 
-**Tax Summary:**
-- Total expenses by category
-- Deductible vs. non-deductible breakdown
-- Useful for tax preparation
+Access via **Reports** → **Financial** tab:
 
-**Monthly Trends:**
-- View expense trends over time
-- Identify seasonal patterns
+**Summary Cards:**
+- **Total Expenses**: Sum of all expenses recorded
+- **Tax Deductible**: Total of expenses marked as tax-deductible
+- **Non-Deductible**: Expenses not marked as tax-deductible
+
+**Monthly Expenses Chart:**
+- Bar chart showing expense trends over the last 12 months
+- Identify seasonal spending patterns
 - Plan for upcoming costs
+
+**Expenses by Category:**
+- Pie chart breaking down expenses by category
+- See where your money goes (Food, Vet, Supplies, Breeding, etc.)
+- Percentage breakdown for each category
 
 ### Breeding Reports
 
+Access via **Reports** → **Breeding** tab:
+
 **Litters Per Year:**
-- Bar chart showing annual production
-- See breeding frequency trends
-- Track program growth
+- Bar chart showing annual production over the past 5 years
+- Track breeding frequency trends
+- Monitor program growth
 
-**Litter Financials:**
-- Income vs. expenses per litter
-- Net profit/loss calculation
-- Identify most profitable litters
-- Export to CSV
+**Litter Financials Table:**
+- Detailed breakdown of income vs. expenses per litter
+- Shows: Litter code, puppy count, income, expenses, and profit/loss
+- **Export to CSV** button for further analysis
+- Totals row shows aggregate statistics
 
-**Production by Dam/Sire:**
-- See which dogs produce the most puppies
-- Average litter sizes
-- Breeding performance metrics
-- Useful for breeding decisions
+**Production by Dam:**
+- Table showing breeding performance by female
+- Columns: Dam name, number of litters, total puppies, average litter size
+- Sorted by number of litters (most productive first)
+
+**Production by Sire:**
+- Table showing breeding performance by male
+- Columns: Sire name, number of litters, total puppies, average litter size
+- Sorted by number of litters (most productive first)
+
+### Dog Reports
+
+Access via **Reports** → **Dogs** tab:
+
+**Summary Cards:**
+- Total Dogs, Active, Sold, and Total Litters counts
+
+**Dog Status Distribution:**
+- Bar chart showing breakdown by status (Active, Sold, Retired, Deceased)
+- **Double-click any bar** to see detailed list of dogs in that category
+- Color-coded for easy identification
 
 ### Health Reports
 
-**Vaccination Compliance:**
-- See which dogs are up-to-date
-- Identify overdue vaccinations
-- Track upcoming due dates
+Access via **Reports** → **Health** tab:
 
-**Dog Status Distribution:**
-- Visual breakdown of dog statuses
-- See how many active, retired, sold, etc.
-- Click bars to see dogs in each category
+**Vaccination Compliance Summary:**
+- **Up to Date**: Vaccinations with no upcoming due date
+- **Due Soon**: Vaccinations due within next 30 days
+- **Overdue**: Vaccinations past their due date
+
+**Vaccination Status Chart:**
+- Bar chart showing compliance breakdown
+- **Double-click any bar** to see detailed list of vaccinations in that category
+- Color-coded: Green (up to date), Amber (due soon), Red (overdue)
 
 ### Export Capabilities
 
 Most reports can be exported to CSV:
-1. Click **"Export CSV"** button on report
+1. Click **"Export CSV"** button on applicable reports
 2. Download file for:
-   - Further analysis in Excel
-   - Sharing with partners
-   - Record-keeping
+   - Further analysis in Excel or Google Sheets
+   - Sharing with partners or accountants
+   - Long-term record-keeping
+   - Tax preparation
 
 ---
 
 ## Settings & Backup
 
-### Settings
-
 Access settings from the sidebar (gear icon).
 
-**Application Settings:**
-- Theme preferences
-- Notification settings
-- Default values for forms
+### Breeder Information
 
-### Backup & Restore
+Configure your kennel details for contracts and documents:
 
-**Creating a Backup:**
-1. Go to **Settings** page
-2. Click **"Create Backup"**
-3. Choose save location
-4. System creates ZIP file containing:
-   - Complete database
-   - All photos
-5. Save backup in safe location (cloud storage recommended)
+1. Go to **Settings** page → **Breeder Information** section
+2. Fill in required fields (marked with *):
+   - **Breeder/Owner Name**: Your full name
+   - **Address Line 1**: Street address
+   - **City**: City name
+   - **State**: State name
+   - **Phone**: Contact phone number
+3. Optional fields:
+   - **Kennel Name**: Your kennel name
+   - **Address Line 2**: Suite, unit, etc.
+   - **ZIP Code**: Postal code
+   - **Email**: Contact email
+   - **Kennel Registration**: ABKC/UKC registration number
+   - **Kennel Prefix**: Prefix for registered dog names
+   - **County**: For legal jurisdiction in contracts
+4. Click **"Save Breeder Information"**
 
-**Restoring from Backup:**
-1. Go to **Settings** page
-2. Click **"Restore Backup"**
-3. Select backup ZIP file
-4. System restores:
+**Note:** Breeder information is required for contract generation. Contracts will automatically use this information.
+
+### Appearance
+
+**Theme Selection:**
+- **Light**: Light color scheme
+- **Dark**: Dark color scheme (default)
+- **System**: Follows your operating system theme
+
+### Preferences
+
+**Weight Unit:**
+- **Pounds (lbs)**: Display weights in pounds
+- **Kilograms (kg)**: Display weights in kilograms
+
+**Notifications:**
+- Toggle to enable/disable reminders for:
+  - Upcoming vaccinations
+  - Due dates
+  - Follow-up reminders
+  - Puppy health tasks
+
+### Data Management
+
+#### Full Backup (Recommended)
+
+Creates a complete backup including database and all photos:
+
+1. Go to **Settings** → **Data Management** section
+2. Click **"Export Full Backup"**
+3. System creates a ZIP file containing:
+   - Complete database (all records)
+   - All photos (from `photos/` directory)
+4. Choose save location
+5. Backup file shows photo count and total size
+
+**Restoring Full Backup:**
+1. Click **"Restore Full Backup"**
+2. Select the backup ZIP file
+3. System restores:
    - All database records
-   - All photos
-5. **Warning**: This will replace all current data
+   - All photos to their original locations
+4. **Warning**: This will replace all current data
 
-**Best Practices:**
-- Create backups weekly or before major changes
-- Store backups in multiple locations
-- Test restore process periodically
-- Keep backups for at least one year
+#### Data-Only Backup
+
+Export only the database (no photos) for quick backups or data transfer:
+
+1. Click **"Export Data Only"**
+2. System creates a JSON file with all database records
+3. Use for:
+   - Quick backups
+   - Transferring data between installations
+   - Sharing data without photos
+
+**Restoring Data-Only Backup:**
+1. Click **"Import Data Only"**
+2. Select the JSON backup file
+3. System restores all database records
+4. **Note**: Photos are not included in data-only backups
+
+#### Testing Tools
+
+**Seed Test Data:**
+- Populates database with comprehensive dummy data for testing
+- Includes dogs, litters, health records, clients, sales, etc.
+- Database must be empty to seed test data
+- Useful for learning features or testing
+
+**Remove Test Data:**
+- Removes all seeded test data
+- Keeps your real data intact
+
+#### Danger Zone
+
+**Clear All Data:**
+- **Permanently deletes** all your data including:
+  - All dogs and puppies
+  - All litters
+  - All health records
+  - All clients and sales
+  - All expenses and transport records
+  - All photos
+- **This action cannot be undone**
+- Always create a backup before clearing data
+
+### Backup Best Practices
+
+- **Create backups weekly** or before major changes
+- **Store backups in multiple locations**:
+  - Local computer
+  - Cloud storage (Google Drive, Dropbox, OneDrive)
+  - External hard drive
+- **Test restore process** periodically to ensure backups work
+- **Keep backups for at least one year** for record-keeping
+- **Use full backups** for complete data protection
+- **Use data-only backups** for quick transfers or when photos aren't needed
 
 ---
 
@@ -783,6 +962,7 @@ For issues or questions:
 
 ## Version History
 
+- **v1.0.2**: Dark mode set as default theme for new installations
 - **v1.0.1**: First-launch dialog, Windows NSIS installer, TypeScript fixes
 - **v1.0.0**: First stable release - Customer packet PDF export, comprehensive dog management, all core features production-ready
 - **v0.9.2**: Bug fixes and date validation improvements
@@ -794,6 +974,6 @@ See [CHANGELOG.md](../CHANGELOG.md) for complete version history.
 
 ---
 
-**Respectabullz User Manual v1.0.1**  
-*Last Updated: December 2025*
+**Respectabullz User Manual v1.0.2**  
+*Last Updated: December 4, 2025*
 

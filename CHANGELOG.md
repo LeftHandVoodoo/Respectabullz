@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Calendar visualization for heat cycles in the Heat Cycles page
+  - Visual timeline showing heat cycles on calendar dates
+  - Color-coded phases (Proestrus, Estrus, Diestrus, Anestrus)
+  - Highlights fertile windows for optimal breeding timing
+  - Shows "Bred" indicator for cycles that have been bred
+  - Tooltips with cycle details on hover
+  - Clickable dates navigate to cycle detail pages
+  - Month navigation with summary of cycles in current month
+  - Supports multiple overlapping cycles on the same date
+
 ## [1.0.2] - 2025-01-27
 
 ### Changed
