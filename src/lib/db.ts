@@ -1707,9 +1707,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       return isNaN(parsed.getTime()) ? null : parsed;
     }
     
-    // Try to convert to Date
+    // Try to convert to Date (for number timestamps or other valid Date inputs)
     try {
-      const parsed = new Date(date as any);
+      // Date constructor accepts: Date | string | number
+      // We've already handled Date and string, so try number
+      const parsed = new Date(date as string | number);
       return isNaN(parsed.getTime()) ? null : parsed;
     } catch {
       return null;
