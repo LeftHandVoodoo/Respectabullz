@@ -42,6 +42,7 @@ import { toast } from '@/components/ui/use-toast';
 import { VERSION } from '@/lib/version';
 import { formatBytes, isTauriEnvironment } from '@/lib/backupUtils';
 import type { BreederSettings } from '@/types';
+import { HelpSection } from '@/components/settings/HelpSection';
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -522,6 +523,9 @@ export function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Help & Documentation */}
+      <HelpSection />
 
       {/* About */}
       <Card>

@@ -5,7 +5,7 @@ import { query, execute } from './connection';
 import { SCHEMA_SQL } from './schema';
 
 // Current schema version - increment when schema changes
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 /**
  * Initialize the database schema
@@ -247,6 +247,137 @@ async function applyMigration(version: number): Promise<void> {
         console.error('[DB] Error checking/migrating expenses table:', error);
         throw error;
       }
+      break;
+    
+    case 3:
+      // Migration 3: Add document management system
+      console.log('[DB] Creating document management tables...');
+      
+      // Create document_tags table
+      await execute(`
+        CREATE TABLE IF NOT EXISTS document_tags (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL UNIQUE,
+          color TEXT,
+          is_custom INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
+      await execute(`
+        CREATE INDEX IF NOT EXISTS idx_document_tags_name ON document_tags(name)
+      `);
+      
+      // Create documents table
+      await execute(`
+        CREATE TABLE IF NOT EXISTS documents (
+          id TEXT PRIMARY KEY,
+          filename TEXT NOT NULL,
+          original_name TEXT NOT NULL,
+          file_path TEXT NOT NULL,
+          mime_type TEXT NOT NULL,
+          file_size INTEGER NOT NULL,
+          notes TEXT,
+          uploaded_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
+      
+      // Create document_tag_links junction table
+      await execute(`
+        CREATE TABLE IF NOT EXISTS document_tag_links (
+          id TEXT PRIMARY KEY,
+          document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+          tag_id TEXT NOT NULL REFERENCES document_tags(id) ON DELETE CASCADE,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE(document_id, tag_id)
+        )
+      `);
+      await execute(`
+        CREATE INDEX IF NOT EXISTS idx_document_tag_links_document ON document_tag_links(document_id)
+      `);
+      await execute(`
+        CREATE INDEX IF NOT EXISTS idx_document_tag_links_tag ON document_tag_links(tag_id)
+      `);
+      
+      // Create dog_documents junction table
+      await execute(`
+        CREATE TABLE IF NOT EXISTS dog_documents (
+          id TEXT PRIMARY KEY,
+          dog_id TEXT NOT NULL REFERENCES dogs(id) ON DELETE CASCADE,
+          document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE(dog_id, document_id)
+        )
+      `);
+      await execute(`
+        CREATE INDEX IF NOT EXISTS idx_dog_documents_dog ON dog_documents(dog_id)
+      `);
+      await execute(`
+        CREATE INDEX IF NOT EXISTS idx_dog_documents_document ON dog_documents(document_id)
+      `);
+      
+      // Create litter_documents junction table
+      await execute(`
+        CREATE TABLE IF NOT EXISTS litter_documents (
+          id TEXT PRIMARY KEY,
+          litter_id TEXT NOT NULL REFERENCES litters(id) ON DELETE CASCADE,
+          document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE(litter_id, document_id)
+        )
+      `);
+      await execute(`
+        CREATE INDEX IF NOT EXISTS idx_litter_documents_litter ON litter_documents(litter_id)
+      `);
+      await execute(`
+        CREATE INDEX IF NOT EXISTS idx_litter_documents_document ON litter_documents(document_id)
+      `);
+      
+      // Create expense_documents junction table
+      await execute(`
+        CREATE TABLE IF NOT EXISTS expense_documents (
+          id TEXT PRIMARY KEY,
+          expense_id TEXT NOT NULL REFERENCES expenses(id) ON DELETE CASCADE,
+          document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE(expense_id, document_id)
+        )
+      `);
+      await execute(`
+        CREATE INDEX IF NOT EXISTS idx_expense_documents_expense ON expense_documents(expense_id)
+      `);
+      await execute(`
+        CREATE INDEX IF NOT EXISTS idx_expense_documents_document ON expense_documents(document_id)
+      `);
+      
+      // Seed predefined document tags
+      console.log('[DB] Seeding predefined document tags...');
+      const predefinedTags = [
+        { name: 'Invoice', color: '#3B82F6' },           // Blue
+        { name: 'Receipt', color: '#10B981' },           // Green
+        { name: 'Contract', color: '#8B5CF6' },          // Purple
+        { name: 'Health Certificate', color: '#EC4899' },// Pink
+        { name: 'Registration Papers', color: '#F59E0B' },// Amber
+        { name: 'Vet Record', color: '#EF4444' },        // Red
+        { name: 'Vaccination Record', color: '#06B6D4' },// Cyan
+        { name: 'Genetic Test Results', color: '#84CC16' },// Lime
+        { name: 'Microchip Certificate', color: '#6366F1' },// Indigo
+        { name: 'Photo/Image', color: '#14B8A6' },       // Teal
+        { name: 'Shipping/Transport', color: '#F97316' },// Orange
+        { name: 'Insurance', color: '#0EA5E9' },         // Sky
+        { name: 'Other', color: '#6B7280' },             // Gray
+      ];
+      
+      for (const tag of predefinedTags) {
+        const tagId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        await execute(
+          `INSERT OR IGNORE INTO document_tags (id, name, color, is_custom, created_at)
+           VALUES (?, ?, ?, 0, datetime('now'))`,
+          [tagId, tag.name, tag.color]
+        );
+      }
+      
+      console.log('[DB] Document management tables and tags created successfully');
       break;
     
     default:

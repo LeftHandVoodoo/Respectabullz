@@ -13,6 +13,7 @@ import {
   Dna,
   Users,
   FileDown,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +42,8 @@ import { PedigreeChart } from '@/components/pedigree/PedigreeChart';
 import { RegistrationStatusCard } from '@/components/registry/RegistrationStatusCard';
 import { DogExpensesList } from '@/components/expenses/DogExpensesList';
 import { PacketExportDialog } from '@/components/packet/PacketExportDialog';
+import { DocumentList } from '@/components/documents';
+import { useDocumentsForDog } from '@/hooks/useDocuments';
 import { calculateAge, formatDate } from '@/lib/utils';
 import { getPhotoUrlSync, initPhotoBasePath } from '@/lib/photoUtils';
 import type { DogStatus } from '@/types';
@@ -56,6 +59,7 @@ export function DogDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: dog, isLoading } = useDog(id);
+  const { data: documents = [], isLoading: isLoadingDocs } = useDocumentsForDog(id);
   const deleteDog = useDeleteDog();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showPacketDialog, setShowPacketDialog] = useState(false);
@@ -251,6 +255,15 @@ export function DogDetailPage() {
             <DollarSign className="h-4 w-4 mr-2" />
             Financial
           </TabsTrigger>
+          <TabsTrigger value="documents">
+            <FileText className="h-4 w-4 mr-2" />
+            Documents
+            {documents.length > 0 && (
+              <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                {documents.length}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="health">
@@ -315,6 +328,23 @@ export function DogDetailPage() {
 
         <TabsContent value="financial">
           <DogExpensesList dogId={dog.id} />
+        </TabsContent>
+
+        <TabsContent value="documents">
+          <Card>
+            <CardHeader>
+              <CardTitle>Documents</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DocumentList
+                documents={documents}
+                entityType="dog"
+                entityId={dog.id}
+                isLoading={isLoadingDocs}
+                emptyMessage="No documents attached to this dog"
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

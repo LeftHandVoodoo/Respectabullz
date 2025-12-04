@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Dog, Plus } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Dog, Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +33,8 @@ import { DogFormDialog } from '@/components/dogs/DogFormDialog';
 import { PuppyHealthTasksList } from '@/components/puppy-health/PuppyHealthTasksList';
 import { WaitlistList } from '@/components/waitlist/WaitlistList';
 import { LitterRegistrationExport } from '@/components/registry/LitterRegistrationExport';
+import { DocumentList } from '@/components/documents';
+import { useDocumentsForLitter } from '@/hooks/useDocuments';
 import { formatDate } from '@/lib/utils';
 import { getPhotoUrlSync, initPhotoBasePath } from '@/lib/photoUtils';
 
@@ -40,6 +42,7 @@ export function LitterDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: litter, isLoading } = useLitter(id);
+  const { data: documents = [], isLoading: isLoadingDocs } = useDocumentsForLitter(id);
   const deleteLitter = useDeleteLitter();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showAddPuppyDialog, setShowAddPuppyDialog] = useState(false);
@@ -409,6 +412,30 @@ export function LitterDetailPage() {
 
       {/* Photo Gallery */}
       <LitterPhotoGallery litterId={litter.id} />
+
+      {/* Documents */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Documents
+            {documents.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {documents.length}
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DocumentList
+            documents={documents}
+            entityType="litter"
+            entityId={litter.id}
+            isLoading={isLoadingDocs}
+            emptyMessage="No documents attached to this litter"
+          />
+        </CardContent>
+      </Card>
 
       {/* Notes */}
       {litter.notes && (

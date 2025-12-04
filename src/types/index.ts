@@ -863,3 +863,137 @@ export const DEFAULT_PACKET_OPTIONS: PacketOptions = {
   pedigreeGenerations: 4,
 };
 
+// ============================================
+// DOCUMENT MANAGEMENT SYSTEM
+// ============================================
+
+// Predefined document tag types
+export type PredefinedDocumentTag =
+  | 'invoice'
+  | 'receipt'
+  | 'contract'
+  | 'health_certificate'
+  | 'registration'
+  | 'vet_record'
+  | 'vaccination'
+  | 'genetic_test'
+  | 'microchip'
+  | 'photo'
+  | 'shipping'
+  | 'insurance'
+  | 'other';
+
+// Document tag with metadata
+export interface DocumentTag {
+  id: string;
+  name: string;
+  color?: string | null;
+  isCustom: boolean;
+  createdAt: Date;
+}
+
+// Document entity
+export interface Document {
+  id: string;
+  filename: string;
+  originalName: string;
+  filePath: string;
+  mimeType: string;
+  fileSize: number;
+  notes?: string | null;
+  uploadedAt: Date;
+  updatedAt: Date;
+  // Relations
+  tags?: DocumentTag[];
+}
+
+// Document-to-tag junction
+export interface DocumentTagLink {
+  id: string;
+  documentId: string;
+  tagId: string;
+  createdAt: Date;
+  // Relations
+  document?: Document;
+  tag?: DocumentTag;
+}
+
+// Document-to-dog junction
+export interface DogDocument {
+  id: string;
+  dogId: string;
+  documentId: string;
+  createdAt: Date;
+  // Relations
+  dog?: Dog;
+  document?: Document;
+}
+
+// Document-to-litter junction
+export interface LitterDocument {
+  id: string;
+  litterId: string;
+  documentId: string;
+  createdAt: Date;
+  // Relations
+  litter?: Litter;
+  document?: Document;
+}
+
+// Document-to-expense junction
+export interface ExpenseDocument {
+  id: string;
+  expenseId: string;
+  documentId: string;
+  createdAt: Date;
+  // Relations
+  expense?: Expense;
+  document?: Document;
+}
+
+// Input types for document operations
+export interface CreateDocumentInput {
+  filename: string;
+  originalName: string;
+  filePath: string;
+  mimeType: string;
+  fileSize: number;
+  notes?: string | null;
+  tagIds?: string[];
+}
+
+export type UpdateDocumentInput = Partial<Omit<CreateDocumentInput, 'filename' | 'filePath' | 'mimeType' | 'fileSize'>> & {
+  tagIds?: string[];
+};
+
+export interface CreateDocumentTagInput {
+  name: string;
+  color?: string | null;
+  isCustom?: boolean;
+}
+
+// Predefined document tags with colors
+export const PREDEFINED_DOCUMENT_TAGS: { name: string; slug: PredefinedDocumentTag; color: string }[] = [
+  { name: 'Invoice', slug: 'invoice', color: '#3B82F6' },         // Blue
+  { name: 'Receipt', slug: 'receipt', color: '#10B981' },         // Green
+  { name: 'Contract', slug: 'contract', color: '#8B5CF6' },       // Purple
+  { name: 'Health Certificate', slug: 'health_certificate', color: '#EC4899' }, // Pink
+  { name: 'Registration Papers', slug: 'registration', color: '#F59E0B' },      // Amber
+  { name: 'Vet Record', slug: 'vet_record', color: '#EF4444' },   // Red
+  { name: 'Vaccination Record', slug: 'vaccination', color: '#06B6D4' },        // Cyan
+  { name: 'Genetic Test Results', slug: 'genetic_test', color: '#84CC16' },     // Lime
+  { name: 'Microchip Certificate', slug: 'microchip', color: '#6366F1' },       // Indigo
+  { name: 'Photo/Image', slug: 'photo', color: '#14B8A6' },       // Teal
+  { name: 'Shipping/Transport', slug: 'shipping', color: '#F97316' },           // Orange
+  { name: 'Insurance', slug: 'insurance', color: '#0EA5E9' },     // Sky
+  { name: 'Other', slug: 'other', color: '#6B7280' },             // Gray
+];
+
+// Document with full relations
+export interface DocumentWithRelations extends Document {
+  tags: DocumentTag[];
+  dogs?: Dog[];
+  litters?: Litter[];
+  expenses?: Expense[];
+}
+

@@ -1,6 +1,6 @@
 # Respectabullz Architecture
 
-**Version 1.4.0**
+**Version 1.5.0**
 
 ## Overview
 
@@ -88,6 +88,7 @@ Respectabullz is a desktop application for dog breeder management, built with a 
   - `breeding.ts` - Heat Cycles, Heat Events, External Studs
   - `sales.ts` - Clients, Sales, Client Interests, Waitlist
   - `operations.ts` - Expenses, Transports, Communication Logs
+  - `documents.ts` - Document Management, Tags, Entity Linking
   - `settings.ts` - Settings, Breeder Settings
   - `dashboard.ts` - Dashboard Stats, Activity Feed
   - `init.ts` - Database initialization and migration orchestration
@@ -262,9 +263,10 @@ User Action → Form Submit → Data Hook (useMutation)
 ### Data Protection
 - All data stored locally on user's machine
 - No data transmitted to external servers
-- File paths stored instead of file contents (for attachments and photos)
-- Photos stored in app data directory with unique filenames
-- Full backups include all photos in ZIP format for portability
+- File paths stored instead of file contents (for attachments, photos, and documents)
+- Photos stored in `{appDataDir}/photos/` with unique filenames
+- Documents stored in `{appDataDir}/documents/` with unique filenames
+- Full backups include all photos and documents in ZIP format for portability
 
 ### Input Validation
 - Zod schemas validate all user input
@@ -298,7 +300,8 @@ User Action → Form Submit → Data Hook (useMutation)
 - **In-Place Upgrades**: Users can upgrade directly without uninstalling previous versions
 - **Data Preservation**: All user data stored in `%APPDATA%/com.respectabullz.app/` is preserved during upgrades
   - Database files (SQLite)
-  - Photos directory
+  - Photos directory (`photos/`)
+  - Documents directory (`documents/`)
   - Contracts directory
   - Attachments directory
   - Backups directory
@@ -327,7 +330,8 @@ User Action → Form Submit → Data Hook (useMutation)
 4. Calendar integration with external calendars
 5. Multi-device sync (optional cloud backup)
 6. Contract template editor UI
-7. Photo deletion cleanup (orphaned files)
+7. Photo/document deletion cleanup (orphaned files)
+8. Document preview improvements (PDF viewer, Office document rendering)
 
 ### Scalability
 - Current architecture supports ~10,000 dogs

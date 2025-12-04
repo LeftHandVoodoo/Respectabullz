@@ -468,6 +468,82 @@ CREATE TABLE IF NOT EXISTS attachments (
 CREATE INDEX IF NOT EXISTS idx_attachments_entity ON attachments(entity_type, entity_id);
 
 -- ============================================
+-- DOCUMENT MANAGEMENT SYSTEM
+-- ============================================
+
+-- Document tags (predefined + custom)
+CREATE TABLE IF NOT EXISTS document_tags (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  color TEXT,
+  is_custom INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_tags_name ON document_tags(name);
+
+-- Documents
+CREATE TABLE IF NOT EXISTS documents (
+  id TEXT PRIMARY KEY,
+  filename TEXT NOT NULL,
+  original_name TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  notes TEXT,
+  uploaded_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Document to tag junction (many-to-many)
+CREATE TABLE IF NOT EXISTS document_tag_links (
+  id TEXT PRIMARY KEY,
+  document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  tag_id TEXT NOT NULL REFERENCES document_tags(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(document_id, tag_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_tag_links_document ON document_tag_links(document_id);
+CREATE INDEX IF NOT EXISTS idx_document_tag_links_tag ON document_tag_links(tag_id);
+
+-- Document to dog junction (many-to-many)
+CREATE TABLE IF NOT EXISTS dog_documents (
+  id TEXT PRIMARY KEY,
+  dog_id TEXT NOT NULL REFERENCES dogs(id) ON DELETE CASCADE,
+  document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(dog_id, document_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_dog_documents_dog ON dog_documents(dog_id);
+CREATE INDEX IF NOT EXISTS idx_dog_documents_document ON dog_documents(document_id);
+
+-- Document to litter junction (many-to-many)
+CREATE TABLE IF NOT EXISTS litter_documents (
+  id TEXT PRIMARY KEY,
+  litter_id TEXT NOT NULL REFERENCES litters(id) ON DELETE CASCADE,
+  document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(litter_id, document_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_litter_documents_litter ON litter_documents(litter_id);
+CREATE INDEX IF NOT EXISTS idx_litter_documents_document ON litter_documents(document_id);
+
+-- Document to expense junction (many-to-many)
+CREATE TABLE IF NOT EXISTS expense_documents (
+  id TEXT PRIMARY KEY,
+  expense_id TEXT NOT NULL REFERENCES expenses(id) ON DELETE CASCADE,
+  document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(expense_id, document_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_expense_documents_expense ON expense_documents(expense_id);
+CREATE INDEX IF NOT EXISTS idx_expense_documents_document ON expense_documents(document_id);
+
+-- ============================================
 -- SETTINGS
 -- ============================================
 

@@ -1,6 +1,6 @@
 # Respectabullz Internal API Reference
 
-**Version 1.4.0**
+**Version 1.5.0**
 
 ## Overview
 
@@ -13,6 +13,7 @@ The database layer has been refactored into modular domain-specific files:
 - `src/lib/db/breeding.ts` - Breeding operations
 - `src/lib/db/sales.ts` - Sales and client operations
 - `src/lib/db/operations.ts` - Expenses and transports
+- `src/lib/db/documents.ts` - Document management and tagging
 - `src/lib/db/settings.ts` - Settings management
 - `src/lib/db/dashboard.ts` - Dashboard statistics
 - `src/lib/db/index.ts` - Re-exports all functions for backwards compatibility
@@ -1069,4 +1070,372 @@ getPacketData(dogId: string): Promise<PacketData | null>
 ```
 
 This function aggregates all data needed for the PDF export in a single call, optimizing performance and ensuring data consistency.
+
+---
+
+## Document Management Operations
+
+### Document Tags
+
+#### getDocumentTags
+Retrieves all document tags (predefined and custom).
+
+```typescript
+getDocumentTags(): Promise<DocumentTag[]>
+```
+
+**Returns:** Array of DocumentTag objects sorted by custom status and name.
+
+#### getDocumentTag
+Retrieves a single document tag by ID.
+
+```typescript
+getDocumentTag(id: string): Promise<DocumentTag | null>
+```
+
+#### getDocumentTagByName
+Retrieves a document tag by name.
+
+```typescript
+getDocumentTagByName(name: string): Promise<DocumentTag | null>
+```
+
+#### createDocumentTag
+Creates a new custom document tag.
+
+```typescript
+createDocumentTag(input: CreateDocumentTagInput): Promise<DocumentTag>
+```
+
+**Parameters:**
+- `input.name`: Tag name (required)
+- `input.color`: Optional hex color code
+- `input.isCustom`: Boolean (defaults to true for created tags)
+
+#### deleteDocumentTag
+Deletes a custom tag (predefined tags cannot be deleted).
+
+```typescript
+deleteDocumentTag(id: string): Promise<boolean>
+```
+
+**Returns:** true if deleted, false if tag is predefined or not found.
+
+#### seedPredefinedTags
+Seeds the database with predefined document tags (called during migration).
+
+```typescript
+seedPredefinedTags(tags: typeof PREDEFINED_DOCUMENT_TAGS): Promise<void>
+```
+
+### Documents
+
+#### getDocuments
+Retrieves all documents.
+
+```typescript
+getDocuments(): Promise<Document[]>
+```
+
+**Returns:** Array of Document objects ordered by upload date (newest first).
+
+#### getDocument
+Retrieves a single document by ID.
+
+```typescript
+getDocument(id: string): Promise<Document | null>
+```
+
+#### getDocumentWithRelations
+Retrieves a document with all tags populated.
+
+```typescript
+getDocumentWithRelations(id: string): Promise<DocumentWithRelations | null>
+```
+
+**Returns:** Document with tags array populated.
+
+#### createDocument
+Creates a new document record.
+
+```typescript
+createDocument(input: CreateDocumentInput): Promise<Document>
+```
+
+**Parameters:**
+- `input.filename`: Unique stored filename
+- `input.originalName`: Original filename from user
+- `input.filePath`: Relative path in app data directory
+- `input.mimeType`: MIME type (e.g., "application/pdf")
+- `input.fileSize`: File size in bytes
+- `input.notes`: Optional notes
+- `input.tagIds`: Optional array of tag IDs to link
+
+**Returns:** Created Document object.
+
+#### updateDocument
+Updates document metadata (notes and tags).
+
+```typescript
+updateDocument(id: string, input: UpdateDocumentInput): Promise<Document | null>
+```
+
+**Parameters:**
+- `input.notes`: Optional notes to update
+- `input.tagIds`: Optional array of tag IDs (replaces existing tags)
+
+#### deleteDocument
+Deletes a document and its file from storage.
+
+```typescript
+deleteDocument(id: string): Promise<boolean>
+```
+
+**Side Effects:** 
+- Deletes physical file from documents directory
+- Cascades delete to all junction tables (dog_documents, litter_documents, expense_documents, document_tag_links)
+
+#### setDocumentTags
+Sets tags for a document (replaces existing tags).
+
+```typescript
+setDocumentTags(documentId: string, tagIds: string[]): Promise<void>
+```
+
+#### addTagToDocument
+Adds a tag to a document.
+
+```typescript
+addTagToDocument(documentId: string, tagId: string): Promise<void>
+```
+
+#### removeTagFromDocument
+Removes a tag from a document.
+
+```typescript
+removeTagFromDocument(documentId: string, tagId: string): Promise<void>
+```
+
+### Entity-Document Linking
+
+#### Dog Documents
+
+##### getDocumentsForDog
+Retrieves all documents linked to a dog.
+
+```typescript
+getDocumentsForDog(dogId: string): Promise<DocumentWithRelations[]>
+```
+
+**Returns:** Array of documents with tags populated.
+
+##### linkDocumentToDog
+Links a document to a dog.
+
+```typescript
+linkDocumentToDog(documentId: string, dogId: string): Promise<void>
+```
+
+##### unlinkDocumentFromDog
+Unlinks a document from a dog.
+
+```typescript
+unlinkDocumentFromDog(documentId: string, dogId: string): Promise<void>
+```
+
+##### getDocumentCountForDog
+Gets the count of documents attached to a dog.
+
+```typescript
+getDocumentCountForDog(dogId: string): Promise<number>
+```
+
+#### Litter Documents
+
+##### getDocumentsForLitter
+Retrieves all documents linked to a litter.
+
+```typescript
+getDocumentsForLitter(litterId: string): Promise<DocumentWithRelations[]>
+```
+
+##### linkDocumentToLitter
+Links a document to a litter.
+
+```typescript
+linkDocumentToLitter(documentId: string, litterId: string): Promise<void>
+```
+
+##### unlinkDocumentFromLitter
+Unlinks a document from a litter.
+
+```typescript
+unlinkDocumentFromLitter(documentId: string, litterId: string): Promise<void>
+```
+
+##### getDocumentCountForLitter
+Gets the count of documents attached to a litter.
+
+```typescript
+getDocumentCountForLitter(litterId: string): Promise<number>
+```
+
+#### Expense Documents
+
+##### getDocumentsForExpense
+Retrieves all documents linked to an expense.
+
+```typescript
+getDocumentsForExpense(expenseId: string): Promise<DocumentWithRelations[]>
+```
+
+##### linkDocumentToExpense
+Links a document to an expense.
+
+```typescript
+linkDocumentToExpense(documentId: string, expenseId: string): Promise<void>
+```
+
+##### unlinkDocumentFromExpense
+Unlinks a document from an expense.
+
+```typescript
+unlinkDocumentFromExpense(documentId: string, expenseId: string): Promise<void>
+```
+
+##### getDocumentCountForExpense
+Gets the count of documents attached to an expense.
+
+```typescript
+getDocumentCountForExpense(expenseId: string): Promise<number>
+```
+
+### Utility Functions
+
+#### getDocumentsByTag
+Retrieves all documents with a specific tag.
+
+```typescript
+getDocumentsByTag(tagId: string): Promise<DocumentWithRelations[]>
+```
+
+**Returns:** Array of documents with the specified tag, ordered by upload date.
+
+---
+
+## Document Utilities (`src/lib/documentUtils.ts`)
+
+### File Selection
+
+#### selectDocumentFile
+Opens a file picker dialog for selecting a single document.
+
+```typescript
+selectDocumentFile(): Promise<string | null>
+```
+
+**Returns:** Selected file path or null if cancelled.
+
+**Supported Formats:** PDF, Word (.doc, .docx), Excel (.xls, .xlsx), Images (jpg, png, gif, webp)
+
+#### selectMultipleDocuments
+Opens a file picker dialog for selecting multiple documents.
+
+```typescript
+selectMultipleDocuments(): Promise<string[]>
+```
+
+**Returns:** Array of selected file paths.
+
+### File Operations
+
+#### selectAndCopyDocument
+Selects a file and copies it to the documents directory.
+
+```typescript
+selectAndCopyDocument(): Promise<{
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  fileSize: number;
+} | null>
+```
+
+**Returns:** Object with document metadata or null if cancelled.
+
+#### copyDocumentToDocsDir
+Copies a file to the app's documents directory.
+
+```typescript
+copyDocumentToDocsDir(sourcePath: string): Promise<{ filename: string; fileSize: number } | null>
+```
+
+**Returns:** Object with generated filename and file size.
+
+#### deleteDocumentFile
+Deletes a document file from storage.
+
+```typescript
+deleteDocumentFile(filename: string): Promise<boolean>
+```
+
+#### openDocumentWithSystem
+Opens a document with the system default application.
+
+```typescript
+openDocumentWithSystem(filename: string): Promise<boolean>
+```
+
+### File Information
+
+#### getMimeType
+Gets MIME type from filename.
+
+```typescript
+getMimeType(filename: string): string
+```
+
+#### formatFileSize
+Formats file size in human-readable format.
+
+```typescript
+formatFileSize(bytes: number): string
+```
+
+**Returns:** Formatted string (e.g., "1.5 MB")
+
+#### isSupportedFile
+Checks if file type is supported.
+
+```typescript
+isSupportedFile(filename: string): boolean
+```
+
+#### isImageFile / isPdfFile / isWordFile / isExcelFile
+Type checking functions for specific file types.
+
+```typescript
+isImageFile(filename: string): boolean
+isPdfFile(filename: string): boolean
+isWordFile(filename: string): boolean
+isExcelFile(filename: string): boolean
+```
+
+### URL Generation
+
+#### getDocumentUrl
+Converts a stored document filename to a displayable URL (for images).
+
+```typescript
+getDocumentUrl(filename: string | null | undefined): Promise<string | null>
+```
+
+#### getDocumentBase64
+Gets document as base64 data URL (for images).
+
+```typescript
+getDocumentBase64(filename: string): Promise<string | null>
+```
+
+**Returns:** Data URL string (e.g., "data:image/jpeg;base64,...")
 

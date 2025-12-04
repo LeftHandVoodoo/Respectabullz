@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2025-12-04
+
+### Fixed
+- **PDF Preview Loading** - Fixed PDF documents failing to load in document viewer
+  - Aligned pdfjs-dist version (5.4.296) to match react-pdf's bundled dependency
+  - PDF.js worker now bundled locally via Vite instead of relying on CDN
+  - Ensures PDF preview works offline without internet connection
+  - Improved error handling and logging for PDF loading failures
+  - PDFs now load reliably using base64 data URLs in Tauri desktop environment
+
+## [1.5.0] - 2025-12-04
+
+### Added
+- **PDF Preview Capabilities** - In-app PDF viewing with full controls
+  - Full PDF document preview using react-pdf (PDF.js)
+  - Page navigation (previous/next page buttons)
+  - Zoom controls (zoom in/out from 50% to 300%)
+  - Page counter showing current page and total pages
+  - Text layer rendering for selectable text
+  - Annotation layer rendering for PDF annotations
+  - Responsive PDF viewer that fits dialog width
+  - Uses base64 data URLs for reliable PDF loading in Tauri
+  - PDF.js worker bundled locally via Vite for offline support
+
+- **Document Upload & Tagging System** - Full document management for Dogs, Litters, and Expenses
+  - Upload PDFs, Word documents (.doc, .docx), Excel spreadsheets (.xls, .xlsx), and images (jpg, png, gif, webp)
+  - 13 predefined document tags: Invoice, Receipt, Contract, Health Certificate, Registration Papers, Vet Record, Vaccination Record, Genetic Test Results, Microchip Certificate, Photo/Image, Shipping/Transport, Insurance, Other
+  - Create custom tags with color coding
+  - Multi-tag support - attach multiple tags to any document
+  - Documents can be linked to multiple entities (shared across Dogs, Litters, Expenses)
+  - Tag-based filtering and search within document lists
+  - Document viewer for images and PDFs with print functionality
+  - PDF preview with page navigation and zoom controls
+  - Open with system default application support for all file types
+  - Document count badges showing attachment status
+  - New "Documents" tab on Dog detail pages
+  - New "Documents" section on Litter detail pages
+  - Document attachment button on Expenses table with count indicator
+  - Database migration (v3) creates document tables and seeds predefined tags
+  - Complete API documentation for document management operations
+  - Document utilities for file handling, validation, and MIME type detection
+
+- **Help & Documentation section in Settings** - New Help section under Settings page providing access to complete user documentation
+  - Tabbed interface with "User Manual" and "How-To Guide" tabs
+  - Displays full USER_MANUAL.md and HOWTO.md content
+  - Scrollable content area (600px height) for easy navigation
+  - Basic markdown rendering supporting headers, bold, italic, code blocks, lists, and links
+  - Loading state with spinner while content loads
+  - Content bundled at build time using Vite's raw import feature
+  - Table of contents anchor links with smooth scrolling navigation
+  - Headers automatically generate URL-friendly IDs for anchor targeting
+  - Clicking table of contents links smoothly scrolls to corresponding sections
+
+### Fixed
+- **Help section anchor link navigation** - Fixed table of contents links not scrolling to sections
+  - Headers now generate proper IDs from their text content
+  - Anchor links in table of contents properly navigate to target sections
+  - Smooth scrolling behavior with proper offset for better visibility
+  - Works correctly within Radix ScrollArea viewport containers
+
 ## [1.4.0] - 2025-12-04
 
 ### Added

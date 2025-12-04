@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, Download, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Dog, Eye, RotateCcw } from 'lucide-react';
+import { Plus, Search, Download, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Dog, Eye, RotateCcw, FileText, Paperclip } from 'lucide-react';
 import {
   Tooltip,
   ResponsiveContainer,
@@ -34,6 +34,8 @@ import { useExpenses, useDeleteExpense } from '@/hooks/useExpenses';
 import { useExpenseCategories } from '@/hooks/useExpenseCategories';
 import { useDogs } from '@/hooks/useDogs';
 import { ExpenseFormDialog } from '@/components/expenses/ExpenseFormDialog';
+import { ExpenseDocumentsDialog } from '@/components/expenses/ExpenseDocumentsDialog';
+import { useDocumentCountForExpense } from '@/hooks/useDocuments';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
 import { isTauriEnvironment } from '@/lib/backupUtils';
@@ -91,6 +93,33 @@ type SortColumn = 'date' | 'category' | 'dog' | 'vendor' | 'description' | 'amou
 type SortDirection = 'asc' | 'desc';
 type Timeframe = '7days' | '30days' | '90days' | 'month' | 'custom';
 
+// Component to show document count for an expense
+function ExpenseDocumentCount({ expense, onClick }: { expense: Expense; onClick: (expense: Expense) => void }) {
+  const { data: count = 0 } = useDocumentCountForExpense(expense.id);
+  
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-8 gap-1 px-2"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(expense);
+      }}
+      title={count > 0 ? `${count} document${count !== 1 ? 's' : ''} attached` : 'Add documents'}
+    >
+      {count > 0 ? (
+        <>
+          <FileText className="h-4 w-4 text-primary" />
+          <span className="text-xs">{count}</span>
+        </>
+      ) : (
+        <Paperclip className="h-4 w-4 text-muted-foreground" />
+      )}
+    </Button>
+  );
+}
+
 export function ExpensesPage() {
   const { data: expenses, isLoading } = useExpenses();
   const { data: customCategories } = useExpenseCategories();
@@ -113,6 +142,7 @@ export function ExpensesPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | undefined>();
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  const [expenseForDocs, setExpenseForDocs] = useState<Expense | null>(null);
   
   // Timeframe for chart
   const [timeframe, setTimeframe] = useState<Timeframe>('30days');
@@ -506,6 +536,12 @@ export function ExpensesPage() {
             No
           </Badge>
         ),
+    },
+    {
+      key: 'documents',
+      header: 'Docs',
+      width: '60px',
+      cell: (expense) => <ExpenseDocumentCount expense={expense} onClick={setExpenseForDocs} />,
     },
     {
       key: 'actions',
@@ -906,6 +942,15 @@ export function ExpensesPage() {
           }
         }}
       />
+
+      {/* Expense Documents Dialog */}
+      {expenseForDocs && (
+        <ExpenseDocumentsDialog
+          expense={expenseForDocs}
+          open={!!expenseForDocs}
+          onOpenChange={(open) => !open && setExpenseForDocs(null)}
+        />
+      )}
 
       {/* Custom Date Range Dialog */}
       <Dialog open={showCustomDateDialog} onOpenChange={(open) => {
