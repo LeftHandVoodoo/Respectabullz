@@ -88,6 +88,25 @@ For testing releases:
 
 ## Current Version
 
+**1.3.0** (2025-12-04)
+
+Minor release - Enhanced features and improvements:
+- Enhanced seed data coverage - Comprehensive seed database function now includes all app areas
+- Multi-select expense filters - Advanced filtering capabilities with multi-select categories and dogs
+- Expense exclusion checkboxes - Temporarily exclude individual expenses from totals
+- Full column sorting on Expenses page - All columns are now sortable
+- Fixed expenses filter bug - Expenses without related dogs now shown correctly
+- Fixed seed database failures - Multiple issues preventing successful seeding resolved
+- Fixed litter form dialog scrolling - Added responsive scrolling for smaller screens
+
+**1.2.0** (2025-12-04)
+
+Major release - Database migration and architecture improvements:
+- SQLite Database Migration - Complete migration from localStorage to persistent SQLite database
+- Database Architecture Refactoring - Split monolithic db.ts into maintainable domain modules
+- Test Infrastructure - Comprehensive testing setup with Vitest (106 tests passing)
+- First Launch Experience Enhancement - Database initialization progress feedback
+
 **1.1.0** (2025-12-04)
 
 Minor release - New features and improvements:
