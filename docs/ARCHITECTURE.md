@@ -1,6 +1,6 @@
 # Respectabullz Architecture
 
-**Version 1.3.0**
+**Version 1.4.0**
 
 ## Overview
 
@@ -289,6 +289,34 @@ User Action → Form Submit → Data Hook (useMutation)
 ### Database Optimization
 - Indexes on frequently queried fields
 - Relationships normalized to prevent data duplication
+
+## Deployment & Upgrades
+
+### Installer Configuration
+- **NSIS Installer**: Windows installer built with NSIS (Nullsoft Scriptable Install System)
+- **Upgrade Support**: Installer automatically detects existing installations using identifier `com.respectabullz.app`
+- **In-Place Upgrades**: Users can upgrade directly without uninstalling previous versions
+- **Data Preservation**: All user data stored in `%APPDATA%/com.respectabullz.app/` is preserved during upgrades
+  - Database files (SQLite)
+  - Photos directory
+  - Contracts directory
+  - Attachments directory
+  - Backups directory
+  - Settings and preferences
+
+### Database Migrations
+- **Automatic Migration**: Schema migrations run automatically on first launch after upgrade
+- **Version Tracking**: Database schema version tracked in `_schema_version` table
+- **Migration System**: Located in `src/lib/db/migrations.ts`
+- **Backward Compatibility**: Migrations designed to preserve existing data
+
+### Upgrade Process
+1. User downloads new installer (e.g., `Respectabullz_1.4.0_x64-setup.exe`)
+2. Installer detects existing installation
+3. Application files updated in-place
+4. User data in AppData directory remains untouched
+5. On first launch, app checks schema version and runs migrations if needed
+6. All data, photos, and settings preserved automatically
 
 ## Future Considerations
 

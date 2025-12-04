@@ -209,11 +209,31 @@ npm install
 npm run db:generate
 ```
 
-### Production
+### Production (Upgrading from Previous Version)
 
-1. Download new installer
-2. Run installer (it will update existing installation)
-3. Data is preserved automatically
+**Users can upgrade directly without uninstalling:**
+
+1. **Download the new installer** (e.g., `Respectabullz_1.4.0_x64-setup.exe`)
+2. **Run the installer** - It will automatically detect your existing installation
+3. **Follow the installation wizard** - The installer will upgrade your existing installation
+4. **Your data is automatically preserved** - All data stored in `%APPDATA%/com.respectabullz.app/` remains intact:
+   - Database files (SQLite)
+   - Photos
+   - Contracts
+   - Attachments
+   - Backups
+   - Settings
+
+**Important Notes:**
+- ✅ **No uninstall required** - The NSIS installer handles upgrades automatically
+- ✅ **Data is safe** - User data is stored separately from the installation directory
+- ✅ **Database migrations run automatically** - Schema updates are handled on first launch after upgrade
+- ✅ **Settings preserved** - All preferences and configurations are maintained
+
+**After upgrading:**
+- Launch the application normally
+- The app will automatically run any necessary database migrations
+- All your data, photos, and settings will be available immediately
 
 ## Support
 

@@ -1,6 +1,6 @@
 # Respectabullz User Manual
 
-**Version 1.3.0**  
+**Version 1.4.0**  
 **Last Updated: December 4, 2025**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
@@ -68,6 +68,29 @@ Click any menu item to navigate to that section. The active page is highlighted 
 ### Quick Actions
 
 Many pages have an **"Add"** or **"New"** button in the top-right corner to quickly create new records. You can also click on existing items to view details and edit them.
+
+### Upgrading from a Previous Version
+
+If you're upgrading from an earlier version of Respectabullz:
+
+1. **Download the latest installer** from the Releases page
+2. **Run the installer** - It will automatically detect your existing installation
+3. **Follow the installation wizard** - The installer upgrades your existing installation in-place
+4. **Launch the application** - All your data, photos, and settings are automatically preserved
+
+**What Gets Preserved:**
+- ✅ All database records (dogs, litters, clients, sales, expenses, etc.)
+- ✅ All photos (dog photos, litter photos)
+- ✅ All contracts and attachments
+- ✅ All settings and preferences
+- ✅ All backups
+
+**What Gets Updated:**
+- Application files and executables
+- Database schema (automatically migrated on first launch)
+- New features and bug fixes
+
+**Important:** You do **NOT** need to uninstall the previous version. The installer handles upgrades automatically and safely preserves all your data.
 
 ---
 
@@ -962,18 +985,18 @@ For issues or questions:
 
 ## Version History
 
+- **v1.4.0**: Full column sorting on Expenses page, litter form dialog scrolling fix, expense filter bug fixes, enhanced seed data
+- **v1.3.0**: Enhanced seed data coverage, multi-select expense filters, expense exclusion capabilities
+- **v1.2.0**: SQLite database migration, modular database architecture, comprehensive test infrastructure
+- **v1.1.0**: Reusable dialog components, virtual scrolling, centralized error tracking
 - **v1.0.2**: Dark mode set as default theme for new installations
 - **v1.0.1**: First-launch dialog, Windows NSIS installer, TypeScript fixes
 - **v1.0.0**: First stable release - Customer packet PDF export, comprehensive dog management, all core features production-ready
-- **v0.9.2**: Bug fixes and date validation improvements
-- **v0.9.1**: Bug fixes and enhancements
-- **v0.9.0**: Genetic testing, pedigree charts, registry helpers, reports
-- **v0.8.0**: Puppy health schedules, whelping management, waitlist, communication logging
 
 See [CHANGELOG.md](../CHANGELOG.md) for complete version history.
 
 ---
 
-**Respectabullz User Manual v1.0.2**  
+**Respectabullz User Manual v1.4.0**  
 *Last Updated: December 4, 2025*
 
