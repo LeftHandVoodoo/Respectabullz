@@ -1,6 +1,6 @@
 # Respectabullz Setup Guide
 
-**Version 1.0.0**
+**Version 1.0.1**
 
 ## System Requirements
 
@@ -23,9 +23,10 @@
 ### For Users (Pre-built)
 
 1. Download the latest release from the Releases page
-2. Run the installer (`Respectabullz_x.x.x_x64-setup.exe`)
+2. Run the installer (`Respectabullz_x.x.x_x64-setup.exe`) - NSIS installer for Windows
 3. Follow the installation wizard
 4. Launch from Start Menu or Desktop shortcut
+5. On first launch, choose between starting with an empty database or loading sample data to explore features
 
 ### For Developers
 
@@ -100,7 +101,7 @@ DATABASE_URL="file:./data/respectabullz.db"
 
 # App info
 VITE_APP_NAME="Respectabullz"
-VITE_APP_VERSION="1.0.0"
+VITE_APP_VERSION="1.0.1"
 ```
 
 ### Database Location
@@ -133,8 +134,8 @@ npm run tauri:build
 Output location: `src-tauri/target/release/bundle/`
 
 Available formats:
+- `.exe` - NSIS installer (recommended for end users)
 - `.msi` - Windows Installer
-- `.exe` - NSIS installer
 - Portable `.exe`
 
 ### Build Configuration

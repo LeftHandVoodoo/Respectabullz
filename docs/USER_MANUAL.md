@@ -1,8 +1,7 @@
 # Respectabullz User Manual
 
-**Version 1.0.0**  
-**Last Updated: December 2025**  
-**Version 1.0.0**
+**Version 1.0.1**  
+**Last Updated: December 2025**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
 
@@ -33,7 +32,26 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
 
 ### First Launch
 
-When you first open Respectabullz, you'll see the **Dashboard** page. This is your command center, showing key metrics and reminders at a glance.
+When you first open Respectabullz, you'll see a **Welcome Dialog** that lets you choose how to get started:
+
+**Option 1: Start Fresh**
+- Begin with an empty database
+- Perfect if you're ready to add your own dogs and litters immediately
+- You can always add sample data later from Settings
+
+**Option 2: Load Sample Data**
+- Explore the app with demo data including:
+  - Multiple dogs with complete profiles and photos
+  - Litters with puppies
+  - Health records (vaccinations, weights, medical records)
+  - Heat cycles and breeding events
+  - Clients and sales
+  - Expenses and transport records
+  - 4-generation pedigree data
+- Great for learning the features and seeing how everything works together
+- You can clear this data later from Settings → Clear All Data
+
+After making your choice, you'll see the **Dashboard** page. This is your command center, showing key metrics and reminders at a glance.
 
 ### Navigation
 
@@ -765,6 +783,7 @@ For issues or questions:
 
 ## Version History
 
+- **v1.0.1**: First-launch dialog, Windows NSIS installer, TypeScript fixes
 - **v1.0.0**: First stable release - Customer packet PDF export, comprehensive dog management, all core features production-ready
 - **v0.9.2**: Bug fixes and date validation improvements
 - **v0.9.1**: Bug fixes and enhancements
@@ -775,6 +794,6 @@ See [CHANGELOG.md](../CHANGELOG.md) for complete version history.
 
 ---
 
-**Respectabullz User Manual v1.0.0**  
+**Respectabullz User Manual v1.0.1**  
 *Last Updated: December 2025*
 

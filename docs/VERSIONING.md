@@ -88,6 +88,13 @@ For testing releases:
 
 ## Current Version
 
+**1.0.1** (2025-12-04)
+
+Patch release - Improvements and fixes:
+- First-launch dialog allowing users to choose between empty database or sample data
+- Windows NSIS installer configuration for easy end-user distribution
+- Fixed all TypeScript compilation errors (98 errors resolved)
+
 **1.0.0** (2025-12-03)
 
 Major release - First stable version:

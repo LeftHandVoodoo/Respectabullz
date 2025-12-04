@@ -6,7 +6,7 @@
 
 # Respectabullz - Breeder Management Application
 
-**Version 1.0.0** - First Stable Release
+**Version 1.0.1** - Latest Release
 
 A comprehensive desktop application for managing dog breeding operations, built with Tauri, React, TypeScript, and SQLite.
 
@@ -42,6 +42,10 @@ A comprehensive desktop application for managing dog breeding operations, built 
 - **Sales Pipeline**: Track interest status, payment status, shipping, and delivery
 - **Contract Generation**: Automated contract document generation from JSON template with auto-filled client, puppy, and breeder information
 - **Full Backup System**: Export and import complete backups including database and all photos in ZIP format
+
+### Getting Started Features
+- **First-Launch Dialog**: On first startup, choose between starting with an empty database or loading sample data to explore features
+- **Windows Installer**: NSIS installer for easy end-user distribution and installation
 
 ## Tech Stack
 

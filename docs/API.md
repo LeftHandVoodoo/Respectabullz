@@ -1,6 +1,6 @@
 # Respectabullz Internal API Reference
 
-**Version 1.0.0**
+**Version 1.0.1**
 
 ## Overview
 
@@ -1005,7 +1005,7 @@ getPedigree(dogId: string, generations?: number): Promise<PedigreeData>
 
 ---
 
-## Customer Packet Operations (v1.0.0)
+## Customer Packet Operations (v1.0.1)
 
 ### getPacketData
 Retrieves comprehensive data for generating a customer packet PDF export.
