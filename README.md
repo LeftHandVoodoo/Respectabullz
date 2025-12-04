@@ -6,11 +6,11 @@
 
 # Respectabullz - Breeder Management Application
 
-**Version 1.4.0** - Latest Release
+**Version 1.5.1** - Latest Release
 
 A comprehensive desktop application for managing dog breeding operations, built with Tauri, React, TypeScript, and SQLite.
 
-> **New in 1.4.0**: Full column sorting on Expenses page, plus multiple bug fixes including litter form dialog scrolling for smaller screens. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **New in 1.5.1**: PDF preview capabilities with page navigation and zoom controls, document upload and tagging system for Dogs/Litters/Expenses, Help & Documentation section in Settings, plus bug fixes. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 
@@ -36,6 +36,9 @@ A comprehensive desktop application for managing dog breeding operations, built 
 - **Registry Helpers**: Registration status tracking and litter registration export
 - **Reports & Analytics**: Breeding program insights, financials, and production metrics
 - **Customer Packet PDF Export**: Comprehensive printable packet with dog info, pedigree, health records, photos, and care instructions
+- **Document Management**: Upload and tag PDFs, Word docs, Excel files, and images with 13 predefined tags and custom tag support
+- **PDF Preview**: In-app PDF viewing with page navigation, zoom controls, and text selection
+- **Help & Documentation**: Built-in user manual and how-to guide accessible from Settings
 
 ### Business Features
 - **Client Management**: Track buyers and sales with contact information
@@ -170,8 +173,17 @@ The application uses a normalized SQLite database with the following main entiti
 - **GeneticTest**: Health testing records with compatibility checking
 - **HealthScheduleTemplate**: Configurable puppy health schedule templates
 - **DogPhoto**: Photo gallery entries for dogs
+- **Document**: Document files (PDFs, Word, Excel, images) with metadata
+- **DocumentTag**: Tagging system for documents (13 predefined + custom tags)
+- **DocumentTagLink**: Many-to-many relationship between documents and tags
+- **DogDocument**: Links documents to dogs
+- **LitterDocument**: Links documents to litters
+- **ExpenseDocument**: Links documents to expenses
 
-**Photo Storage**: Photos are stored in `%APPDATA%/com.respectabullz.app/photos/` with unique filenames. Database stores file paths, not binary data.
+**File Storage**: 
+- Photos are stored in `%APPDATA%/com.respectabullz.app/photos/` with unique filenames
+- Documents are stored in `%APPDATA%/com.respectabullz.app/documents/` with unique filenames
+- Database stores file paths, not binary data
 
 ## Development
 

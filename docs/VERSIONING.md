@@ -88,6 +88,20 @@ For testing releases:
 
 ## Current Version
 
+**1.5.1** (2025-12-04)
+
+Patch release - Bug fixes:
+- Fixed PDF preview loading by aligning pdfjs-dist version and bundling worker locally
+- PDF preview now works offline without internet connection
+- Improved error handling and logging for PDF loading failures
+
+**1.5.0** (2025-12-04)
+
+Minor release - New features:
+- PDF Preview Capabilities - In-app PDF viewing with page navigation and zoom controls
+- Document Upload & Tagging System - Full document management for Dogs, Litters, and Expenses
+- Help & Documentation section in Settings - Built-in user manual and how-to guide
+
 **1.4.0** (2025-12-04)
 
 Minor release - Enhanced features and improvements:

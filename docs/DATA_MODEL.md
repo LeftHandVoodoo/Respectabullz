@@ -1,6 +1,6 @@
 # Respectabullz Data Model
 
-**Version 1.4.0**
+**Version 1.5.1**
 
 ## Overview
 
@@ -573,6 +573,113 @@ Configurable templates for puppy health schedules.
 
 **Note:** HealthScheduleTemplateItem defines taskType, taskName, daysFromBirth, isPerPuppy, and notes.
 
+## Document Management Entities
+
+### Document
+Stores document files (PDFs, Word documents, Excel spreadsheets, images) with metadata.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| filename | String | Unique filename on disk (timestamp-random.ext) |
+| originalName | String | Original filename provided by user |
+| filePath | String | Relative path in app data dir (documents/filename) |
+| mimeType | String | MIME type (application/pdf, image/jpeg, etc.) |
+| fileSize | Int | File size in bytes |
+| notes | String? | Optional notes about the document |
+| uploadedAt | DateTime | Upload timestamp |
+| updatedAt | DateTime | Last update timestamp |
+
+**Relationships:**
+- Has many: DocumentTagLink (many-to-many with DocumentTag)
+- Has many: DogDocument (many-to-many with Dog)
+- Has many: LitterDocument (many-to-many with Litter)
+- Has many: ExpenseDocument (many-to-many with Expense)
+
+**File Storage:** Documents are stored in `%APPDATA%/com.respectabullz.app/documents/` with unique filenames. Database stores file paths, not binary data.
+
+**Supported File Types:**
+- PDFs: `.pdf`
+- Word Documents: `.doc`, `.docx`
+- Excel Spreadsheets: `.xls`, `.xlsx`
+- Images: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.bmp`
+
+### DocumentTag
+Tagging system for documents. Includes 13 predefined tags plus custom user-created tags.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| name | String (unique) | Tag name |
+| color | String? | Hex color code for tag display |
+| isCustom | Boolean | Whether tag is user-created (false for predefined) |
+| createdAt | DateTime | Creation timestamp |
+
+**Predefined Tags:**
+- Invoice, Receipt, Contract, Health Certificate, Registration Papers
+- Vet Record, Vaccination Record, Genetic Test Results, Microchip Certificate
+- Photo/Image, Shipping/Transport, Insurance, Other
+
+**Relationships:**
+- Has many: DocumentTagLink (many-to-many with Document)
+
+### DocumentTagLink
+Junction table linking documents to tags (many-to-many relationship).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| documentId | String | FK to Document |
+| tagId | String | FK to DocumentTag |
+| createdAt | DateTime | Link creation timestamp |
+
+**Unique Constraint:** (documentId, tagId) - prevents duplicate tag assignments
+
+### DogDocument
+Junction table linking documents to dogs (many-to-many relationship).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| dogId | String | FK to Dog |
+| documentId | String | FK to Document |
+| createdAt | DateTime | Link creation timestamp |
+
+**Relationships:**
+- Belongs to: Dog, Document (cascade delete)
+
+**Unique Constraint:** (dogId, documentId) - prevents duplicate document attachments
+
+### LitterDocument
+Junction table linking documents to litters (many-to-many relationship).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| litterId | String | FK to Litter |
+| documentId | String | FK to Document |
+| createdAt | DateTime | Link creation timestamp |
+
+**Relationships:**
+- Belongs to: Litter, Document (cascade delete)
+
+**Unique Constraint:** (litterId, documentId) - prevents duplicate document attachments
+
+### ExpenseDocument
+Junction table linking documents to expenses (many-to-many relationship).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| expenseId | String | FK to Expense |
+| documentId | String | FK to Document |
+| createdAt | DateTime | Link creation timestamp |
+
+**Relationships:**
+- Belongs to: Expense, Document (cascade delete)
+
+**Unique Constraint:** (expenseId, documentId) - prevents duplicate document attachments
+
 ## Indexes
 
 The following fields are indexed for query performance:
@@ -593,6 +700,11 @@ The following fields are indexed for query performance:
 - `VaccinationRecord.nextDueDate` - For reminder queries
 - `Expense.date` - For date range queries
 - `Expense.category` - For category filtering
+- `DocumentTag.name` - For tag lookup
+- `DocumentTagLink.documentId`, `DocumentTagLink.tagId` - For document-tag queries
+- `DogDocument.dogId`, `DogDocument.documentId` - For dog document queries
+- `LitterDocument.litterId`, `LitterDocument.documentId` - For litter document queries
+- `ExpenseDocument.expenseId`, `ExpenseDocument.documentId` - For expense document queries
 
 ## Data Integrity Rules
 
@@ -601,11 +713,20 @@ The following fields are indexed for query performance:
    - Deleting a Litter cascades to PuppyHealthTask and WaitlistEntry records
    - Deleting a Sale cascades to SalePuppy records
    - Deleting a Client cascades to ClientInterest, WaitlistEntry, and CommunicationLog records
+   - Deleting a Document cascades to DocumentTagLink, DogDocument, LitterDocument, and ExpenseDocument records
+   - Deleting a Dog cascades to DogDocument records
+   - Deleting a Litter cascades to LitterDocument records
+   - Deleting an Expense cascades to ExpenseDocument records
 2. **Unique Constraints**: 
    - Litter.code must be unique
    - Setting.key must be unique
    - SalePuppy (saleId, dogId) must be unique (puppy can only be in sale once)
    - PedigreeEntry (dogId, generation, position) must be unique
+   - DocumentTag.name must be unique
+   - DocumentTagLink (documentId, tagId) must be unique
+   - DogDocument (dogId, documentId) must be unique
+   - LitterDocument (litterId, documentId) must be unique
+   - ExpenseDocument (expenseId, documentId) must be unique
 3. **Status Updates**: Creating a Sale with puppies automatically sets each Dog.status to 'sold'
 4. **Interest Conversion**: Converting a ClientInterest to a Sale updates the interest status to 'converted' and links it to the sale
 
