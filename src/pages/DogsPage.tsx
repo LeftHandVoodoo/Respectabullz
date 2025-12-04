@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -45,27 +45,16 @@ export function DogsPage() {
     initPhotoBasePath();
   }, []);
 
-  const handleSort = (column: SortColumn) => {
+  const handleSort = useCallback((column: SortColumn) => {
     if (sortColumn === column) {
       // Toggle direction if clicking the same column
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection((currentDirection) => currentDirection === 'asc' ? 'desc' : 'asc');
     } else {
       // Set new column with default direction
       setSortColumn(column);
       setSortDirection('asc');
     }
-  };
-
-  const SortIcon = ({ column }: { column: SortColumn }) => {
-    if (sortColumn !== column) {
-      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
-    }
-    return sortDirection === 'asc' ? (
-      <ArrowUp className="ml-2 h-4 w-4" />
-    ) : (
-      <ArrowDown className="ml-2 h-4 w-4" />
-    );
-  };
+  }, [sortColumn]);
 
   const filteredDogs = useMemo(() => {
     if (!dogs) return [];
@@ -109,94 +98,107 @@ export function DogsPage() {
     return filtered;
   }, [dogs, search, statusFilter, sexFilter, sortColumn, sortDirection]);
 
-  const dogsColumns: VirtualTableColumn<Dog>[] = useMemo(() => [
-    {
-      key: 'name',
-      header: (
-        <>
-          Name
-          <SortIcon column="name" />
-        </>
-      ),
-      sortable: true,
-      onSort: () => handleSort('name'),
-      cell: (dog) => (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            {dog.profilePhotoPath && (
-              <AvatarImage 
-                src={getPhotoUrlSync(dog.profilePhotoPath) || undefined} 
-                alt={dog.name}
-                className="object-cover"
-              />
-            )}
-            <AvatarFallback className="bg-primary/10 text-primary text-xs">
-              {dog.name.substring(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <span className="font-medium">{dog.name}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'sex',
-      header: (
-        <>
-          Sex
-          <SortIcon column="sex" />
-        </>
-      ),
-      sortable: true,
-      onSort: () => handleSort('sex'),
-      cell: (dog) => (
-        <Badge variant="outline">
-          {dog.sex === 'M' ? 'Male' : 'Female'}
-        </Badge>
-      ),
-    },
-    {
-      key: 'breed',
-      header: 'Breed',
-      cell: (dog) => dog.breed,
-    },
-    {
-      key: 'age',
-      header: (
-        <>
-          Age
-          <SortIcon column="age" />
-        </>
-      ),
-      sortable: true,
-      onSort: () => handleSort('age'),
-      cell: (dog) => (dog.dateOfBirth ? calculateAge(dog.dateOfBirth) : '-'),
-    },
-    {
-      key: 'registration',
-      header: 'Registration',
-      cell: (dog) => (
-        <span className="font-mono text-sm">
-          {dog.registrationNumber || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'status',
-      header: (
-        <>
-          Status
-          <SortIcon column="status" />
-        </>
-      ),
-      sortable: true,
-      onSort: () => handleSort('status'),
-      cell: (dog) => (
-        <Badge variant={statusColors[dog.status]}>
-          {dog.status}
-        </Badge>
-      ),
-    },
-  ], [sortColumn, sortDirection]);
+  const dogsColumns: VirtualTableColumn<Dog>[] = useMemo(() => {
+    const SortIcon = ({ column }: { column: SortColumn }) => {
+      if (sortColumn !== column) {
+        return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+      }
+      return sortDirection === 'asc' ? (
+        <ArrowUp className="ml-2 h-4 w-4" />
+      ) : (
+        <ArrowDown className="ml-2 h-4 w-4" />
+      );
+    };
+
+    return [
+      {
+        key: 'name',
+        header: (
+          <>
+            Name
+            <SortIcon column="name" />
+          </>
+        ),
+        sortable: true,
+        onSort: () => handleSort('name'),
+        cell: (dog) => (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              {dog.profilePhotoPath && (
+                <AvatarImage 
+                  src={getPhotoUrlSync(dog.profilePhotoPath) || undefined} 
+                  alt={dog.name}
+                  className="object-cover"
+                />
+              )}
+              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                {dog.name.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span className="font-medium">{dog.name}</span>
+          </div>
+        ),
+      },
+      {
+        key: 'sex',
+        header: (
+          <>
+            Sex
+            <SortIcon column="sex" />
+          </>
+        ),
+        sortable: true,
+        onSort: () => handleSort('sex'),
+        cell: (dog) => (
+          <Badge variant="outline">
+            {dog.sex === 'M' ? 'Male' : 'Female'}
+          </Badge>
+        ),
+      },
+      {
+        key: 'breed',
+        header: 'Breed',
+        cell: (dog) => dog.breed,
+      },
+      {
+        key: 'age',
+        header: (
+          <>
+            Age
+            <SortIcon column="age" />
+          </>
+        ),
+        sortable: true,
+        onSort: () => handleSort('age'),
+        cell: (dog) => (dog.dateOfBirth ? calculateAge(dog.dateOfBirth) : '-'),
+      },
+      {
+        key: 'registration',
+        header: 'Registration',
+        cell: (dog) => (
+          <span className="font-mono text-sm">
+            {dog.registrationNumber || '-'}
+          </span>
+        ),
+      },
+      {
+        key: 'status',
+        header: (
+          <>
+            Status
+            <SortIcon column="status" />
+          </>
+        ),
+        sortable: true,
+        onSort: () => handleSort('status'),
+        cell: (dog) => (
+          <Badge variant={statusColors[dog.status]}>
+            {dog.status}
+          </Badge>
+        ),
+      },
+    ];
+  }, [sortColumn, sortDirection, handleSort]);
 
   return (
     <div className="space-y-6">

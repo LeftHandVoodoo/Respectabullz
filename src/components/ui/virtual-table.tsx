@@ -186,80 +186,79 @@ export function VirtualTable<T>({
   // Render virtualized table for large datasets
   const renderVirtualizedTable = () => (
     <div className={cn('rounded-lg border bg-card', className)}>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {columns.map((col) => (
-              <TableHead
-                key={col.key}
-                className={col.headerClassName}
-                style={col.width ? { width: col.width } : undefined}
-              >
-                {col.sortable && col.onSort ? (
-                  <button
-                    onClick={col.onSort}
-                    className="flex items-center hover:text-foreground transition-colors cursor-pointer"
-                  >
-                    {col.header}
-                  </button>
-                ) : (
-                  col.header
-                )}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-      </Table>
-
       <div
         ref={parentRef}
         className="overflow-auto"
         style={{ maxHeight: `${maxHeight}px` }}
       >
-        {isLoading ? (
-          <Table>
-            <TableBody>{loadingSkeleton}</TableBody>
-          </Table>
-        ) : data.length === 0 ? (
-          <div className="text-center py-8">
-            {emptyState ?? (
-              <p className="text-muted-foreground">No data found</p>
-            )}
-          </div>
-        ) : (
-          <Table>
-            <TableBody>
-              {paddingTop > 0 && (
-                <tr>
-                  <td style={{ height: `${paddingTop}px` }} />
-                </tr>
-              )}
-              {virtualRows.map((virtualRow) => {
-                const item = data[virtualRow.index];
-                const index = virtualRow.index;
-                return (
-                  <TableRow
-                    key={getRowKey(item, index)}
-                    className={onRowClick ? getRowClassName(item, index) : undefined}
-                    onClick={() => onRowClick?.(item, index)}
-                    style={{ height: `${rowHeight}px` }}
-                  >
-                    {columns.map((col) => (
-                      <TableCell key={col.key} className={col.cellClassName}>
-                        {col.cell(item, index)}
-                      </TableCell>
-                    ))}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {columns.map((col) => (
+                <TableHead
+                  key={col.key}
+                  className={col.headerClassName}
+                  style={col.width ? { width: col.width } : undefined}
+                >
+                  {col.sortable && col.onSort ? (
+                    <button
+                      onClick={col.onSort}
+                      className="flex items-center hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      {col.header}
+                    </button>
+                  ) : (
+                    col.header
+                  )}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              loadingSkeleton
+            ) : data.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="text-center py-8">
+                  {emptyState ?? (
+                    <p className="text-muted-foreground">No data found</p>
+                  )}
+                </TableCell>
+              </TableRow>
+            ) : (
+              <>
+                {paddingTop > 0 && (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} style={{ height: `${paddingTop}px`, padding: 0 }} />
                   </TableRow>
-                );
-              })}
-              {paddingBottom > 0 && (
-                <tr>
-                  <td style={{ height: `${paddingBottom}px` }} />
-                </tr>
-              )}
-            </TableBody>
-          </Table>
-        )}
+                )}
+                {virtualRows.map((virtualRow) => {
+                  const item = data[virtualRow.index];
+                  const index = virtualRow.index;
+                  return (
+                    <TableRow
+                      key={getRowKey(item, index)}
+                      className={onRowClick ? getRowClassName(item, index) : undefined}
+                      onClick={() => onRowClick?.(item, index)}
+                      style={{ height: `${rowHeight}px` }}
+                    >
+                      {columns.map((col) => (
+                        <TableCell key={col.key} className={col.cellClassName}>
+                          {col.cell(item, index)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  );
+                })}
+                {paddingBottom > 0 && (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} style={{ height: `${paddingBottom}px`, padding: 0 }} />
+                  </TableRow>
+                )}
+              </>
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
