@@ -30,6 +30,7 @@ import type {
   GeneticTest,
   MatingCompatibilityResult,
   MatingWarning,
+  ActivityItem,
   CreateGeneticTestInput,
   UpdateGeneticTestInput,
   CreateDogInput,
@@ -1635,6 +1636,30 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const now = new Date();
   const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const lineItemCurrencyFormatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  });
+
+  const toDate = (value: Date | string | null | undefined): Date | null => {
+    if (!value) return null;
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+    const parsed = new Date(value);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const formatCategoryLabel = (value: string | null | undefined): string => {
+    if (!value) {
+      return 'General';
+    }
+    return value
+      .toString()
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
   // Count active dogs
   const activeDogs = db.dogs.filter(d => d.status === 'active').length;
   
@@ -1717,6 +1742,106 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     l.followUpDate &&
     new Date(l.followUpDate) <= sevenDaysFromNow
   ).length;
+
+  const dogMap = new Map(db.dogs.map(dog => [dog.id, dog]));
+  const clientMap = new Map(db.clients.map(client => [client.id, client]));
+  const activities: ActivityItem[] = [];
+
+  const addActivity = (activity: ActivityItem | null | undefined) => {
+    if (!activity) {
+      return;
+    }
+    activities.push(activity);
+  };
+
+  db.vaccinations.forEach((record) => {
+    const date = toDate(record.date) || toDate(record.createdAt);
+    if (!date) return;
+    const dog = dogMap.get(record.dogId);
+    addActivity({
+      id: `vaccination-${record.id}`,
+      type: 'vaccination',
+      description: `${record.vaccineType || 'Vaccination'} recorded${dog ? ` for ${dog.name}` : ''}`,
+      date,
+      relatedDogId: dog?.id,
+      relatedDogName: dog?.name,
+    });
+  });
+
+  db.litters.forEach((litter) => {
+    const eventDate = toDate(litter.whelpDate) || toDate(litter.breedingDate) || toDate(litter.createdAt);
+    if (!eventDate) return;
+    const sire = litter.sireId ? dogMap.get(litter.sireId) : null;
+    const dam = litter.damId ? dogMap.get(litter.damId) : null;
+    const puppyCount = litter.totalAlive ?? litter.puppies?.length ?? 0;
+    const description = litter.whelpDate
+      ? `${litter.code || 'Litter'} whelped (${puppyCount} puppy${puppyCount === 1 ? '' : 'ies'})`
+      : `${litter.code || 'Litter'} planned (${sire?.name || 'Unknown sire'} × ${dam?.name || 'Unknown dam'})`;
+    addActivity({
+      id: `litter-${litter.id}`,
+      type: 'litter',
+      description,
+      date: eventDate,
+    });
+  });
+
+  db.transports.forEach((transport) => {
+    const date = toDate(transport.date) || toDate(transport.createdAt);
+    if (!date) return;
+    const dog = dogMap.get(transport.dogId);
+    const mode = transport.mode ? transport.mode.replace(/_/g, ' ').toUpperCase() : 'TRANSPORT';
+    addActivity({
+      id: `transport-${transport.id}`,
+      type: 'transport',
+      description: `${mode} transport${dog ? ` for ${dog.name}` : ''}`,
+      date,
+      relatedDogId: dog?.id,
+      relatedDogName: dog?.name,
+    });
+  });
+
+  db.expenses.forEach((expense) => {
+    const date = toDate(expense.date) || toDate(expense.createdAt);
+    if (!date) return;
+    const dog = expense.relatedDogId ? dogMap.get(expense.relatedDogId) : null;
+    const label = formatCategoryLabel(expense.category);
+    const amount = lineItemCurrencyFormatter.format(expense.amount);
+    addActivity({
+      id: `expense-${expense.id}`,
+      type: 'expense',
+      description: `${label} expense of ${amount}${dog ? ` for ${dog.name}` : ''}`,
+      date,
+      relatedDogId: dog?.id,
+      relatedDogName: dog?.name,
+    });
+  });
+
+  db.sales.forEach((sale) => {
+    const date = toDate(sale.saleDate) || toDate(sale.createdAt);
+    if (!date) return;
+    const clientName = clientMap.get(sale.clientId)?.name || 'Unknown client';
+    const puppies = db.salePuppies.filter(sp => sp.saleId === sale.id);
+    const puppyNames = puppies
+      .map(sp => dogMap.get(sp.dogId)?.name)
+      .filter(Boolean)
+      .join(', ');
+    const puppyCount = puppies.length;
+    const description = puppyCount > 0
+      ? `Sold ${puppyCount} puppy${puppyCount === 1 ? '' : 'ies'} to ${clientName}${puppyNames ? ` (${puppyNames})` : ''}`
+      : `Sale recorded for ${clientName}`;
+    addActivity({
+      id: `sale-${sale.id}`,
+      type: 'sale',
+      description,
+      date,
+      relatedDogId: puppyCount === 1 ? puppies[0].dogId : undefined,
+      relatedDogName: puppyCount === 1 ? dogMap.get(puppies[0].dogId)?.name : undefined,
+    });
+  });
+
+  const recentActivity = activities
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .slice(0, 12);
   
   return {
     totalDogs: db.dogs.length,
@@ -1727,7 +1852,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     monthlyExpenses,
     puppyTasksDueThisWeek,
     followUpsDue,
-    recentActivity: [], // TODO: Implement activity tracking
+    recentActivity,
   };
 }
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dog, Baby, Heart, Syringe, Calendar, DollarSign, Truck, ClipboardCheck, Phone } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { Dog, Baby, Heart, Syringe, Calendar, DollarSign, Truck, ClipboardCheck, Phone, Activity as ActivityIcon, Receipt } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SkeletonCard, Spinner } from '@/components/ui/skeleton';
@@ -27,13 +28,21 @@ import { LitterFormDialog } from '@/components/litters/LitterFormDialog';
 import { HeatCycleFormDialog } from '@/components/heat-cycles/HeatCycleFormDialog';
 import { ExpenseFormDialog } from '@/components/expenses/ExpenseFormDialog';
 import { TransportFormDialog } from '@/components/transport/TransportFormDialog';
-import type { DogStatus } from '@/types';
+import type { ActivityItem, DogStatus } from '@/types';
 
 const statusColors: Record<DogStatus, 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'> = {
   active: 'success',
   sold: 'secondary',
   retired: 'outline',
   deceased: 'destructive',
+};
+
+const activityStyles: Record<ActivityItem['type'], { icon: React.ElementType; color: string; background: string }> = {
+  vaccination: { icon: Syringe, color: 'text-green-600', background: 'bg-green-100 dark:bg-green-900/40' },
+  litter: { icon: Baby, color: 'text-pink-600', background: 'bg-pink-100 dark:bg-pink-900/40' },
+  transport: { icon: Truck, color: 'text-blue-600', background: 'bg-blue-100 dark:bg-blue-900/40' },
+  expense: { icon: Receipt, color: 'text-amber-600', background: 'bg-amber-50 dark:bg-amber-900/30' },
+  sale: { icon: DollarSign, color: 'text-purple-600', background: 'bg-purple-50 dark:bg-purple-900/30' },
 };
 
 interface StatCardProps {
@@ -86,6 +95,7 @@ export function DashboardPage() {
   const [showPuppyTasksDialog, setShowPuppyTasksDialog] = useState(false);
 
   const females = dogs?.filter((d) => d.sex === 'F' && d.status === 'active') || [];
+  const recentActivity = stats?.recentActivity || [];
 
   // Initialize photo base path for displaying photos
   useEffect(() => {
@@ -136,6 +146,12 @@ export function DashboardPage() {
   const handleLitterClick = (litterId: string) => {
     setShowDueDatesDialog(false);
     navigate(`/litters/${litterId}`);
+  };
+
+  const handleActivityClick = (item: ActivityItem) => {
+    if (item.relatedDogId) {
+      navigate(`/dogs/${item.relatedDogId}`);
+    }
   };
 
   if (isLoading) {
@@ -389,6 +405,57 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recentActivity.length > 0 ? (
+            <div className="space-y-3">
+              {recentActivity.map((item) => {
+                const style = activityStyles[item.type] ?? {
+                  icon: ActivityIcon,
+                  color: 'text-muted-foreground',
+                  background: 'bg-muted',
+                };
+                const Icon = style.icon as React.ElementType;
+                const eventDate = new Date(item.date);
+                const relativeTime = Number.isNaN(eventDate.getTime())
+                  ? null
+                  : formatDistanceToNow(eventDate, { addSuffix: true });
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`flex items-start gap-3 rounded-md border p-3 ${
+                      item.relatedDogId ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''
+                    }`}
+                    onClick={() => handleActivityClick(item)}
+                    role={item.relatedDogId ? 'button' : undefined}
+                  >
+                    <div className={`h-8 w-8 flex items-center justify-center rounded-full ${style.background}`}>
+                      <Icon className={`h-4 w-4 ${style.color}`} />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm font-medium leading-tight">{item.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(eventDate)}
+                        {relativeTime ? ` • ${relativeTime}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No recent activity recorded yet. Log vaccinations, expenses, transports, litters, or sales to populate this
+              feed.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Form Dialogs */}
       <DogFormDialog
