@@ -121,8 +121,12 @@ export function useConvertInterestToSale() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ interestId, saleInput }: { interestId: string; saleInput: CreateSaleInput }) =>
-      db.convertInterestToSale(interestId, saleInput),
+    mutationFn: async ({ interestId, saleInput }: { interestId: string; saleInput: CreateSaleInput }) => {
+      // First create the sale
+      const sale = await db.createSale(saleInput);
+      // Then convert the interest to link it to the sale
+      return db.convertInterestToSale(interestId, sale.id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clientInterests'] });
       queryClient.invalidateQueries({ queryKey: ['sales'] });

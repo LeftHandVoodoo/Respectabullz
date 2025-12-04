@@ -7,7 +7,130 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2025-12-04
+
 ### Added
+- **Enhanced seed data coverage** - Comprehensive seed database function now includes all app areas
+  - 3 custom expense categories (Training, Grooming, Insurance) with color coding
+  - Expenses for all built-in categories (transport, vet, food, supplies, registration, marketing, utilities, misc)
+  - 20+ expense records covering all categories and custom categories
+  - Additional transport records (flight, ground, local pickup)
+  - Additional heat cycles (4 total with detailed events)
+  - Expanded genetic tests for all breeding dogs (full panels)
+  - Expanded vaccination records for all dogs (adults and puppies)
+  - Expanded medical records for multiple dogs (exams, tests, surgeries)
+  - Expanded weight entries for multiple dogs (puppies and adults)
+  - Expanded pedigree entries for multiple dogs (3 generations)
+- **Multi-select expense filters** - Enhanced Expenses page with advanced filtering capabilities
+  - Multi-select category filter allowing selection of multiple categories simultaneously
+  - Multi-select dog filter to view expenses for specific dogs
+  - Expense exclusion checkboxes to temporarily exclude individual expenses from totals
+  - "Include All" / checkbox header to toggle all expenses at once
+  - Active filter badges showing selected categories and dogs with click-to-remove
+  - Reset Filters button to quickly clear all active filters
+  - Calculated totals update dynamically based on included/excluded expenses
+  - CSV export respects exclusions (only exports included expenses)
+  - New `MultiSelect` reusable UI component for multi-value selection with search
+
+### Fixed
+- **Database initialization failure** - Fixed bug where SQL schema statements with leading comments were incorrectly filtered out during database initialization, causing "no such table: _schema_version" error on first launch
+- **FirstLaunchDialog stuck on initializing** - Added missing `setIsInitializing(false)` call after successful database initialization
+
+### Added
+- **Comprehensive SQLite seed data** - Revamped `seedDatabase()` function to populate all database tables for testing
+  - 6 adult dogs (studs and dams with full registration info)
+  - 9 puppies across multiple litters with evaluations
+  - 4 litters in different stages (weaning, ready to go, planned, completed)
+  - 2 external studs with contact information
+  - Heat cycles with detailed event tracking (progesterone tests, breeding dates)
+  - Genetic tests, vaccinations, medical records, weight entries
+  - 5 clients with sales, interests, waitlist entries, and communication logs
+  - Expenses across all categories with transport records
+  - Pedigree entries and health schedule templates
+  - Breeder settings pre-configured
+
+## [1.2.0] - 2025-12-04
+
+### Added
+- **SQLite Database Migration** - Complete migration from localStorage to persistent SQLite database
+  - Added `tauri-plugin-sql` to Rust backend with SQLite support
+  - Added `@tauri-apps/plugin-sql` frontend package
+  - Created `src/lib/db/schema.sql` with complete database schema derived from Prisma schema
+  - Created `src/lib/db/connection.ts` for SQLite connection management with connection pooling
+  - Created `src/lib/db/migrations.ts` for schema versioning and future upgrades
+  - Created `src/lib/db/utils.ts` for ID generation, date conversions, and type utilities
+  - Database initialization runs automatically on app startup
+  - Automatic migration from localStorage to SQLite preserves all existing data
+  - Progress feedback during migration with stage-by-stage updates
+
+- **Database Architecture Refactoring** - Split monolithic 6,377-line `db.ts` into maintainable domain modules
+  - `src/lib/db/dogs.ts` - Dog, DogPhoto, PedigreeEntry CRUD operations
+  - `src/lib/db/litters.ts` - Litter, LitterPhoto operations
+  - `src/lib/db/health.ts` - Vaccinations, Weight Entries, Medical Records, Genetic Tests, Puppy Health Tasks
+  - `src/lib/db/breeding.ts` - Heat Cycles, Heat Events, External Studs, Breeding Predictions
+  - `src/lib/db/sales.ts` - Clients, Sales, Client Interests, Waitlist, Communication Logs
+  - `src/lib/db/operations.ts` - Expenses, Transports, Communication Logs
+  - `src/lib/db/settings.ts` - Settings, Breeder Settings management
+  - `src/lib/db/dashboard.ts` - Dashboard Stats, Activity Feed, Financial Summary
+  - `src/lib/db/index.ts` - Centralized re-exports for backwards compatibility
+  - `src/lib/db/legacy.ts` - Compatibility stubs for functions pending full SQLite implementation
+  - `src/lib/db/init.ts` - Database initialization and migration orchestration
+
+- **LocalStorage to SQLite Migration Utility**
+  - `src/lib/db/migrate-from-localstorage.ts` for one-time data migration
+  - Preserves all existing data with proper ID and date conversions
+  - Progress callback for UI feedback during migration
+  - Automatic cleanup of localStorage after successful migration
+  - Handles all entity types: dogs, litters, heat cycles, health records, sales, expenses, etc.
+
+- **Test Infrastructure** - Comprehensive testing setup with Vitest
+  - Configured Vitest with React Testing Library and jsdom environment
+  - Added test mocks for Tauri APIs (plugin-sql, plugin-fs, plugin-dialog)
+  - Created reusable test utilities with QueryClient and Router providers
+  - Unit tests for utility functions (`src/lib/__tests__/utils.test.ts`, `src/lib/db/__tests__/utils.test.ts`)
+  - Integration tests for database operations (`src/lib/db/__tests__/dogs.test.ts`, `src/lib/db/__tests__/breeding.test.ts`)
+  - Component tests for UI components (`src/components/__tests__/Button.test.tsx`, `src/components/__tests__/Card.test.tsx`)
+  - Test scripts: `npm test` (run once), `npm run test:ui` (watch mode), `npm run test:coverage` (coverage report)
+  - All 106 tests passing
+
+- **First Launch Experience Enhancement**
+  - Updated `FirstLaunchDialog` to show database initialization progress
+  - Visual feedback during SQLite setup and migration
+  - Automatic detection of existing localStorage data for migration
+  - Improved error handling and user feedback
+
+### Changed
+- Database operations now use SQLite instead of localStorage mock
+- All database functions maintain backwards compatibility through re-exports
+- `db.ts` now re-exports from new modular structure instead of containing implementation
+- Database connection uses Tauri's plugin-sql API for native SQLite access
+- Date handling standardized with ISO string conversions for SQLite compatibility
+
+### Fixed
+- Transport expenses linked to dogs now appear correctly on the dog detail page
+  - Fixed issue where empty strings were being stored instead of NULL for relatedDogId
+  - Normalized empty strings to NULL in createExpense and updateExpense functions
+  - Updated getExpenses query to exclude empty strings when filtering by dogId
+- Fixed timezone issues in date tests (all tests now passing)
+- Fixed all TypeScript compilation errors (21 errors resolved, 0 remaining)
+  - Fixed QueryResult type handling in connection utilities
+  - Fixed `getDogGeneticTestSummary` return type to match component expectations (returns count objects instead of Record)
+  - Fixed `HeatEventFormDialog` to use correct breeding recommendation properties (`isOptimal`, `daysUntilOptimal` instead of non-existent `daysToBreeding`, `ovulationStatus`)
+  - Fixed `useConvertInterestToSale` hook to properly create sale before converting interest
+  - Fixed `MatingCompatibilityResult` type to use `isCompatible` property instead of `compatible`
+  - Fixed type access issues in `getPacketData` function for sales query results
+  - Removed unused imports (`AlertCircle`, `getLitter`) and parameters across legacy functions
+  - Added proper type annotations for query results to prevent array type inference issues
+
+### Added
+- Timeframe filtering for expenses pie chart in Expenses page
+  - Dropdown selector with options: Last 7 Days, Last 30 Days, Last 90 Days, This Month, and Custom Range
+  - Pie chart dynamically updates to show expenses only within selected timeframe
+  - Custom date range dialog with start and end date inputs
+  - Date range validation ensures start date is before end date
+  - Edit button appears when custom date range is selected for easy modification
+  - Selected date range displayed below chart header when custom timeframe is active
+  - Empty state message shown when no expenses exist in selected timeframe
 - Calendar visualization for heat cycles in the Heat Cycles page
   - Visual timeline showing heat cycles on calendar dates
   - Color-coded phases (Proestrus, Estrus, Diestrus, Anestrus)
@@ -42,7 +165,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Customer packet PDF export now embeds stored/local photos instead of returning placeholder values
 - Pedigree PDF visualization draws connector lines between generations for improved readability
 
-## [1.0.2] - 2025-01-27
+## [1.0.2] - 2025-12-04
 
 ### Changed
 - Set dark mode as the default theme for new installations

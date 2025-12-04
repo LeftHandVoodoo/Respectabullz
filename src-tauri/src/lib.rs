@@ -7,6 +7,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_sql::Builder::default().build())
         .setup(|app| {
             // Get the app data directory and create it if it doesn't exist
             let app_data_dir = app.path().app_data_dir().expect("Failed to get app data dir");

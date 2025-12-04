@@ -1,6 +1,6 @@
 # Respectabullz Architecture
 
-**Version 1.1.0**
+**Version 1.3.0**
 
 ## Overview
 
@@ -27,7 +27,8 @@ Respectabullz is a desktop application for dog breeder management, built with a 
 │  │                          ▼                                │  │
 │  │              ┌─────────────────────┐                      │  │
 │  │              │   Database Layer    │                      │  │
-│  │              │   (lib/db.ts)       │                      │  │
+│  │              │  (lib/db/*.ts)      │                      │  │
+│  │              │  Modular structure  │                      │  │
 │  │              └─────────────────────┘                      │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                              │                                   │
@@ -42,7 +43,7 @@ Respectabullz is a desktop application for dog breeder management, built with a 
 │                              ▼                                   │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │                    SQLite Database                         │  │
-│  │              (via Prisma ORM / localStorage)               │  │
+│  │         (via tauri-plugin-sql with native SQLite)          │  │
 │  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -75,20 +76,38 @@ Respectabullz is a desktop application for dog breeder management, built with a 
   - Background refetching
   - Query invalidation
 
-### 4. Database Layer (lib/db.ts)
-- **Purpose**: Data persistence abstraction
+### 4. Database Layer (lib/db/)
+- **Purpose**: Data persistence abstraction with modular architecture
+- **Structure**:
+  - `connection.ts` - SQLite connection management via tauri-plugin-sql
+  - `migrations.ts` - Schema versioning and database initialization
+  - `utils.ts` - ID generation, date/type conversions
+  - `dogs.ts` - Dog, DogPhoto, PedigreeEntry operations
+  - `litters.ts` - Litter, LitterPhoto operations
+  - `health.ts` - Vaccinations, Weight, Medical, Genetic Tests, Puppy Health Tasks
+  - `breeding.ts` - Heat Cycles, Heat Events, External Studs
+  - `sales.ts` - Clients, Sales, Client Interests, Waitlist
+  - `operations.ts` - Expenses, Transports, Communication Logs
+  - `settings.ts` - Settings, Breeder Settings
+  - `dashboard.ts` - Dashboard Stats, Activity Feed
+  - `init.ts` - Database initialization and migration orchestration
+  - `legacy.ts` - Compatibility stubs for functions pending full implementation
+  - `index.ts` - Centralized re-exports for backwards compatibility
 - **Responsibilities**:
   - CRUD operations for all entities
-  - Data validation
+  - Data validation and type conversion
   - Relationship management
+  - Automatic migration from localStorage to SQLite
   - Import/export functionality
 
-### 5. SQLite Database (Prisma)
-- **Purpose**: Persistent data storage
+### 5. SQLite Database (tauri-plugin-sql)
+- **Purpose**: Persistent data storage with native SQLite
 - **Responsibilities**:
-  - Data integrity (foreign keys)
+  - Data integrity (foreign keys, constraints)
   - Transaction management
   - Index optimization
+  - Automatic schema migrations
+  - Data persistence across app restarts
 
 ## Directory Structure
 

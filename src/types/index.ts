@@ -60,7 +60,8 @@ export type LitterStatus =
   | 'weaning'
   | 'ready_to_go'
   | 'completed';
-export type ExpenseCategory = 
+// Built-in expense categories
+export type BuiltInExpenseCategory = 
   | 'transport' 
   | 'vet' 
   | 'food' 
@@ -69,6 +70,9 @@ export type ExpenseCategory =
   | 'marketing' 
   | 'utilities' 
   | 'misc';
+
+// Expense category can be any string (built-in or custom)
+export type ExpenseCategory = string;
 
 // Client Interest & Sales types
 export type InterestStatus = 

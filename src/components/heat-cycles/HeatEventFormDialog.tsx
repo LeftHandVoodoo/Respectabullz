@@ -25,7 +25,7 @@ import { useCreateHeatEvent } from '@/hooks/useHeatEvents';
 import { useDogs } from '@/hooks/useDogs';
 import { getBreedingRecommendation } from '@/lib/db';
 import type { HeatEventType } from '@/types';
-import { AlertCircle, CheckCircle2, Clock, Calendar } from 'lucide-react';
+import { CheckCircle2, Clock, Calendar } from 'lucide-react';
 
 // Event type definitions with descriptions
 const eventTypes: { value: HeatEventType; label: string; category: string; description: string }[] = [
@@ -254,32 +254,32 @@ export function HeatEventFormDialog({
               {/* Breeding Recommendation Card */}
               {breedingRec && (
                 <div className={`rounded-lg border p-4 ${
-                  breedingRec.daysToBreeding === 'NOW' 
+                  breedingRec.isOptimal
                     ? 'border-green-500 bg-green-50 dark:bg-green-950' 
-                    : breedingRec.daysToBreeding === 'NOW - urgent'
+                    : breedingRec.daysUntilOptimal !== undefined && breedingRec.daysUntilOptimal <= 1
                     ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950'
-                    : breedingRec.daysToBreeding === 'Passed'
-                    ? 'border-red-500 bg-red-50 dark:bg-red-950'
                     : 'border-blue-500 bg-blue-50 dark:bg-blue-950'
                 }`}>
                   <div className="flex items-start gap-3">
-                    {breedingRec.daysToBreeding === 'NOW' ? (
+                    {breedingRec.isOptimal ? (
                       <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
-                    ) : breedingRec.daysToBreeding === 'Passed' ? (
-                      <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
                     ) : (
                       <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
                     )}
                     <div className="space-y-1">
                       <p className="font-semibold">{breedingRec.phase}</p>
                       <p className="text-sm">{breedingRec.recommendation}</p>
-                      <div className="flex gap-4 text-xs text-muted-foreground mt-2">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          Breeding: {breedingRec.daysToBreeding}
-                        </span>
-                        <span>Ovulation: {breedingRec.ovulationStatus}</span>
-                      </div>
+                      {breedingRec.daysUntilOptimal !== undefined && (
+                        <div className="flex gap-4 text-xs text-muted-foreground mt-2">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {breedingRec.isOptimal 
+                              ? 'Breed now' 
+                              : `Breed in ${breedingRec.daysUntilOptimal} day${breedingRec.daysUntilOptimal !== 1 ? 's' : ''}`
+                            }
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

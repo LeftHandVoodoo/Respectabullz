@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Plus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ import {
 import { useCreateExpense, useUpdateExpense } from '@/hooks/useExpenses';
 import { useDogs } from '@/hooks/useDogs';
 import { useLitters } from '@/hooks/useLitters';
+import { useExpenseCategories, useCreateExpenseCategory } from '@/hooks/useExpenseCategories';
 import type { Expense, ExpenseCategory } from '@/types';
 
 const expenseSchema = z.object({
@@ -48,6 +50,18 @@ interface ExpenseFormDialogProps {
   defaultDogId?: string;
 }
 
+// Built-in categories with their display names
+const BUILT_IN_CATEGORIES: Record<string, string> = {
+  transport: 'Transport',
+  vet: 'Vet',
+  food: 'Food',
+  supplies: 'Supplies',
+  registration: 'Registration',
+  marketing: 'Marketing',
+  utilities: 'Utilities',
+  misc: 'Misc',
+};
+
 export function ExpenseFormDialog({
   open,
   onOpenChange,
@@ -58,7 +72,12 @@ export function ExpenseFormDialog({
   const updateExpense = useUpdateExpense();
   const { data: dogs } = useDogs();
   const { data: litters } = useLitters();
+  const { data: customCategories } = useExpenseCategories();
+  const createCategory = useCreateExpenseCategory();
   const isEditing = !!expense;
+  
+  const [showNewCategoryDialog, setShowNewCategoryDialog] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const {
     register,
@@ -126,6 +145,25 @@ export function ExpenseFormDialog({
     onOpenChange(false);
   };
 
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    
+    try {
+      await createCategory.mutateAsync({ name: newCategoryName.trim() });
+      setValue('category', newCategoryName.trim());
+      setNewCategoryName('');
+      setShowNewCategoryDialog(false);
+    } catch (error) {
+      // Error is handled by the hook's toast
+    }
+  };
+
+  // Get all available categories (built-in + custom)
+  const allCategories = [
+    ...Object.entries(BUILT_IN_CATEGORIES).map(([value, label]) => ({ value, label, isCustom: false })),
+    ...(customCategories || []).map((cat) => ({ value: cat.name, label: cat.name, isCustom: true })),
+  ].sort((a, b) => a.label.localeCompare(b.label));
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -158,7 +196,19 @@ export function ExpenseFormDialog({
             </div>
 
             <div className="space-y-2">
-              <Label>Category *</Label>
+              <div className="flex items-center justify-between">
+                <Label>Category *</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setShowNewCategoryDialog(true)}
+                >
+                  <Plus className="mr-1 h-3 w-3" />
+                  New Category
+                </Button>
+              </div>
               <Select
                 value={watch('category')}
                 onValueChange={(value) => setValue('category', value)}
@@ -167,14 +217,11 @@ export function ExpenseFormDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="transport">Transport</SelectItem>
-                  <SelectItem value="vet">Vet</SelectItem>
-                  <SelectItem value="food">Food</SelectItem>
-                  <SelectItem value="supplies">Supplies</SelectItem>
-                  <SelectItem value="registration">Registration</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="utilities">Utilities</SelectItem>
-                  <SelectItem value="misc">Misc</SelectItem>
+                  {allCategories.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -297,6 +344,52 @@ export function ExpenseFormDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      {/* New Category Dialog */}
+      <Dialog open={showNewCategoryDialog} onOpenChange={setShowNewCategoryDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Category</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="categoryName">Category Name *</Label>
+              <Input
+                id="categoryName"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="e.g., Training, Grooming, Insurance"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCreateCategory();
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowNewCategoryDialog(false);
+                setNewCategoryName('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCreateCategory}
+              disabled={!newCategoryName.trim() || createCategory.isPending}
+            >
+              {createCategory.isPending ? 'Creating...' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

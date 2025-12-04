@@ -22,11 +22,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useExpenses, useDeleteExpense } from '@/hooks/useExpenses';
+import { useExpenseCategories } from '@/hooks/useExpenseCategories';
 import { ExpenseFormDialog } from './ExpenseFormDialog';
 import { formatDate, formatCurrency } from '@/lib/utils';
-import type { Expense, ExpenseCategory } from '@/types';
+import type { Expense } from '@/types';
 
-const categoryColors: Record<ExpenseCategory, string> = {
+// Built-in category colors
+const BUILT_IN_CATEGORY_COLORS: Record<string, string> = {
   transport: '#3b82f6',
   vet: '#ef4444',
   food: '#22c55e',
@@ -37,12 +39,35 @@ const categoryColors: Record<ExpenseCategory, string> = {
   misc: '#64748b',
 };
 
+// Generate a color from category name (deterministic)
+function getCategoryColor(category: string, customCategories?: Array<{ name: string; color?: string | null }>): string {
+  // Check if it's a built-in category
+  if (BUILT_IN_CATEGORY_COLORS[category]) {
+    return BUILT_IN_CATEGORY_COLORS[category];
+  }
+  
+  // Check if it's a custom category with a color
+  const customCat = customCategories?.find(c => c.name === category);
+  if (customCat?.color) {
+    return customCat.color;
+  }
+  
+  // Generate a deterministic color from the category name
+  let hash = 0;
+  for (let i = 0; i < category.length; i++) {
+    hash = category.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 65%, 50%)`;
+}
+
 interface DogExpensesListProps {
   dogId: string;
 }
 
 export function DogExpensesList({ dogId }: DogExpensesListProps) {
   const { data: expenses, isLoading } = useExpenses({ dogId });
+  const { data: customCategories } = useExpenseCategories();
   const deleteExpense = useDeleteExpense();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | undefined>();
@@ -132,8 +157,8 @@ export function DogExpensesList({ dogId }: DogExpensesListProps) {
                       <Badge
                         variant="outline"
                         style={{
-                          borderColor: categoryColors[expense.category as ExpenseCategory],
-                          color: categoryColors[expense.category as ExpenseCategory],
+                          borderColor: getCategoryColor(expense.category, customCategories),
+                          color: getCategoryColor(expense.category, customCategories),
                         }}
                       >
                         {expense.category}

@@ -1,12 +1,23 @@
 # Respectabullz Internal API Reference
 
-**Version 1.1.0**
+**Version 1.3.0**
 
 ## Overview
 
-This document describes the internal API provided by the database layer (`src/lib/db.ts`) and consumed by React hooks (`src/hooks/`).
+This document describes the internal API provided by the database layer (`src/lib/db/`) and consumed by React hooks (`src/hooks/`).
 
-All functions are async and return Promises. The API uses TypeScript for type safety.
+The database layer has been refactored into modular domain-specific files:
+- `src/lib/db/dogs.ts` - Dog operations
+- `src/lib/db/litters.ts` - Litter operations
+- `src/lib/db/health.ts` - Health records
+- `src/lib/db/breeding.ts` - Breeding operations
+- `src/lib/db/sales.ts` - Sales and client operations
+- `src/lib/db/operations.ts` - Expenses and transports
+- `src/lib/db/settings.ts` - Settings management
+- `src/lib/db/dashboard.ts` - Dashboard statistics
+- `src/lib/db/index.ts` - Re-exports all functions for backwards compatibility
+
+All functions are async and return Promises. The API uses TypeScript for type safety. The database now uses SQLite via `tauri-plugin-sql` instead of localStorage.
 
 ## Dog Operations
 
