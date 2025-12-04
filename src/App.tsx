@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { FirstLaunchDialog } from './components/FirstLaunchDialog';
 import { DashboardPage } from './pages/DashboardPage';
 import { DogsPage } from './pages/DogsPage';
 import { DogDetailPage } from './pages/DogDetailPage';
@@ -19,6 +20,7 @@ import { SettingsPage } from './pages/SettingsPage';
 function App() {
   return (
     <ErrorBoundary>
+      <FirstLaunchDialog />
       <AppShell>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

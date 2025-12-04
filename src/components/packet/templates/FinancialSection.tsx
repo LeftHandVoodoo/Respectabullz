@@ -389,7 +389,7 @@ export function FinancialSection({ data }: FinancialSectionProps) {
                 <Text style={{ ...sharedStyles.tableCell, width: '25%' }}>
                   {expense.category.charAt(0).toUpperCase() + expense.category.slice(1)}
                 </Text>
-                <Text style={{ ...sharedStyles.tableCell, width: '30%' }} numberOfLines={1}>
+                <Text style={{ ...sharedStyles.tableCell, width: '30%' }}>
                   {expense.description || expense.vendorName || '-'}
                 </Text>
                 <Text style={{ ...sharedStyles.tableCell, width: '20%', textAlign: 'right' }}>

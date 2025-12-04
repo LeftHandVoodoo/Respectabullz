@@ -54,7 +54,7 @@ function AncestorBox({ dog, label, compact = false }: AncestorBoxProps) {
         fontSize: compact ? 6 : 8,
         fontFamily: 'Helvetica-Bold',
         color: dog ? BRAND_COLORS.darkBrown : BRAND_COLORS.gray[500],
-      }} numberOfLines={1}>
+      }}>
         {dog?.name || 'Unknown'}
       </Text>
       
@@ -65,7 +65,7 @@ function AncestorBox({ dog, label, compact = false }: AncestorBoxProps) {
           fontFamily: 'Courier',
           color: BRAND_COLORS.gray[600],
           marginTop: 1,
-        }} numberOfLines={1}>
+        }}>
           {dog.registrationNumber}
         </Text>
       )}
@@ -76,7 +76,7 @@ function AncestorBox({ dog, label, compact = false }: AncestorBoxProps) {
           fontSize: 5,
           color: BRAND_COLORS.gray[500],
           marginTop: 1,
-        }} numberOfLines={1}>
+        }}>
           {dog.color}
         </Text>
       )}

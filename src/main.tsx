@@ -20,7 +20,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <ThemeProvider defaultTheme="light" storageKey="respectabullz-theme">
+        <ThemeProvider defaultTheme="dark" storageKey="respectabullz-theme">
           <App />
           <Toaster />
         </ThemeProvider>

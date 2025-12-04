@@ -65,13 +65,28 @@ A comprehensive desktop application for managing dog breeding operations, built 
 
 ## Getting Started
 
-### Prerequisites
+### For End Users
 
+**No development tools required!** Simply download and install:
+
+1. Download the latest release from the [Releases page](https://github.com/LeftHandVoodoo/Respectabullz/releases)
+2. Run the installer (`Respectabullz_x.x.x_x64-setup.exe`)
+3. Follow the installation wizard
+4. Launch from Start Menu or Desktop shortcut
+
+**System Requirements:**
+- Windows 10 (64-bit) or later
+- 4 GB RAM
+- 500 MB free storage
+
+### For Developers
+
+**Prerequisites:**
 - Node.js 18+
 - Rust (for Tauri)
 - npm or yarn
 
-### Installation
+**Installation:**
 
 ```bash
 # Install dependencies
@@ -87,7 +102,7 @@ npm run db:push
 npm run dev
 ```
 
-### Build for Production
+**Build for Production:**
 
 ```bash
 # Build the Tauri application
