@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Full column sorting on Expenses page** - All columns are now sortable (date, category, dog, vendor, description, amount, tax deductible)
+  - Click any column header to sort ascending/descending
+  - Sort indicators show current sort column and direction
+  - Works with all filter combinations including multi-select categories
+
+### Fixed
+- **Litter form dialog scrolling** - Fixed issue where LitterFormDialog content was cut off on smaller screens, preventing users from accessing all form fields
+  - Added `max-h-[90vh] overflow-y-auto` classes to DialogContent to enable vertical scrolling when content exceeds viewport height
+  - Matches the responsive scrolling pattern used in other form dialogs (DogFormDialog, SaleFormDialog, ContractFormDialog, etc.)
+- **Expenses filter bug** - Fixed issue where expenses without a related dog were incorrectly excluded when dog filters were applied
+  - Expenses without a related dog are now always shown regardless of filter selection
+- **Seed database failures** - Fixed multiple issues preventing successful database seeding
+  - Fixed transport record NOT NULL constraint violation (dog_id must be provided)
+  - Added expense_categories to database clearing function
+  - Added comprehensive error logging to identify seed failures
+  - Seed function now automatically clears existing data before seeding
+- **Seed data completeness** - Added financial records (expenses) for all dogs in seed data
+  - All adult dogs now have multiple expense records (vet, food, supplies, grooming)
+  - All puppies have expense records (wellness exams, registration, supplies)
+  - 50+ total expenses covering all categories and dogs
+
 ## [1.3.0] - 2025-12-04
 
 ### Added
