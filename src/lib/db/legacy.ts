@@ -222,6 +222,7 @@ export async function clearDatabase(): Promise<void> {
   await execute('DELETE FROM clients');
   await execute('DELETE FROM transports');
   await execute('DELETE FROM expenses');
+  await execute('DELETE FROM expense_categories');
   await execute('DELETE FROM puppy_health_tasks');
   await execute('DELETE FROM health_schedule_templates');
   await execute('DELETE FROM genetic_tests');
@@ -252,13 +253,25 @@ export async function seedDatabase(): Promise<void> {
   // Check if data already exists
   const existingDogs = await query<{ count: number }>('SELECT COUNT(*) as count FROM dogs');
   if (existingDogs[0]?.count > 0) {
-    console.log('[Seed] Database already has data, skipping seed');
-    return;
+    console.log('[Seed] Database already has data, clearing first...');
+    await clearDatabase();
   }
   
   console.log('[Seed] Seeding database with comprehensive sample data...');
   const now = nowIso();
   const today = new Date();
+  
+  // Helper to execute with error logging
+  const safeExecute = async (sql: string, params: unknown[], label: string) => {
+    try {
+      await execute(sql, params);
+    } catch (error) {
+      console.error(`[Seed] ERROR in ${label}:`, error);
+      console.error(`[Seed] SQL: ${sql.substring(0, 100)}...`);
+      console.error(`[Seed] Params:`, params);
+      throw new Error(`Seed failed at: ${label}. ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
   
   // Helper to format date
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
@@ -1103,6 +1116,216 @@ export async function seedDatabase(): Promise<void> {
   );
 
   // ============================================
+  // 17B. ADDITIONAL EXPENSES FOR ALL DOGS
+  // ============================================
+  
+  // Sire (Iron Thunder) - Additional expenses
+  await safeExecute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(60), 85, 'vet', 'Valley Vet Clinic', 'Routine checkup - Iron Thunder', 'Credit Card', 1, sireId, now, now],
+    'Sire expense 1'
+  );
+  await safeExecute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(45), 120, 'food', 'Chewy', 'Premium adult dog food - Iron Thunder', 'Credit Card', 1, sireId, now, now],
+    'Sire expense 2'
+  );
+  await safeExecute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(20), 50, 'supplies', 'PetSmart', 'Toys and enrichment - Iron Thunder', 'Credit Card', 1, sireId, now, now],
+    'Sire expense 3'
+  );
+  
+  // Dam (Diamond Queen) - Additional expenses
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(50), 95, 'vet', 'Valley Vet Clinic', 'Pre-breeding exam - Diamond Queen', 'Credit Card', 1, damId, now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(40), 110, 'food', 'Chewy', 'Premium adult dog food - Diamond Queen', 'Credit Card', 1, damId, now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(25), 35, 'supplies', 'Amazon', 'Supplements and vitamins - Diamond Queen', 'Credit Card', 1, damId, now, now]
+  );
+  
+  // Dam2 (Ruby Rose) - Additional expenses
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(55), 75, 'vet', 'Valley Vet Clinic', 'Health check - Ruby Rose', 'Credit Card', 1, dam2Id, now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(35), 100, 'food', 'Petco', 'Premium adult dog food - Ruby Rose', 'Credit Card', 1, dam2Id, now, now]
+  );
+  
+  // Dam3 (Sapphire Star) - Expenses
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(65), 110, 'vet', 'Valley Vet Clinic', 'Pregnancy monitoring - Sapphire Star', 'Credit Card', 1, dam3Id, now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(50), 125, 'food', 'Chewy', 'Pregnancy nutrition - Sapphire Star', 'Credit Card', 1, dam3Id, now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(30), 40, 'supplies', 'Amazon', 'Pregnancy supplements - Sapphire Star', 'Credit Card', 1, dam3Id, now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(10), 70, 'Grooming', 'Grooming Salon', 'Pre-whelping groom - Sapphire Star', 'Cash', 1, dam3Id, now, now]
+  );
+  
+  // Retired Dam (Golden Legacy) - Expenses
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(180), 200, 'vet', 'Valley Vet Clinic', 'Spay surgery - Golden Legacy', 'Credit Card', 1, retiredDamId, now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(90), 95, 'vet', 'Valley Vet Clinic', 'Post-surgery checkup - Golden Legacy', 'Credit Card', 1, retiredDamId, now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(30), 90, 'food', 'Chewy', 'Senior dog food - Golden Legacy', 'Credit Card', 1, retiredDamId, now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(15), 45, 'Grooming', 'Grooming Salon', 'Full groom - Golden Legacy', 'Cash', 1, retiredDamId, now, now]
+  );
+  
+  // Puppy expenses - Apollo (Litter A)
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(21), 65, 'vet', 'Valley Vet Clinic', 'Puppy wellness exam - Apollo', 'Credit Card', 1, puppyIds[0], now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(14), 25, 'supplies', 'PetSmart', 'Puppy collar and leash - Apollo', 'Credit Card', 1, puppyIds[0], now, now]
+  );
+  
+  // Puppy expenses - Athena (Litter A)
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(21), 65, 'vet', 'Valley Vet Clinic', 'Puppy wellness exam - Athena', 'Credit Card', 1, puppyIds[1], now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(7), 30, 'registration', 'ABKC', 'Individual registration - Athena', 'Check', 1, puppyIds[1], now, now]
+  );
+  
+  // Puppy expenses - Zeus (Litter A)
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(21), 65, 'vet', 'Valley Vet Clinic', 'Puppy wellness exam - Zeus', 'Credit Card', 1, puppyIds[2], now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(10), 20, 'supplies', 'Amazon', 'Puppy toys - Zeus', 'Credit Card', 1, puppyIds[2], now, now]
+  );
+  
+  // Puppy expenses - Hera (Litter A)
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(21), 65, 'vet', 'Valley Vet Clinic', 'Puppy wellness exam - Hera', 'Credit Card', 1, puppyIds[3], now, now]
+  );
+  
+  // Puppy expenses - Ares (Litter A)
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(21), 65, 'vet', 'Valley Vet Clinic', 'Puppy wellness exam - Ares', 'Credit Card', 1, puppyIds[4], now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(5), 25, 'registration', 'ABKC', 'Individual registration - Ares', 'Check', 1, puppyIds[4], now, now]
+  );
+  
+  // Puppy expenses - Phoenix (Litter B - sold)
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(50), 60, 'vet', 'Valley Vet Clinic', 'Pre-sale health exam - Phoenix', 'Credit Card', 1, litterBPuppyIds[0], now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(45), 30, 'registration', 'ABKC', 'Individual registration - Phoenix', 'Check', 1, litterBPuppyIds[0], now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(40), 35, 'supplies', 'PetSmart', 'Puppy starter kit - Phoenix', 'Credit Card', 1, litterBPuppyIds[0], now, now]
+  );
+  
+  // Puppy expenses - Nova (Litter B - sold, already has transport)
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(50), 60, 'vet', 'Valley Vet Clinic', 'Pre-sale health exam - Nova', 'Credit Card', 1, litterBPuppyIds[1], now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(45), 30, 'registration', 'ABKC', 'Individual registration - Nova', 'Check', 1, litterBPuppyIds[1], now, now]
+  );
+  
+  // Puppy expenses - Orion (Litter B)
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(7), 65, 'vet', 'Valley Vet Clinic', 'Puppy wellness exam - Orion', 'Credit Card', 1, litterBPuppyIds[2], now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(3), 40, 'Training', 'Professional Dog Trainer', 'Early socialization - Orion', 'Credit Card', 1, litterBPuppyIds[2], now, now]
+  );
+  
+  // Puppy expenses - Luna (Litter B)
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(7), 65, 'vet', 'Valley Vet Clinic', 'Puppy wellness exam - Luna', 'Credit Card', 1, litterBPuppyIds[3], now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(2), 30, 'registration', 'ABKC', 'Individual registration - Luna', 'Check', 1, litterBPuppyIds[3], now, now]
+  );
+  await execute(
+    `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [generateId(), daysAgo(1), 25, 'Grooming', 'Grooming Salon', 'First groom - Luna', 'Cash', 1, litterBPuppyIds[3], now, now]
+  );
+
+  // ============================================
   // 18. TRANSPORTS
   // ============================================
   // Transport 1 - Flight nanny (Nova)
@@ -1121,20 +1344,20 @@ export async function seedDatabase(): Promise<void> {
     [transportId, litterBPuppyIds[1], daysAgo(8), 'flight', 'Puppy Express', 'Amanda Torres', '555-888-9999', 'amanda@puppyexpress.com', 'Austin', 'TX', 'Houston', 'TX', 'PE-2024-1234', 450, transportExpenseId, 'Flight nanny delivery. Puppy arrived safely.', now, now]
   );
   
-  // Transport 2 - Ground transport (past transport)
+  // Transport 2 - Ground transport (past transport for retired dam)
   const transport2Id = generateId();
   const transport2ExpenseId = generateId();
   
   await execute(
     `INSERT INTO expenses (id, date, amount, category, vendor_name, description, payment_method, is_tax_deductible, related_dog_id, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [transport2ExpenseId, daysAgo(300), 350, 'transport', 'Ground Transport LLC', 'Ground transport for previous sale', 'Credit Card', 1, null, now, now]
+    [transport2ExpenseId, daysAgo(300), 350, 'transport', 'Ground Transport LLC', 'Ground transport for Golden Legacy', 'Credit Card', 1, retiredDamId, now, now]
   );
   
   await execute(
     `INSERT INTO transports (id, dog_id, date, mode, shipper_business_name, contact_name, phone, email, origin_city, origin_state, destination_city, destination_state, tracking_number, cost, expense_id, notes, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [transport2Id, null, daysAgo(300), 'ground', 'Ground Transport LLC', 'Mike Johnson', '555-777-8888', 'mike@groundtransport.com', 'Austin', 'TX', 'Dallas', 'TX', 'GT-2023-5678', 350, transport2ExpenseId, 'Completed ground transport', now, now]
+    [transport2Id, retiredDamId, daysAgo(300), 'ground', 'Ground Transport LLC', 'Mike Johnson', '555-777-8888', 'mike@groundtransport.com', 'Austin', 'TX', 'Dallas', 'TX', 'GT-2023-5678', 350, transport2ExpenseId, 'Completed ground transport', now, now]
   );
   
   // Transport 3 - Local pickup (no expense, just record)
@@ -1261,7 +1484,8 @@ export async function seedDatabase(): Promise<void> {
   console.log('[Seed]   - Weight entries for multiple dogs (puppies and adults)');
   console.log('[Seed]   - 5 clients with sales, interests, and waitlist entries');
   console.log('[Seed]   - Communication logs and follow-ups');
-  console.log('[Seed]   - 20+ expenses across all categories (including custom categories)');
+  console.log('[Seed]   - 50+ expenses across all categories (including custom categories)');
+  console.log('[Seed]   - Financial records for all dogs (adults and puppies)');
   console.log('[Seed]   - 3 custom expense categories (Training, Grooming, Insurance)');
   console.log('[Seed]   - 3 transport records (flight, ground, pickup)');
   console.log('[Seed]   - Pedigree entries for multiple dogs (3 generations)');

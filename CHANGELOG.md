@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2025-01-16
+
 ### Added
 - **Full column sorting on Expenses page** - All columns are now sortable (date, category, dog, vendor, description, amount, tax deductible)
   - Click any column header to sort ascending/descending

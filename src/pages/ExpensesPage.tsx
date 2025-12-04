@@ -87,7 +87,7 @@ function getCategoryColor(category: string, customCategories?: Array<{ name: str
   return `hsl(${hue}, 65%, 50%)`;
 }
 
-type SortColumn = 'date' | 'amount' | null;
+type SortColumn = 'date' | 'category' | 'dog' | 'vendor' | 'description' | 'amount' | 'taxDeductible' | null;
 type SortDirection = 'asc' | 'desc';
 type Timeframe = '7days' | '30days' | '90days' | 'month' | 'custom';
 
@@ -244,11 +244,11 @@ export function ExpensesPage() {
       const matchesCategory =
         selectedCategories.length === 0 || selectedCategories.includes(expense.category);
 
-      // Dog filter (if no dogs selected, show all; also show expenses without a dog)
+      // Dog filter (if no dogs selected, show all; always show expenses without a dog)
       const matchesDog =
         selectedDogs.length === 0 || 
         (expense.relatedDogId && selectedDogs.includes(expense.relatedDogId)) ||
-        (!expense.relatedDogId && selectedDogs.length === 0);
+        !expense.relatedDogId; // Always include expenses without a related dog
 
       return matchesSearch && matchesCategory && matchesDog;
     });
@@ -264,6 +264,19 @@ export function ExpensesPage() {
           comparison = dateA - dateB;
         } else if (sortColumn === 'amount') {
           comparison = a.amount - b.amount;
+        } else if (sortColumn === 'category') {
+          comparison = (a.category || '').localeCompare(b.category || '');
+        } else if (sortColumn === 'dog') {
+          const dogA = dogs?.find(d => d.id === a.relatedDogId)?.name || '';
+          const dogB = dogs?.find(d => d.id === b.relatedDogId)?.name || '';
+          comparison = dogA.localeCompare(dogB);
+        } else if (sortColumn === 'vendor') {
+          comparison = (a.vendorName || '').localeCompare(b.vendorName || '');
+        } else if (sortColumn === 'description') {
+          comparison = (a.description || '').localeCompare(b.description || '');
+        } else if (sortColumn === 'taxDeductible') {
+          // Sort by tax deductible status (true first, then false)
+          comparison = (a.isTaxDeductible ? 1 : 0) - (b.isTaxDeductible ? 1 : 0);
         }
         
         return sortDirection === 'asc' ? comparison : -comparison;
@@ -379,7 +392,14 @@ export function ExpensesPage() {
     },
     {
       key: 'category',
-      header: 'Category',
+      header: (
+        <>
+          Category
+          <SortIcon column="category" />
+        </>
+      ),
+      sortable: true,
+      onSort: () => handleSort('category'),
       cell: (expense) => {
         const color = getCategoryColor(expense.category, customCategories);
         return (
@@ -398,7 +418,14 @@ export function ExpensesPage() {
     },
     {
       key: 'dog',
-      header: 'Dog',
+      header: (
+        <>
+          Dog
+          <SortIcon column="dog" />
+        </>
+      ),
+      sortable: true,
+      onSort: () => handleSort('dog'),
       cell: (expense) => {
         const dog = dogs?.find(d => d.id === expense.relatedDogId);
         return (
@@ -410,7 +437,14 @@ export function ExpensesPage() {
     },
     {
       key: 'vendor',
-      header: 'Vendor',
+      header: (
+        <>
+          Vendor
+          <SortIcon column="vendor" />
+        </>
+      ),
+      sortable: true,
+      onSort: () => handleSort('vendor'),
       cell: (expense) => (
         <span className={excludedExpenseIds.has(expense.id) ? 'text-muted-foreground line-through' : ''}>
           {expense.vendorName || '-'}
@@ -419,8 +453,15 @@ export function ExpensesPage() {
     },
     {
       key: 'description',
-      header: 'Description',
+      header: (
+        <>
+          Description
+          <SortIcon column="description" />
+        </>
+      ),
       cellClassName: 'max-w-[200px] truncate',
+      sortable: true,
+      onSort: () => handleSort('description'),
       cell: (expense) => (
         <span className={excludedExpenseIds.has(expense.id) ? 'text-muted-foreground' : ''}>
           {expense.description || '-'}
@@ -447,7 +488,14 @@ export function ExpensesPage() {
     },
     {
       key: 'taxDeductible',
-      header: 'Tax Deductible',
+      header: (
+        <>
+          Tax Deductible
+          <SortIcon column="taxDeductible" />
+        </>
+      ),
+      sortable: true,
+      onSort: () => handleSort('taxDeductible'),
       cell: (expense) =>
         expense.isTaxDeductible ? (
           <Badge variant="success" style={{ opacity: excludedExpenseIds.has(expense.id) ? 0.5 : 1 }}>
@@ -490,7 +538,7 @@ export function ExpensesPage() {
         </div>
       ),
     },
-  ], [sortColumn, sortDirection, excludedExpenseIds, filteredExpenses, dogs, customCategories]);
+  ], [sortColumn, sortDirection, excludedExpenseIds, filteredExpenses, dogs, customCategories, handleSort]);
 
   const categoryData = useMemo(() => {
     if (!expensesForChart) return [];
