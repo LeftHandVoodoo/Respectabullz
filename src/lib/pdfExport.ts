@@ -3,6 +3,8 @@
  * Uses @react-pdf/renderer for PDF generation.
  */
 import { StyleSheet } from '@react-pdf/renderer';
+import { convertFileSrc } from '@tauri-apps/api/core';
+import { getPhotoUrlAsync } from '@/lib/photoUtils';
 
 // Brand colors from project rules
 export const BRAND_COLORS = {
@@ -499,29 +501,78 @@ export function formatWeight(weightLbs: number): string {
 }
 
 // Convert image path to base64 for PDF embedding
+const isAbsolutePath = (value: string): boolean => /^[a-zA-Z]:\\/.test(value) || value.startsWith('/');
+
+const sanitizeRelativePath = (value: string): string =>
+  value.replace(/^[\\/]+/, '').replace(/^photos[\\/]/i, '');
+
+const joinPaths = (base: string, next: string): string => {
+  if (isAbsolutePath(next)) {
+    return next;
+  }
+  const separator = base.includes('\\') ? '\\' : '/';
+  const normalizedBase = base.endsWith(separator) ? base.slice(0, -1) : base;
+  return `${normalizedBase}${separator}${next.replace(/^[\\/]+/, '')}`;
+};
+
+const fetchAsDataUrl = async (path: string): Promise<string | null> => {
+  try {
+    const response = await fetch(path);
+    if (!response.ok) {
+      return null;
+    }
+    const blob = await response.blob();
+    const mimeType = blob.type || 'image/png';
+    const buffer = await blob.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    return `data:${mimeType};base64,${base64}`;
+  } catch (error) {
+    console.warn('Failed to fetch image for PDF export:', path, error);
+    return null;
+  }
+};
+
 export async function imagePathToBase64(
   imagePath: string | null | undefined,
   photoBasePath?: string
 ): Promise<string | null> {
   if (!imagePath) return null;
+  const trimmedPath = imagePath.trim();
   
   try {
     // If it's already a data URL or HTTP URL, return as-is
-    if (imagePath.startsWith('data:') || imagePath.startsWith('http')) {
-      return imagePath;
+    if (trimmedPath.startsWith('data:') || trimmedPath.startsWith('http')) {
+      return trimmedPath;
+    }
+
+    // Attempt to load from the stored photos directory
+    const cleanedFilename = sanitizeRelativePath(trimmedPath);
+    const storedPhoto = await getPhotoUrlAsync(cleanedFilename);
+    if (storedPhoto) {
+      return storedPhoto;
     }
     
-    // For Tauri, we need to convert the file path to a usable URL
-    // This would use convertFileSrc in a real implementation
-    // For now, return null to indicate no image available
+    // Attempt to load from the provided base path (Tauri file system)
     if (photoBasePath) {
-      // Try to construct the path
-      // const fullPath = `${photoBasePath}/${imagePath}`;
-      // In Tauri, we'd use convertFileSrc(fullPath)
-      return null; // Placeholder - images will be handled in actual implementation
+      try {
+        const fullPath = joinPaths(photoBasePath, trimmedPath);
+        const fileUrl = convertFileSrc(fullPath);
+        const base64 = await fetchAsDataUrl(fileUrl);
+        if (base64) {
+          return base64;
+        }
+      } catch (error) {
+        console.warn('Unable to convert photo path via Tauri:', error);
+      }
     }
-    
-    return null;
+
+    // Fallback: try to fetch relative to the current origin (public assets)
+    return await fetchAsDataUrl(trimmedPath);
   } catch {
     console.error('Error converting image to base64:', imagePath);
     return null;

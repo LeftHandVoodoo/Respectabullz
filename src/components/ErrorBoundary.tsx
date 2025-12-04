@@ -1,5 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
+import { logger } from '@/lib/errorTracking';
 
 interface Props {
   children: ReactNode;
@@ -23,7 +24,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // Log to error tracking service
+    logger.error('ErrorBoundary caught an error', error, {
+      componentStack: errorInfo.componentStack,
+    });
     this.setState({ errorInfo });
   }
 

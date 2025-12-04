@@ -1,6 +1,6 @@
 # Respectabullz Architecture
 
-**Version 1.0.1**
+**Version 1.1.0**
 
 ## Overview
 
@@ -104,6 +104,9 @@ respectabullz/
 ├── src/
 │   ├── components/          # React components
 │   │   ├── ui/              # Reusable UI primitives (shadcn)
+│   │   │   ├── form-dialog.tsx      # Reusable form dialog wrapper
+│   │   │   ├── confirm-dialog.tsx   # Confirmation dialog component
+│   │   │   └── virtual-table.tsx   # Virtualized table component
 │   │   ├── layout/          # App shell components
 │   │   ├── dogs/            # Dog-specific components
 │   │   ├── litters/         # Litter components
@@ -155,10 +158,12 @@ respectabullz/
 │   ├── lib/                 # Utilities and services
 │   │   ├── db.ts            # Database client
 │   │   ├── utils.ts         # Helper functions
+│   │   ├── version.ts       # Version constant
 │   │   ├── contractUtils.ts # Contract generation utilities
 │   │   ├── photoUtils.ts    # Photo upload and display utilities
 │   │   ├── backupUtils.ts   # Full backup with photos (ZIP)
 │   │   ├── pdfExport.ts     # PDF generation utilities and styles
+│   │   ├── errorTracking.ts # Centralized error logging service
 │   │   └── notifications.ts # Notification utilities
 │   ├── pages/               # Route page components
 │   ├── types/               # TypeScript type definitions
@@ -260,7 +265,7 @@ User Action → Form Submit → Data Hook (useMutation)
 
 ### Lazy Loading
 - Routes not code-split (app is small enough)
-- Large lists should implement virtual scrolling (future)
+- Virtual scrolling implemented for large lists using @tanstack/react-virtual
 
 ### Database Optimization
 - Indexes on frequently queried fields

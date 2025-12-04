@@ -17,6 +17,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Clickable dates navigate to cycle detail pages
   - Month navigation with summary of cycles in current month
   - Supports multiple overlapping cycles on the same date
+- Recent activity feed on the dashboard showing latest vaccinations, litters, transports, expenses, and sales
+
+## [1.1.0] - 2025-12-04
+
+### Added
+- Reusable dialog components to reduce code duplication
+  - `FormDialog` - wrapper for form-based dialogs with standard header/footer
+  - `ConfirmDialog` - simple yes/no confirmation dialogs
+  - `FormDialogField` - helper for consistent form field styling
+- Virtual scrolling for large lists using @tanstack/react-virtual
+  - `VirtualTable` component for efficient rendering of large datasets
+  - Auto-enables for lists > 50 items, falls back to standard table for small lists
+  - Updated DogsPage, ClientsPage, and ExpensesPage to use VirtualTable
+- Centralized error tracking service with file logging
+  - `logger` API with debug/info/warn/error levels
+  - Persists logs to `{appDataDir}/logs/respectabullz.log` via Tauri
+  - Automatic log rotation when file exceeds 5MB
+  - Global error handlers for uncaught errors and unhandled promise rejections
+  - In-memory log buffer for quick access to recent entries
+  - Export functions for viewing/downloading logs
+
+### Fixed
+- Customer packet PDF export now embeds stored/local photos instead of returning placeholder values
+- Pedigree PDF visualization draws connector lines between generations for improved readability
 
 ## [1.0.2] - 2025-01-27
 

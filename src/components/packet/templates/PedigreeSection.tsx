@@ -84,6 +84,29 @@ function AncestorBox({ dog, label, compact = false }: AncestorBoxProps) {
   );
 }
 
+const connectorColor = BRAND_COLORS.gray[300];
+
+function ConnectorColumn({ segments }: { segments: number }) {
+  if (segments <= 0) {
+    return <View style={{ width: '2%' }} />;
+  }
+
+  return (
+    <View style={{ width: '3%', height: '100%', flexDirection: 'column' }}>
+      {Array.from({ length: segments }).map((_, index) => (
+        <View
+          key={`connector-${segments}-${index}`}
+          style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <View style={{ flex: 1, width: 1, backgroundColor: connectorColor }} />
+          <View style={{ width: '100%', height: 1, backgroundColor: connectorColor }} />
+          <View style={{ flex: 1, width: 1, backgroundColor: connectorColor }} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 // Helper function to get ancestor from pedigree data
 function getAncestor(
   data: PacketData,
@@ -254,16 +277,8 @@ export function PedigreeSection({ data, generations }: PedigreeSectionProps) {
           </View>
         </View>
         
-        {/* Connecting lines placeholder */}
-        <View style={{ width: '2%' }}>
-          <View style={{
-            height: '100%',
-            width: 1,
-            backgroundColor: BRAND_COLORS.gray[300],
-            marginLeft: 'auto',
-            marginRight: 'auto',
-          }} />
-        </View>
+        {/* Connecting lines */}
+        <ConnectorColumn segments={2} />
         
         {/* Generation 1: Parents */}
         <View style={{ width: '15%' }}>
@@ -286,15 +301,7 @@ export function PedigreeSection({ data, generations }: PedigreeSectionProps) {
         </View>
         
         {/* Connecting lines */}
-        <View style={{ width: '2%' }}>
-          <View style={{
-            height: '100%',
-            width: 1,
-            backgroundColor: BRAND_COLORS.gray[300],
-            marginLeft: 'auto',
-            marginRight: 'auto',
-          }} />
-        </View>
+        <ConnectorColumn segments={4} />
         
         {/* Generation 2: Grandparents */}
         <View style={{ width: '15%' }}>
@@ -335,15 +342,7 @@ export function PedigreeSection({ data, generations }: PedigreeSectionProps) {
         {generations >= 3 && (
           <>
             {/* Connecting lines */}
-            <View style={{ width: '2%' }}>
-              <View style={{
-                height: '100%',
-                width: 1,
-                backgroundColor: BRAND_COLORS.gray[300],
-                marginLeft: 'auto',
-                marginRight: 'auto',
-              }} />
-            </View>
+            <ConnectorColumn segments={8} />
             
             {/* Generation 3: Great-grandparents */}
             <View style={{ width: '15%' }}>
@@ -364,15 +363,7 @@ export function PedigreeSection({ data, generations }: PedigreeSectionProps) {
         {generations >= 4 && (
           <>
             {/* Connecting lines */}
-            <View style={{ width: '2%' }}>
-              <View style={{
-                height: '100%',
-                width: 1,
-                backgroundColor: BRAND_COLORS.gray[300],
-                marginLeft: 'auto',
-                marginRight: 'auto',
-              }} />
-            </View>
+            <ConnectorColumn segments={16} />
             
             {/* Generation 4: Great-great-grandparents */}
             <View style={{ width: '20%' }}>

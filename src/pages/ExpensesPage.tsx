@@ -17,26 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
+import { VirtualTable, VirtualTableColumn } from '@/components/ui/virtual-table';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useExpenses, useDeleteExpense } from '@/hooks/useExpenses';
 import { ExpenseFormDialog } from '@/components/expenses/ExpenseFormDialog';
 import { formatDate, formatCurrency } from '@/lib/utils';
@@ -69,6 +52,7 @@ export function ExpensesPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | undefined>();
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
 
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense);
@@ -139,6 +123,102 @@ export function ExpensesPage() {
   };
 
   const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+  const expenseColumns: VirtualTableColumn<Expense>[] = useMemo(() => [
+    {
+      key: 'date',
+      header: (
+        <>
+          Date
+          <SortIcon column="date" />
+        </>
+      ),
+      sortable: true,
+      onSort: () => handleSort('date'),
+      cell: (expense) => formatDate(expense.date),
+    },
+    {
+      key: 'category',
+      header: 'Category',
+      cell: (expense) => (
+        <Badge
+          variant="outline"
+          style={{
+            borderColor: categoryColors[expense.category as ExpenseCategory],
+            color: categoryColors[expense.category as ExpenseCategory],
+          }}
+        >
+          {expense.category}
+        </Badge>
+      ),
+    },
+    {
+      key: 'vendor',
+      header: 'Vendor',
+      cell: (expense) => expense.vendorName || '-',
+    },
+    {
+      key: 'description',
+      header: 'Description',
+      cellClassName: 'max-w-[200px] truncate',
+      cell: (expense) => expense.description || '-',
+    },
+    {
+      key: 'amount',
+      header: (
+        <>
+          Amount
+          <SortIcon column="amount" />
+        </>
+      ),
+      headerClassName: 'text-right',
+      cellClassName: 'text-right font-medium',
+      sortable: true,
+      onSort: () => handleSort('amount'),
+      cell: (expense) => formatCurrency(expense.amount),
+    },
+    {
+      key: 'taxDeductible',
+      header: 'Tax Deductible',
+      cell: (expense) =>
+        expense.isTaxDeductible ? (
+          <Badge variant="success">Yes</Badge>
+        ) : (
+          <Badge variant="outline">No</Badge>
+        ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '80px',
+      cell: (expense) => (
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEdit(expense);
+            }}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpenseToDelete(expense);
+            }}
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      ),
+    },
+  ], [sortColumn, sortDirection]);
 
   const categoryData = useMemo(() => {
     if (!expenses) return [];
@@ -326,129 +406,42 @@ export function ExpensesPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>
-                <button
-                  onClick={() => handleSort('date')}
-                  className="flex items-center hover:text-foreground transition-colors cursor-pointer"
-                  aria-label="Sort by date"
-                >
-                  Date
-                  <SortIcon column="date" />
-                </button>
-              </TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Vendor</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="text-right">
-                <button
-                  onClick={() => handleSort('amount')}
-                  className="flex items-center justify-end ml-auto hover:text-foreground transition-colors cursor-pointer"
-                  aria-label="Sort by amount"
-                >
-                  Amount
-                  <SortIcon column="amount" />
-                </button>
-              </TableHead>
-              <TableHead>Tax Deductible</TableHead>
-              <TableHead className="w-[80px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : filteredExpenses.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
-                  <p className="text-muted-foreground">No expenses found</p>
-                  <Button
-                    variant="link"
-                    onClick={() => setShowAddDialog(true)}
-                  >
-                    Add first expense
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredExpenses.map((expense) => (
-                <TableRow key={expense.id}>
-                  <TableCell>{formatDate(expense.date)}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      style={{
-                        borderColor: categoryColors[expense.category as ExpenseCategory],
-                        color: categoryColors[expense.category as ExpenseCategory],
-                      }}
-                    >
-                      {expense.category}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{expense.vendorName || '-'}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">
-                    {expense.description || '-'}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCurrency(expense.amount)}
-                  </TableCell>
-                  <TableCell>
-                    {expense.isTaxDeductible ? (
-                      <Badge variant="success">Yes</Badge>
-                    ) : (
-                      <Badge variant="outline">No</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleEdit(expense)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete this expense?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete this expense record.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteExpense.mutate(expense.id)}>
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <VirtualTable<Expense>
+        data={filteredExpenses}
+        columns={expenseColumns}
+        getRowKey={(expense) => expense.id}
+        isLoading={isLoading}
+        emptyState={
+          <div>
+            <p className="text-muted-foreground">No expenses found</p>
+            <Button
+              variant="link"
+              onClick={() => setShowAddDialog(true)}
+            >
+              Add first expense
+            </Button>
+          </div>
+        }
+      />
 
       <ExpenseFormDialog
         open={showAddDialog}
         onOpenChange={handleCloseDialog}
         expense={editingExpense}
+      />
+
+      <ConfirmDialog
+        open={!!expenseToDelete}
+        onOpenChange={(open) => !open && setExpenseToDelete(null)}
+        title="Delete this expense?"
+        description="This action cannot be undone. This will permanently delete this expense record."
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={() => {
+          if (expenseToDelete) {
+            deleteExpense.mutate(expenseToDelete.id);
+          }
+        }}
       />
     </div>
   );

@@ -10,22 +10,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SkeletonTableRow } from '@/components/ui/skeleton';
+import { VirtualTable, VirtualTableColumn } from '@/components/ui/virtual-table';
 import { useDogs } from '@/hooks/useDogs';
 import { DogFormDialog } from '@/components/dogs/DogFormDialog';
 import { calculateAge } from '@/lib/utils';
 import { getPhotoUrlSync, initPhotoBasePath } from '@/lib/photoUtils';
-import type { DogStatus } from '@/types';
+import type { Dog, DogStatus } from '@/types';
 
 const statusColors: Record<DogStatus, 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'> = {
   active: 'success',
@@ -116,6 +109,95 @@ export function DogsPage() {
     return filtered;
   }, [dogs, search, statusFilter, sexFilter, sortColumn, sortDirection]);
 
+  const dogsColumns: VirtualTableColumn<Dog>[] = useMemo(() => [
+    {
+      key: 'name',
+      header: (
+        <>
+          Name
+          <SortIcon column="name" />
+        </>
+      ),
+      sortable: true,
+      onSort: () => handleSort('name'),
+      cell: (dog) => (
+        <div className="flex items-center gap-3">
+          <Avatar className="h-8 w-8">
+            {dog.profilePhotoPath && (
+              <AvatarImage 
+                src={getPhotoUrlSync(dog.profilePhotoPath) || undefined} 
+                alt={dog.name}
+                className="object-cover"
+              />
+            )}
+            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+              {dog.name.substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <span className="font-medium">{dog.name}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'sex',
+      header: (
+        <>
+          Sex
+          <SortIcon column="sex" />
+        </>
+      ),
+      sortable: true,
+      onSort: () => handleSort('sex'),
+      cell: (dog) => (
+        <Badge variant="outline">
+          {dog.sex === 'M' ? 'Male' : 'Female'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'breed',
+      header: 'Breed',
+      cell: (dog) => dog.breed,
+    },
+    {
+      key: 'age',
+      header: (
+        <>
+          Age
+          <SortIcon column="age" />
+        </>
+      ),
+      sortable: true,
+      onSort: () => handleSort('age'),
+      cell: (dog) => (dog.dateOfBirth ? calculateAge(dog.dateOfBirth) : '-'),
+    },
+    {
+      key: 'registration',
+      header: 'Registration',
+      cell: (dog) => (
+        <span className="font-mono text-sm">
+          {dog.registrationNumber || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: (
+        <>
+          Status
+          <SortIcon column="status" />
+        </>
+      ),
+      sortable: true,
+      onSort: () => handleSort('status'),
+      cell: (dog) => (
+        <Badge variant={statusColors[dog.status]}>
+          {dog.status}
+        </Badge>
+      ),
+    },
+  ], [sortColumn, sortDirection]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -169,119 +251,32 @@ export function DogsPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border bg-card animate-slide-up-fade">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>
-                <button
-                  onClick={() => handleSort('name')}
-                  className="flex items-center hover:text-foreground transition-colors cursor-pointer"
-                  aria-label="Sort by name"
-                >
-                  Name
-                  <SortIcon column="name" />
-                </button>
-              </TableHead>
-              <TableHead>
-                <button
-                  onClick={() => handleSort('sex')}
-                  className="flex items-center hover:text-foreground transition-colors cursor-pointer"
-                  aria-label="Sort by sex"
-                >
-                  Sex
-                  <SortIcon column="sex" />
-                </button>
-              </TableHead>
-              <TableHead>Breed</TableHead>
-              <TableHead>
-                <button
-                  onClick={() => handleSort('age')}
-                  className="flex items-center hover:text-foreground transition-colors cursor-pointer"
-                  aria-label="Sort by age"
-                >
-                  Age
-                  <SortIcon column="age" />
-                </button>
-              </TableHead>
-              <TableHead>Registration</TableHead>
-              <TableHead>
-                <button
-                  onClick={() => handleSort('status')}
-                  className="flex items-center hover:text-foreground transition-colors cursor-pointer"
-                  aria-label="Sort by status"
-                >
-                  Status
-                  <SortIcon column="status" />
-                </button>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <SkeletonTableRow key={i} columns={6} />
-                ))}
-              </>
-            ) : filteredDogs?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  <p className="text-muted-foreground">No dogs found</p>
-                  <Button
-                    variant="link"
-                    onClick={() => setShowAddDialog(true)}
-                  >
-                    Add your first dog
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredDogs?.map((dog) => (
-                <TableRow
-                  key={dog.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => navigate(`/dogs/${dog.id}`)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        {dog.profilePhotoPath && (
-                          <AvatarImage 
-                            src={getPhotoUrlSync(dog.profilePhotoPath) || undefined} 
-                            alt={dog.name}
-                            className="object-cover"
-                          />
-                        )}
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                          {dog.name.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium">{dog.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {dog.sex === 'M' ? 'Male' : 'Female'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{dog.breed}</TableCell>
-                  <TableCell>
-                    {dog.dateOfBirth ? calculateAge(dog.dateOfBirth) : '-'}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {dog.registrationNumber || '-'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusColors[dog.status]}>
-                      {dog.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+      <div className="animate-slide-up-fade">
+        <VirtualTable<Dog>
+          data={filteredDogs}
+          getRowKey={(dog) => dog.id}
+          onRowClick={(dog) => navigate(`/dogs/${dog.id}`)}
+          isLoading={isLoading}
+          loadingSkeleton={
+            <>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <SkeletonTableRow key={i} columns={6} />
+              ))}
+            </>
+          }
+          emptyState={
+            <div>
+              <p className="text-muted-foreground">No dogs found</p>
+              <Button
+                variant="link"
+                onClick={() => setShowAddDialog(true)}
+              >
+                Add your first dog
+              </Button>
+            </div>
+          }
+          columns={dogsColumns}
+        />
       </div>
 
       {/* Add Dog Dialog */}

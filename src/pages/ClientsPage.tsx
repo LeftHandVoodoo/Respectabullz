@@ -1,30 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Search, Mail, Phone, Edit, Trash2, Eye, Package, Truck, CheckCircle, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { VirtualTable, VirtualTableColumn } from '@/components/ui/virtual-table';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useClients, useDeleteClient } from '@/hooks/useClients';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
 import { CommunicationTimeline } from '@/components/communication/CommunicationTimeline';
@@ -68,6 +51,7 @@ export function ClientsPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
   const handleEdit = (client: Client) => {
     setEditingClient(client);
@@ -81,15 +65,98 @@ export function ClientsPage() {
     }
   };
 
-  const filteredClients = clients?.filter((client) => {
-    return (
-      client.name.toLowerCase().includes(search.toLowerCase()) ||
-      client.email?.toLowerCase().includes(search.toLowerCase()) ||
-      client.city?.toLowerCase().includes(search.toLowerCase())
-    );
-  });
+  const filteredClients = useMemo(() => {
+    return clients?.filter((client) => {
+      return (
+        client.name.toLowerCase().includes(search.toLowerCase()) ||
+        client.email?.toLowerCase().includes(search.toLowerCase()) ||
+        client.city?.toLowerCase().includes(search.toLowerCase())
+      );
+    }) ?? [];
+  }, [clients, search]);
 
   const selectedClientData = clients?.find((c) => c.id === selectedClient);
+
+  const clientColumns: VirtualTableColumn<Client>[] = useMemo(() => [
+    {
+      key: 'name',
+      header: 'Name',
+      cell: (client) => (
+        <div className="flex items-center gap-3">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="text-xs">
+              {client.name
+                .split(' ')
+                .map((n) => n[0])
+                .join('')
+                .toUpperCase()
+                .substring(0, 2)}
+            </AvatarFallback>
+          </Avatar>
+          <span className="font-medium">{client.name}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'contact',
+      header: 'Contact',
+      cell: (client) => (
+        <div className="text-sm">
+          {client.email && (
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Mail className="h-3 w-3" />
+              {client.email}
+            </div>
+          )}
+          {client.phone && (
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Phone className="h-3 w-3" />
+              {client.phone}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'location',
+      header: 'Location',
+      cell: (client) => (
+        client.city && client.state
+          ? `${client.city}, ${client.state}`
+          : '-'
+      ),
+    },
+    {
+      key: 'purchases',
+      header: 'Purchases',
+      cell: (client) => client.sales?.length || 0,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '80px',
+      cell: (client) => (
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => handleEdit(client)}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setClientToDelete(client)}
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      ),
+    },
+  ], []);
 
   return (
     <div className="space-y-6">
@@ -120,121 +187,27 @@ export function ClientsPage() {
           </div>
 
           {/* Table */}
-          <div className="rounded-lg border bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Purchases</TableHead>
-                  <TableHead className="w-[80px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
-                      Loading...
-                    </TableCell>
-                  </TableRow>
-                ) : filteredClients?.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
-                      <p className="text-muted-foreground">No clients found</p>
-                      <Button
-                        variant="link"
-                        onClick={() => setShowAddDialog(true)}
-                      >
-                        Add first client
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredClients?.map((client) => (
-                    <TableRow
-                      key={client.id}
-                      className={`cursor-pointer hover:bg-muted/50 ${
-                        selectedClient === client.id ? 'bg-muted' : ''
-                      }`}
-                      onClick={() => setSelectedClient(client.id)}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="text-xs">
-                              {client.name
-                                .split(' ')
-                                .map((n) => n[0])
-                                .join('')
-                                .toUpperCase()
-                                .substring(0, 2)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{client.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          {client.email && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Mail className="h-3 w-3" />
-                              {client.email}
-                            </div>
-                          )}
-                          {client.phone && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Phone className="h-3 w-3" />
-                              {client.phone}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {client.city && client.state
-                          ? `${client.city}, ${client.state}`
-                          : '-'}
-                      </TableCell>
-                      <TableCell>{client.sales?.length || 0}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleEdit(client)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete {client.name}?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently delete this client record.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteClient.mutate(client.id)}>
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <VirtualTable<Client>
+            data={filteredClients}
+            columns={clientColumns}
+            getRowKey={(client) => client.id}
+            onRowClick={(client) => setSelectedClient(client.id)}
+            rowClassName={(client) =>
+              selectedClient === client.id ? 'bg-muted' : ''
+            }
+            isLoading={isLoading}
+            emptyState={
+              <div>
+                <p className="text-muted-foreground">No clients found</p>
+                <Button
+                  variant="link"
+                  onClick={() => setShowAddDialog(true)}
+                >
+                  Add first client
+                </Button>
+              </div>
+            }
+          />
         </div>
 
         {/* Client Detail */}
@@ -463,6 +436,20 @@ export function ClientsPage() {
         open={showAddDialog}
         onOpenChange={handleCloseDialog}
         client={editingClient}
+      />
+
+      <ConfirmDialog
+        open={!!clientToDelete}
+        onOpenChange={(open) => !open && setClientToDelete(null)}
+        title={`Delete ${clientToDelete?.name}?`}
+        description="This action cannot be undone. This will permanently delete this client record."
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={() => {
+          if (clientToDelete) {
+            deleteClient.mutate(clientToDelete.id);
+          }
+        }}
       />
     </div>
   );

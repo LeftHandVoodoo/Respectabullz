@@ -5,7 +5,11 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { ThemeProvider } from './components/theme-provider';
 import { Toaster } from './components/ui/toaster';
+import { setupGlobalErrorHandlers } from './lib/errorTracking';
 import './index.css';
+
+// Initialize global error handlers for logging
+setupGlobalErrorHandlers();
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -88,6 +88,20 @@ For testing releases:
 
 ## Current Version
 
+**1.1.0** (2025-12-04)
+
+Minor release - New features and improvements:
+- Reusable dialog components (FormDialog, ConfirmDialog) to reduce code duplication
+- Virtual scrolling for large lists using @tanstack/react-virtual
+- Centralized error tracking service with file logging via Tauri
+- Updated DogsPage, ClientsPage, and ExpensesPage with virtual table support
+
+**1.0.2** (2025-12-04)
+
+Patch release - Bug fixes:
+- Customer packet PDF export now embeds stored/local photos
+- Pedigree PDF visualization draws connector lines between generations
+
 **1.0.1** (2025-12-04)
 
 Patch release - Improvements and fixes:

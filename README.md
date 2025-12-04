@@ -6,7 +6,7 @@
 
 # Respectabullz - Breeder Management Application
 
-**Version 1.0.1** - Latest Release
+**Version 1.1.0** - Latest Release
 
 A comprehensive desktop application for managing dog breeding operations, built with Tauri, React, TypeScript, and SQLite.
 
