@@ -31,7 +31,7 @@ import { isTauriEnvironment } from '@/lib/backupUtils';
 import { getPhotoUrlAsync } from '@/lib/photoUtils';
 import { PacketDocument } from './templates/PacketDocument';
 import { getPacketData } from '@/lib/db';
-import type { PacketOptions, PacketData } from '@/types';
+import type { PacketOptions } from '@/types';
 import { DEFAULT_PACKET_OPTIONS } from '@/types';
 
 interface PacketExportDialogProps {

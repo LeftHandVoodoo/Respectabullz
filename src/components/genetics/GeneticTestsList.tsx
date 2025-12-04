@@ -169,10 +169,6 @@ export function GeneticTestsList({ dogId }: GeneticTestsListProps) {
                   const config = statusConfig[test.result];
                   const StatusIcon = config.icon;
 
-                  const testInfo = getGeneticTestInfo(test.testType);
-                  const explanation = getGeneticTestExplanation(test.testType, test.result);
-                  const breedingRec = getBreedingRecommendation(test.testType);
-
                   return (
                     <TableRow key={test.id}>
                       <TableCell className="font-medium">

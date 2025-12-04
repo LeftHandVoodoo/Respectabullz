@@ -2,7 +2,7 @@
  * PDF Export utilities and shared styles for Customer Packet generation.
  * Uses @react-pdf/renderer for PDF generation.
  */
-import { StyleSheet, Font } from '@react-pdf/renderer';
+import { StyleSheet } from '@react-pdf/renderer';
 
 // Brand colors from project rules
 export const BRAND_COLORS = {
@@ -516,7 +516,7 @@ export async function imagePathToBase64(
     // For now, return null to indicate no image available
     if (photoBasePath) {
       // Try to construct the path
-      const fullPath = `${photoBasePath}/${imagePath}`;
+      // const fullPath = `${photoBasePath}/${imagePath}`;
       // In Tauri, we'd use convertFileSrc(fullPath)
       return null; // Placeholder - images will be handled in actual implementation
     }

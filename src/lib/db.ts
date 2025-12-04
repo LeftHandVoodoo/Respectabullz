@@ -9,6 +9,7 @@ import type {
   VaccinationRecord,
   WeightEntry,
   MedicalRecord,
+  MedicalRecordType,
   Transport,
   Expense,
   Client,
@@ -215,15 +216,16 @@ function loadDb(): Database {
           createdAt: new Date(t.createdAt),
           updatedAt: new Date(t.updatedAt),
         })),
-        expenses: (parsed.expenses || []).map((e: Expense) => {
+        expenses: (parsed.expenses || []).map((e: Expense | { date: string | Date; createdAt: string | Date; updatedAt: string | Date; [key: string]: unknown }) => {
           // Parse date properly to avoid timezone issues
           let expenseDate: Date;
-          if (typeof e.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(e.date)) {
+          const dateValue = e.date;
+          if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
             // Handle YYYY-MM-DD format manually to avoid timezone issues
-            const [year, month, day] = e.date.split('-').map(Number);
+            const [year, month, day] = dateValue.split('-').map(Number);
             expenseDate = new Date(year, month - 1, day);
           } else {
-            expenseDate = new Date(e.date);
+            expenseDate = new Date(dateValue);
           }
           return {
             ...e,
@@ -1633,9 +1635,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const now = new Date();
   const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  
   // Count active dogs
   const activeDogs = db.dogs.filter(d => d.status === 'active').length;
   
@@ -4258,8 +4257,8 @@ export async function seedDatabase(): Promise<void> {
   };
 
   // Helper function to create medical records for a dog
-  const createMedicalRecords = (dogId: string, ageYears: number, isPuppy: boolean = false, isRetired: boolean = false) => {
-    const records = [];
+  const createMedicalRecords = (dogId: string, ageYears: number, isPuppy: boolean = false, isRetired: boolean = false): MedicalRecord[] => {
+    const records: MedicalRecord[] = [];
     
     if (isRetired) {
       // Retired/older dogs - historical records
@@ -4267,7 +4266,7 @@ export async function seedDatabase(): Promise<void> {
         id: generateId(),
         dogId,
         date: daysAgo(365 * ageYears - 180),
-        type: 'exam',
+        type: 'exam' as MedicalRecordType,
         description: 'Annual health checkup',
         vetClinic: 'Animal Hospital',
         notes: 'Good health for age',
@@ -4280,7 +4279,7 @@ export async function seedDatabase(): Promise<void> {
         id: generateId(),
         dogId,
         date: daysAgo(50),
-        type: 'exam',
+        type: 'exam' as MedicalRecordType,
         description: 'First puppy exam',
         vetClinic: 'Animal Hospital',
         notes: 'Healthy puppy, all clear',
@@ -4293,7 +4292,7 @@ export async function seedDatabase(): Promise<void> {
         id: generateId(),
         dogId,
         date: daysAgo(180),
-        type: 'exam',
+        type: 'exam' as MedicalRecordType,
         description: 'Annual health checkup',
         vetClinic: 'Animal Hospital',
         notes: 'All clear, excellent health',
@@ -4306,7 +4305,7 @@ export async function seedDatabase(): Promise<void> {
           id: generateId(),
           dogId,
           date: daysAgo(365),
-          type: 'exam',
+          type: 'exam' as MedicalRecordType,
           description: 'Annual health checkup',
           vetClinic: 'Animal Hospital',
           notes: 'Routine checkup, healthy',
@@ -4901,7 +4900,7 @@ export async function seedDatabase(): Promise<void> {
       id: generateId(),
       dogId: dam1Id,
       date: daysAgo(55),
-      type: 'surgery',
+      type: 'surgery' as MedicalRecordType,
       description: 'C-section delivery',
       vetClinic: 'Animal Hospital',
       notes: 'Successful delivery of 8 puppies',
@@ -4912,7 +4911,7 @@ export async function seedDatabase(): Promise<void> {
       id: generateId(),
       dogId: dam2Id,
       date: daysAgo(10),
-      type: 'surgery',
+      type: 'surgery' as MedicalRecordType,
       description: 'Natural whelping assistance',
       vetClinic: 'Animal Hospital',
       notes: 'Successful delivery of 6 puppies',
@@ -4941,7 +4940,7 @@ export async function seedDatabase(): Promise<void> {
       id: generateId(),
       dogId: puppies1[2].id,
       date: daysAgo(50),
-      type: 'surgery',
+      type: 'surgery' as MedicalRecordType,
       description: 'Dewclaw removal',
       vetClinic: 'Animal Hospital',
       notes: 'Routine procedure',
@@ -4955,8 +4954,8 @@ export async function seedDatabase(): Promise<void> {
   // ============================================
   
   // Helper function to create expense records for a dog based on their vaccinations and medical records
-  const createExpenseRecordsForDog = (dogId: string, dogName: string, ageYears: number, isPuppy: boolean = false) => {
-    const expenses = [];
+  const createExpenseRecordsForDog = (dogId: string, _dogName: string, ageYears: number, isPuppy: boolean = false): Expense[] => {
+    const expenses: Expense[] = [];
     const dogVaccinations = db.vaccinations.filter(v => v.dogId === dogId);
     const dogMedicalRecords = db.medicalRecords.filter(m => m.dogId === dogId);
     

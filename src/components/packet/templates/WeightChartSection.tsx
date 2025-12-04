@@ -11,7 +11,7 @@ interface WeightChartSectionProps {
 }
 
 export function WeightChartSection({ data }: WeightChartSectionProps) {
-  const { weightEntries, dog } = data;
+  const { weightEntries } = data;
   
   // Sort entries by date ascending for the chart
   const sortedEntries = [...weightEntries].sort(
@@ -345,7 +345,7 @@ export function WeightChartSection({ data }: WeightChartSectionProps) {
                   }}>
                     {prevEntry ? (change >= 0 ? '+' : '') + change.toFixed(1) : '-'}
                   </Text>
-                  <Text style={{ ...sharedStyles.tableCell, width: '25%' }} numberOfLines={1}>
+                  <Text style={{ ...sharedStyles.tableCell, width: '25%' }}>
                     {entry.notes || '-'}
                   </Text>
                 </View>

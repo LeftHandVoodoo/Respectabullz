@@ -74,7 +74,7 @@ function PageHeader({ data, logoBase64 }: { data: PacketData; logoBase64?: strin
 }
 
 // Footer component for all pages
-function PageFooter({ data, pageNumber }: { data: PacketData; pageNumber?: number }) {
+function PageFooter({ data }: { data: PacketData; pageNumber?: number }) {
   return (
     <View style={sharedStyles.footer} fixed>
       <Text style={{

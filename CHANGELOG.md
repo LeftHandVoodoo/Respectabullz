@@ -7,8 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2025-12-04
+
+### Fixed
+- Fixed all TypeScript compilation errors (98 errors resolved)
+  - Removed unused variables and imports across multiple components
+  - Fixed type annotations in `createMedicalRecords` and `createExpenseRecordsForDog` helper functions
+  - Fixed expense date parsing type safety in database initialization
+  - Added proper return type annotations to prevent implicit `any[]` types
+  - Fixed MedicalRecord type compatibility issues in seed data generation
+
 ### Added
-- (Future features will be documented here)
+- Windows NSIS installer configuration for easy end-user distribution
+- First-launch dialog allowing users to choose between empty database or sample data on initial startup
 - Audit report documenting project size, complexity, and senior/junior effort & cost estimates in `Audit_Results.md`
 
 ## [1.0.0] - 2025-12-03

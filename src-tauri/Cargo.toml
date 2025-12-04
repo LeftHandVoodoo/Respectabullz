@@ -1,6 +1,6 @@
 [package]
 name = "respectabullz"
-version = "1.0.0"
+version = "1.0.1"
 description = "Breeder management application"
 authors = ["LeftHandVoodoo"]
 edition = "2021"
