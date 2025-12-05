@@ -5,7 +5,11 @@ All notable changes to Respectabullz will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.5.2] - 2025-12-04
+
+### Changed
+- Reports: Added drilldown on Expenses by Category pie slices to show expense list
+- Reports: Made expense drilldown dialog scrollable and contained to viewport
 
 ## [1.5.1] - 2025-12-04
 

@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useExpenses } from '@/hooks/useExpenses';
@@ -79,6 +80,7 @@ export function ReportsPage() {
   const { data: vaccinations } = useVaccinations();
   const { data: sales } = useSales();
   
+  const [selectedExpenseCategory, setSelectedExpenseCategory] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<VaccinationCategory | null>(null);
   const [selectedDogStatus, setSelectedDogStatus] = useState<DogStatusCategory | null>(null);
 
@@ -107,6 +109,11 @@ export function ReportsPage() {
     });
     return Object.entries(grouped).map(([name, value]) => ({ name, value }));
   }, [expenses]);
+
+  const expensesForSelectedCategory = useMemo(() => {
+    if (!selectedExpenseCategory || !expenses) return [];
+    return expenses.filter((expense) => expense.category === selectedExpenseCategory);
+  }, [expenses, selectedExpenseCategory]);
 
   // Tax summary
   const taxSummary = useMemo(() => {
@@ -231,6 +238,11 @@ export function ReportsPage() {
 
   const handleBarDoubleClick = (category: VaccinationCategory) => {
     setSelectedCategory(category);
+  };
+
+  const handleExpenseCategoryClick = (category: string | undefined) => {
+    if (!category) return;
+    setSelectedExpenseCategory(category);
   };
 
   const totalExpenses = expenses?.reduce((sum, e) => sum + e.amount, 0) || 0;
@@ -475,6 +487,7 @@ export function ReportsPage() {
                           `${name} (${(percent * 100).toFixed(0)}%)`
                         }
                         labelLine={false}
+                        onClick={(_, index) => handleExpenseCategoryClick(categoryBreakdown[index]?.name)}
                       >
                         {categoryBreakdown.map((_, index) => (
                           <Cell
@@ -492,6 +505,53 @@ export function ReportsPage() {
               </CardContent>
             </Card>
           </div>
+
+          <Dialog open={!!selectedExpenseCategory} onOpenChange={(open) => !open && setSelectedExpenseCategory(null)}>
+            <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden">
+              <DialogHeader>
+                <DialogTitle>
+                  Expenses - {selectedExpenseCategory}
+                </DialogTitle>
+              </DialogHeader>
+              {!expensesForSelectedCategory.length ? (
+                <p className="text-muted-foreground">No expenses in this category.</p>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>{expensesForSelectedCategory.length} expense{expensesForSelectedCategory.length !== 1 ? 's' : ''}</span>
+                    <span className="font-medium text-foreground">
+                      Total: {formatCurrency(expensesForSelectedCategory.reduce((sum, e) => sum + e.amount, 0))}
+                    </span>
+                  </div>
+                  <ScrollArea className="border rounded-md max-h-[60vh]">
+                    <div className="pr-2">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Vendor</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {expensesForSelectedCategory.map((expense) => (
+                            <TableRow key={expense.id}>
+                              <TableCell className="whitespace-nowrap">{formatDate(expense.date)}</TableCell>
+                              <TableCell>{expense.vendorName || '—'}</TableCell>
+                              <TableCell>{expense.description || expense.category}</TableCell>
+                              <TableCell className="text-right font-medium">{formatCurrency(expense.amount)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <ScrollBar orientation="vertical" />
+                  </ScrollArea>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="breeding" className="space-y-6">

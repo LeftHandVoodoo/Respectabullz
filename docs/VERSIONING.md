@@ -88,6 +88,12 @@ For testing releases:
 
 ## Current Version
 
+**1.5.2** (2025-12-04)
+
+Minor release - New features:
+- Reports: Expense drilldown on pie charts - Click any category slice in "Expenses by Category" to view detailed expense list
+- Reports: Scrollable expense drilldown dialog - Expense list modal is properly contained and scrollable
+
 **1.5.1** (2025-12-04)
 
 Patch release - Bug fixes:
