@@ -573,11 +573,16 @@ export async function createWaitlistEntry(input: CreateWaitlistEntryInput): Prom
   const id = generateId();
   const now = nowIso();
   
-  // Get next position
-  const maxResult = await query<{ max_pos: number | null }>(
-    'SELECT MAX(position) as max_pos FROM waitlist_entries WHERE litter_id IS ?',
-    [input.litterId ?? null]
-  );
+  // Get next position - handle NULL litter_id with proper SQL syntax
+  const litterId = input.litterId ?? null;
+  const maxResult = litterId === null
+    ? await query<{ max_pos: number | null }>(
+        'SELECT MAX(position) as max_pos FROM waitlist_entries WHERE litter_id IS NULL'
+      )
+    : await query<{ max_pos: number | null }>(
+        'SELECT MAX(position) as max_pos FROM waitlist_entries WHERE litter_id = ?',
+        [litterId]
+      );
   const position = input.position ?? ((maxResult[0]?.max_pos ?? -1) + 1);
   
   await execute(

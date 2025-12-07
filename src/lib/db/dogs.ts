@@ -6,10 +6,40 @@ import { generateId, dateToSql, sqlToDate, nowIso } from './utils';
 import type {
   Dog,
   DogPhoto,
+  DogSex,
+  DogStatus,
   PedigreeEntry,
+  PuppyEvaluationCategory,
   CreateDogInput,
   UpdateDogInput,
 } from '@/types';
+
+// Type guards for enum validation
+const VALID_DOG_SEX: DogSex[] = ['M', 'F'];
+const VALID_DOG_STATUS: DogStatus[] = ['active', 'sold', 'retired', 'deceased'];
+const VALID_EVALUATION_CATEGORY: PuppyEvaluationCategory[] = ['show_prospect', 'breeding_prospect', 'pet'];
+const VALID_REGISTRATION_STATUS = ['not_registered', 'pending', 'registered'] as const;
+const VALID_REGISTRATION_TYPE = ['full', 'limited'] as const;
+
+function isValidDogSex(value: string | null): value is DogSex {
+  return value !== null && VALID_DOG_SEX.includes(value as DogSex);
+}
+
+function isValidDogStatus(value: string | null): value is DogStatus {
+  return value !== null && VALID_DOG_STATUS.includes(value as DogStatus);
+}
+
+function isValidEvaluationCategory(value: string | null | undefined): value is PuppyEvaluationCategory {
+  return value !== null && value !== undefined && VALID_EVALUATION_CATEGORY.includes(value as PuppyEvaluationCategory);
+}
+
+function isValidRegistrationStatus(value: string | null | undefined): value is Dog['registrationStatus'] {
+  return value === null || value === undefined || VALID_REGISTRATION_STATUS.includes(value as typeof VALID_REGISTRATION_STATUS[number]);
+}
+
+function isValidRegistrationType(value: string | null | undefined): value is Dog['registrationType'] {
+  return value === null || value === undefined || VALID_REGISTRATION_TYPE.includes(value as typeof VALID_REGISTRATION_TYPE[number]);
+}
 
 // SQL row type for dogs table
 interface DogRow {
@@ -42,26 +72,39 @@ interface DogRow {
  * Convert a database row to a Dog object
  */
 function rowToDog(row: DogRow): Dog {
+  // Validate enum values with fallbacks for invalid data
+  const sex: DogSex = isValidDogSex(row.sex) ? row.sex : 'M';
+  const status: DogStatus = isValidDogStatus(row.status) ? row.status : 'active';
+  const evaluationCategory = isValidEvaluationCategory(row.evaluation_category)
+    ? row.evaluation_category
+    : null;
+  const registrationStatus = isValidRegistrationStatus(row.registration_status)
+    ? row.registration_status
+    : null;
+  const registrationType = isValidRegistrationType(row.registration_type)
+    ? row.registration_type
+    : null;
+
   return {
     id: row.id,
     name: row.name,
-    sex: row.sex as Dog['sex'],
+    sex,
     breed: row.breed,
     registrationNumber: row.registration_number,
     dateOfBirth: sqlToDate(row.date_of_birth),
     color: row.color,
     microchipNumber: row.microchip_number,
-    status: row.status as Dog['status'],
+    status,
     profilePhotoPath: row.profile_photo_path,
     notes: row.notes,
     sireId: row.sire_id,
     damId: row.dam_id,
     litterId: row.litter_id,
-    evaluationCategory: row.evaluation_category as Dog['evaluationCategory'],
+    evaluationCategory,
     structureNotes: row.structure_notes,
     temperamentNotes: row.temperament_notes,
-    registrationStatus: row.registration_status as Dog['registrationStatus'],
-    registrationType: row.registration_type as Dog['registrationType'],
+    registrationStatus,
+    registrationType,
     registryName: row.registry_name,
     registrationDeadline: sqlToDate(row.registration_deadline),
     createdAt: new Date(row.created_at),
@@ -263,6 +306,9 @@ export async function createDogPhoto(
   );
   
   const rows = await query<DogPhotoRow>('SELECT * FROM dog_photos WHERE id = ?', [id]);
+  if (rows.length === 0) {
+    throw new Error(`Failed to create dog photo: record not found after insert`);
+  }
   return rowToDogPhoto(rows[0]);
 }
 
@@ -361,6 +407,9 @@ export async function upsertPedigreeEntry(
     'SELECT * FROM pedigree_entries WHERE dog_id = ? AND generation = ? AND position = ?',
     [input.dogId, input.generation, input.position]
   );
+  if (rows.length === 0) {
+    throw new Error(`Failed to create pedigree entry: record not found after insert`);
+  }
   return rowToPedigreeEntry(rows[0]);
 }
 

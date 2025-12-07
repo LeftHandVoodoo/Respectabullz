@@ -207,6 +207,9 @@ export async function createHeatEvent(
   );
   
   const rows = await query<HeatEventRow>('SELECT * FROM heat_events WHERE id = ?', [id]);
+  if (rows.length === 0) {
+    throw new Error(`Failed to create heat event: record not found after insert`);
+  }
   return rowToHeatEvent(rows[0]);
 }
 

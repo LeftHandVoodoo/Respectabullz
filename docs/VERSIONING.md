@@ -96,9 +96,11 @@ Minor release - New features:
 
 ---
 
-## Upcoming Release (Unreleased)
+## Release History
 
-**Planned for next version** - Features in development:
+**1.5.3** (2025-12-07)
+
+Patch release - Bug fixes and new features:
 
 ### New Features
 - **Custom Contracts Directory**: Users can choose where completed contracts are saved
@@ -110,15 +112,20 @@ Minor release - New features:
   - Real-time formatting with cursor position preservation
   - Reusable PhoneInput component with US format default
 - **Breeder Settings Auto-population**: Default values for breeder name, city, and state
-  - Auto-populates "Johnny Bonilla" for breeder name
-  - Auto-populates "Martinsburg" for city and "WV" for state
 
 ### Bug Fixes
 - Inquiries: Fixed client and puppy not being associated when creating or updating inquiries
 - Inquiries: Fixed client and dog relations not being populated when retrieving inquiries
 - Phone input: Fixed phone number input fields not populating/updating when typing
 - Settings: Fixed breeder information form fields being reset while typing due to React Query refetches
-- Contract generation: Improved breeder settings validation and error message to clearly indicate which fields are required (Address Line 1 and Phone)
+- Contract generation: Improved breeder settings validation error message
+- **Critical**: Added array bounds checking after INSERT operations to prevent crashes
+- **Critical**: Fixed SQL `IS ?` syntax error in waitlist entry creation
+- **High**: Added try-catch around JSON.parse calls to prevent crashes on corrupted data
+- **High**: Added error toast for document upload failures
+- **Medium**: Removed unreliable setTimeout delay in database initialization
+- **Medium**: Added type guards for enum validation to prevent runtime errors
+- **Low**: Added error logging to empty catch blocks for better debugging
 
 **1.5.2** (2025-12-04)
 

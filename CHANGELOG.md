@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.3] - 2025-12-07
+
 ### Added
 - **Custom Contracts Directory**: Users can now choose where completed contracts are saved (Settings > Preferences > Contracts Save Location)
   - Native folder picker dialog for selecting custom save location
@@ -23,6 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phone input: Fixed phone number input fields not populating/updating when typing
 - Settings: Fixed breeder information form fields being reset while typing due to React Query refetches
 - Contract generation: Improved breeder settings validation and error message to clearly indicate which fields are required (Address Line 1 and Phone)
+- **Critical: Array bounds checking** - Added bounds checking after INSERT operations in health.ts, breeding.ts, dogs.ts, and settings.ts to prevent crashes when database operations fail silently
+- **Critical: SQL syntax error** - Fixed invalid `IS ?` SQL syntax in waitlist entry creation (sales.ts) that caused query failures for general waitlist entries
+- **High: JSON parsing safety** - Added try-catch blocks around JSON.parse calls in backupUtils.ts and health.ts to prevent crashes on corrupted data
+- **High: Document upload feedback** - Added user-facing error toast notification when document upload fails (previously only logged to console)
+- **Medium: Race condition** - Removed unreliable 200ms setTimeout delay in database initialization (init.ts) - SQLite operations are already sequential via await
+- **Medium: Type safety** - Added type guards for enum validation in dogs.ts to prevent invalid database values from causing runtime errors
+- **Low: Error logging** - Added error logging to previously empty catch blocks in migrate-from-localstorage.ts for better debugging
+- **Low: Code cleanup** - Removed unnecessary async/try-catch from FirstLaunchDialog.tsx handleLoadSampleData function
 
 ## [1.5.2] - 2025-12-04
 

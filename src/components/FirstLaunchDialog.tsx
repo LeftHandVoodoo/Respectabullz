@@ -17,7 +17,6 @@ const FIRST_LAUNCH_KEY = 'respectabullz_first_launch_complete';
 
 export function FirstLaunchDialog() {
   const [open, setOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [migrationProgress, setMigrationProgress] = useState<string>('');
   const { toast } = useToast();
@@ -93,26 +92,15 @@ export function FirstLaunchDialog() {
     });
   };
 
-  const handleLoadSampleData = async () => {
-    setIsLoading(true);
-    try {
-      // Sample data seeding for SQLite is not yet implemented
-      // Users can add data manually through the application
-      toast({
-        title: 'Sample data coming soon',
-        description: 'Sample data seeding for SQLite is being developed. Please start by adding your own dogs and litters.',
-      });
-      localStorage.setItem(FIRST_LAUNCH_KEY, 'true');
-      setOpen(false);
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleLoadSampleData = () => {
+    // Sample data seeding for SQLite is not yet implemented
+    // Users can add data manually through the application
+    toast({
+      title: 'Sample data coming soon',
+      description: 'Sample data seeding for SQLite is being developed. Please start by adding your own dogs and litters.',
+    });
+    localStorage.setItem(FIRST_LAUNCH_KEY, 'true');
+    setOpen(false);
   };
 
   // Show initialization screen while database is being set up
@@ -166,7 +154,6 @@ export function FirstLaunchDialog() {
             variant="outline"
             className="h-auto flex-col items-start gap-2 p-4 text-left"
             onClick={handleStartFresh}
-            disabled={isLoading}
           >
             <div className="flex items-center gap-2">
               <Database className="h-5 w-5 text-brand-brown" />
@@ -181,13 +168,10 @@ export function FirstLaunchDialog() {
             variant="outline"
             className="h-auto flex-col items-start gap-2 p-4 text-left"
             onClick={handleLoadSampleData}
-            disabled={isLoading}
           >
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-brand-blue" />
-              <span className="font-semibold">
-                {isLoading ? 'Loading...' : 'Load Sample Data'}
-              </span>
+              <span className="font-semibold">Load Sample Data</span>
             </div>
             <span className="text-sm text-muted-foreground">
               Explore with demo data including dogs, litters, health records, and more.

@@ -55,6 +55,9 @@ export async function setSetting(key: string, value: string): Promise<Setting> {
   }
   
   const rows = await query<SettingRow>('SELECT * FROM settings WHERE key = ?', [key]);
+  if (rows.length === 0) {
+    throw new Error(`Failed to set setting '${key}': record not found after upsert`);
+  }
   return rowToSetting(rows[0]);
 }
 

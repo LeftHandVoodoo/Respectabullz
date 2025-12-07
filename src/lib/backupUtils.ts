@@ -162,8 +162,13 @@ export async function importBackupWithPhotos(): Promise<{ success: boolean; data
     const metadataFile = zip.file('metadata.json');
     if (metadataFile) {
       const metadataText = await metadataFile.async('string');
-      const metadata = JSON.parse(metadataText) as BackupMetadata;
-      console.log('Backup metadata:', metadata);
+      try {
+        const metadata = JSON.parse(metadataText) as BackupMetadata;
+        console.log('Backup metadata:', metadata);
+      } catch (e) {
+        console.error('Failed to parse backup metadata:', e);
+        // Continue with restore even if metadata is corrupted
+      }
     }
     
     // Extract database

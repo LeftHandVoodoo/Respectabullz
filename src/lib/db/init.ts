@@ -56,8 +56,8 @@ export async function initializeAppDatabase(
       // Database exists, but we still need to run migrations to upgrade schema
       console.log('[DB Init] Database exists, running migrations...');
       try {
-        // Add a small delay to ensure any pending transactions are completed
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Note: No artificial delay needed - SQLite operations via Tauri are sequential
+        // and the await ensures previous operations complete before migrations run
         await runMigrations();
         console.log('[DB Init] Migrations complete');
       } catch (error) {

@@ -84,6 +84,9 @@ export async function createVaccination(
   );
   
   const rows = await query<VaccinationRow>('SELECT * FROM vaccination_records WHERE id = ?', [id]);
+  if (rows.length === 0) {
+    throw new Error(`Failed to create vaccination record: record not found after insert`);
+  }
   return rowToVaccination(rows[0]);
 }
 
@@ -167,6 +170,9 @@ export async function createWeightEntry(
   );
   
   const rows = await query<WeightEntryRow>('SELECT * FROM weight_entries WHERE id = ?', [id]);
+  if (rows.length === 0) {
+    throw new Error(`Failed to create weight entry: record not found after insert`);
+  }
   return rowToWeightEntry(rows[0]);
 }
 
@@ -263,6 +269,9 @@ export async function createMedicalRecord(
   );
   
   const rows = await query<MedicalRecordRow>('SELECT * FROM medical_records WHERE id = ?', [id]);
+  if (rows.length === 0) {
+    throw new Error(`Failed to create medical record: record not found after insert`);
+  }
   return rowToMedicalRecord(rows[0]);
 }
 
@@ -579,11 +588,17 @@ interface HealthScheduleTemplateRow {
 }
 
 function rowToHealthScheduleTemplate(row: HealthScheduleTemplateRow): HealthScheduleTemplate {
+  let items: HealthScheduleTemplate['items'] = [];
+  try {
+    items = JSON.parse(row.items);
+  } catch (e) {
+    console.error('Failed to parse health schedule template items:', e);
+  }
   return {
     id: row.id,
     name: row.name,
     isDefault: row.is_default === 1,
-    items: JSON.parse(row.items),
+    items,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };

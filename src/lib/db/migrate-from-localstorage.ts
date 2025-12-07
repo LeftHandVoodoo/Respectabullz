@@ -89,7 +89,8 @@ export function hasLocalStorageData(): boolean {
       parsed.clients?.length > 0 ||
       parsed.sales?.length > 0
     );
-  } catch {
+  } catch (e) {
+    console.error('[Migration] Failed to check localStorage data:', e);
     return false;
   }
 }
@@ -102,7 +103,8 @@ function getLocalStorageData(): OldDatabase | null {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return null;
     return JSON.parse(stored) as OldDatabase;
-  } catch {
+  } catch (e) {
+    console.error('[Migration] Failed to parse localStorage data:', e);
     return null;
   }
 }

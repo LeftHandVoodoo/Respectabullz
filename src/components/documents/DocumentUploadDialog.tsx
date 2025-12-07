@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { TagSelector } from './TagSelector';
+import { useToast } from '@/components/ui/use-toast';
 import { useCreateDocument, useLinkDocumentToDog, useLinkDocumentToLitter, useLinkDocumentToExpense } from '@/hooks/useDocuments';
 import { selectAndCopyDocument, formatFileSize, getFileTypeDisplayName } from '@/lib/documentUtils';
 import type { EntityType } from './DocumentList';
@@ -42,6 +43,7 @@ export function DocumentUploadDialog({
   const [isSelecting, setIsSelecting] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
 
+  const { toast } = useToast();
   const createDocument = useCreateDocument();
   const linkToDog = useLinkDocumentToDog();
   const linkToLitter = useLinkDocumentToLitter();
@@ -93,6 +95,11 @@ export function DocumentUploadDialog({
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to upload document:', error);
+      toast({
+        title: 'Upload failed',
+        description: error instanceof Error ? error.message : 'Failed to upload document. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsUploading(false);
     }

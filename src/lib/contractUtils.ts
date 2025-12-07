@@ -692,7 +692,7 @@ export async function saveContractToAppData(
       
       // Determine save path
       let contractsPath: string;
-      let baseDir: BaseDirectory;
+      let baseDir: typeof BaseDirectory.AppData;
       
       if (customDirectory) {
         // Use custom directory (absolute path)
