@@ -1,5 +1,17 @@
 use tauri::Manager;
 
+#[tauri::command]
+fn select_directory<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Option<String> {
+    use tauri_plugin_dialog::DialogExt;
+    
+    let dir = app.dialog()
+        .file()
+        .set_title("Select Contracts Directory")
+        .blocking_pick_folder();
+    
+    dir.map(|p| p.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -8,6 +20,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_sql::Builder::default().build())
+        .invoke_handler(tauri::generate_handler![select_directory])
         .setup(|app| {
             // Get the app data directory and create it if it doesn't exist
             let app_data_dir = app.path().app_data_dir().expect("Failed to get app data dir");

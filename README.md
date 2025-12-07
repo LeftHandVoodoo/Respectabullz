@@ -6,11 +6,11 @@
 
 # Respectabullz - Breeder Management Application
 
-**Version 1.5.1** - Latest Release
+**Version 1.5.2** - Latest Release
 
 A comprehensive desktop application for managing dog breeding operations, built with Tauri, React, TypeScript, and SQLite.
 
-> **New in 1.5.1**: PDF preview capabilities with page navigation and zoom controls, document upload and tagging system for Dogs/Litters/Expenses, Help & Documentation section in Settings, plus bug fixes. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **New in 1.5.2**: Expense drilldown on pie charts, scrollable expense dialog, plus bug fixes. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 
@@ -46,6 +46,7 @@ A comprehensive desktop application for managing dog breeding operations, built 
 - **Multi-Puppy Sales**: Support for selling multiple puppies in a single transaction
 - **Sales Pipeline**: Track interest status, payment status, shipping, and delivery
 - **Contract Generation**: Automated contract document generation from JSON template with auto-filled client, puppy, and breeder information
+- **Custom Contracts Directory**: Choose where completed contracts are saved (Settings > Preferences > Contracts Save Location)
 - **Full Backup System**: Export and import complete backups including database and all photos in ZIP format
 
 ### Getting Started Features
@@ -183,6 +184,7 @@ The application uses a normalized SQLite database with the following main entiti
 **File Storage**: 
 - Photos are stored in `%APPDATA%/com.respectabullz.app/photos/` with unique filenames
 - Documents are stored in `%APPDATA%/com.respectabullz.app/documents/` with unique filenames
+- Contracts are stored in `%APPDATA%/com.respectabullz.app/contracts/` by default, or in a user-selected custom directory
 - Database stores file paths, not binary data
 
 ## Development

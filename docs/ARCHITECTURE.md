@@ -1,6 +1,6 @@
 # Respectabullz Architecture
 
-**Version 1.5.1**
+**Version 1.5.2**
 
 ## Overview
 
@@ -192,7 +192,7 @@ respectabullz/
 │   └── index.css            # Global styles and theme
 ├── src-tauri/               # Rust/Tauri backend
 │   ├── src/
-│   │   ├── lib.rs           # Plugin initialization
+│   │   ├── lib.rs           # Plugin initialization and Tauri commands (select_directory)
 │   │   └── main.rs          # Entry point
 │   ├── Cargo.toml           # Rust dependencies
 │   └── tauri.conf.json      # Tauri configuration
@@ -266,6 +266,7 @@ User Action → Form Submit → Data Hook (useMutation)
 - File paths stored instead of file contents (for attachments, photos, and documents)
 - Photos stored in `{appDataDir}/photos/` with unique filenames
 - Documents stored in `{appDataDir}/documents/` with unique filenames
+- Contracts stored in `{appDataDir}/contracts/` by default, or in user-selected custom directory
 - Full backups include all photos and documents in ZIP format for portability
 
 ### Input Validation
@@ -302,7 +303,7 @@ User Action → Form Submit → Data Hook (useMutation)
   - Database files (SQLite)
   - Photos directory (`photos/`)
   - Documents directory (`documents/`)
-  - Contracts directory
+  - Contracts directory (`contracts/` or user-selected custom directory)
   - Attachments directory
   - Backups directory
   - Settings and preferences

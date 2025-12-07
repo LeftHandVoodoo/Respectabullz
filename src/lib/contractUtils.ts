@@ -672,26 +672,56 @@ export function downloadContract(blob: Blob, filename: string): void {
  * Save a contract document to the app's contracts folder
  * @param blob - The document blob
  * @param filename - The filename for the contract
+ * @param customDirectory - Optional custom directory path to save to
  * @returns The full path where the contract was saved
  */
 export async function saveContractToAppData(
   blob: Blob,
-  filename: string
+  filename: string,
+  customDirectory?: string
 ): Promise<string> {
   try {
     // Check if we're in a Tauri environment
     if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
-      const { writeFile, BaseDirectory } = await import('@tauri-apps/plugin-fs');
+      const { writeFile, BaseDirectory, exists, mkdir } = await import('@tauri-apps/plugin-fs');
+      const { join } = await import('@tauri-apps/api/path');
       
       // Convert blob to Uint8Array
       const arrayBuffer = await blob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
-      // Save to contracts folder in app data directory
-      const contractsPath = `contracts/${filename}`;
-      await writeFile(contractsPath, uint8Array, {
-        baseDir: BaseDirectory.AppData,
-      });
+      // Determine save path
+      let contractsPath: string;
+      let baseDir: BaseDirectory;
+      
+      if (customDirectory) {
+        // Use custom directory (absolute path)
+        contractsPath = await join(customDirectory, filename);
+        // For absolute paths, we'll write directly without baseDir
+        try {
+          await writeFile(contractsPath, uint8Array);
+          return contractsPath;
+        } catch (error) {
+          console.error('Failed to save to custom directory, falling back to default:', error);
+          // Fall through to default directory
+        }
+      }
+      
+      // Default: Save to contracts folder in app data directory
+      contractsPath = `contracts/${filename}`;
+      baseDir = BaseDirectory.AppData;
+      
+      // Ensure contracts directory exists
+      try {
+        const dirExists = await exists('contracts', { baseDir });
+        if (!dirExists) {
+          await mkdir('contracts', { baseDir, recursive: true });
+        }
+      } catch (error) {
+        console.warn('Could not check/create contracts directory:', error);
+      }
+      
+      await writeFile(contractsPath, uint8Array, { baseDir });
       
       // Return the relative path (full path construction would require Tauri path API)
       // The file is saved at: %APPDATA%/com.respectabullz.app/contracts/{filename}

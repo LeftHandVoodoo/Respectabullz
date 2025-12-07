@@ -88,11 +88,39 @@ For testing releases:
 
 ## Current Version
 
-**1.5.2** (2025-12-04)
+**1.5.2** (2025-12-04) - Current Release
 
 Minor release - New features:
 - Reports: Expense drilldown on pie charts - Click any category slice in "Expenses by Category" to view detailed expense list
 - Reports: Scrollable expense drilldown dialog - Expense list modal is properly contained and scrollable
+
+---
+
+## Upcoming Release (Unreleased)
+
+**Planned for next version** - Features in development:
+
+### New Features
+- **Custom Contracts Directory**: Users can choose where completed contracts are saved
+  - Native folder picker dialog for selecting custom save location
+  - Defaults to app data directory if no custom location set
+  - Custom directory path persists across app restarts
+  - Integrated with Settings > Preferences > Contracts Save Location
+- **Phone Number Auto-formatting**: All phone fields automatically format to (xxx) xxx-xxxx as users type
+  - Real-time formatting with cursor position preservation
+  - Reusable PhoneInput component with US format default
+- **Breeder Settings Auto-population**: Default values for breeder name, city, and state
+  - Auto-populates "Johnny Bonilla" for breeder name
+  - Auto-populates "Martinsburg" for city and "WV" for state
+
+### Bug Fixes
+- Inquiries: Fixed client and puppy not being associated when creating or updating inquiries
+- Inquiries: Fixed client and dog relations not being populated when retrieving inquiries
+- Phone input: Fixed phone number input fields not populating/updating when typing
+- Settings: Fixed breeder information form fields being reset while typing due to React Query refetches
+- Contract generation: Improved breeder settings validation and error message to clearly indicate which fields are required (Address Line 1 and Phone)
+
+**1.5.2** (2025-12-04)
 
 **1.5.1** (2025-12-04)
 

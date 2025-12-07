@@ -1,6 +1,6 @@
 # Respectabullz Internal API Reference
 
-**Version 1.5.1**
+**Version 1.5.2**
 
 ## Overview
 
@@ -531,7 +531,11 @@ generateContractDocumentFromJson(contractData: ContractData): Promise<Blob>
 
 **Template:** Uses `contacts/contract_template_respectabullz.json` as the source template
 
-**Storage:** Generated contracts are saved to `%APPDATA%/com.respectabullz.app/contracts/`
+**Storage:** Generated contracts are saved to:
+- Default: `%APPDATA%/com.respectabullz.app/contracts/`
+- Custom: User-selected directory (if configured in Settings > Preferences > Contracts Save Location)
+
+**Settings Integration:** The save location is controlled by the `contractsDirectory` setting, which can be set via Settings page or defaults to app data directory.
 
 ### prepareTemplateData
 Prepares contract data for template rendering.
@@ -584,6 +588,15 @@ Retrieves all settings as a key-value object.
 ```typescript
 getSettings(): Promise<Record<string, string>>
 ```
+
+**Returns:** Object mapping setting keys to values
+
+**Common Settings:**
+- `theme`: "light" | "dark" | "system"
+- `weightUnit`: "lbs" | "kg"
+- `notificationsEnabled`: "true" | "false"
+- `contractsDirectory`: Custom directory path for saving contracts (empty string uses default)
+- `dataFolderPath`: Path to data folder (legacy, may be empty)
 
 ---
 

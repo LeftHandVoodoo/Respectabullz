@@ -5,6 +5,25 @@ All notable changes to Respectabullz will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Custom Contracts Directory**: Users can now choose where completed contracts are saved (Settings > Preferences > Contracts Save Location)
+  - Native folder picker dialog for selecting custom save location
+  - Defaults to app data directory if no custom location set
+  - Custom directory path persists across app restarts
+  - Tauri command for directory selection integrated with settings system
+- Phone number auto-formatting: All phone number fields now automatically format to (xxx) xxx-xxxx as users type with real-time formatting
+- PhoneInput component: Reusable phone input component with US format default and cursor position preservation
+- Breeder settings auto-population: Breeder/Owner name, city, and state fields now auto-populate with default values (Johnny Bonilla, Martinsburg, WV)
+
+### Fixed
+- Inquiries: Fixed client and puppy not being associated when creating or updating inquiries
+- Inquiries: Fixed client and dog relations not being populated when retrieving inquiries
+- Phone input: Fixed phone number input fields not populating/updating when typing
+- Settings: Fixed breeder information form fields being reset while typing due to React Query refetches
+- Contract generation: Improved breeder settings validation and error message to clearly indicate which fields are required (Address Line 1 and Phone)
+
 ## [1.5.2] - 2025-12-04
 
 ### Changed

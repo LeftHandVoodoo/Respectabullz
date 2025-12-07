@@ -3,6 +3,7 @@
 
 import { query, execute } from './connection';
 import { generateId, dateToSql, sqlToDate, nowIso, boolToSql, sqlToBool } from './utils';
+import { getDog } from './dogs';
 import type {
   Client,
   Sale,
@@ -373,7 +374,15 @@ export async function getClientInterests(): Promise<ClientInterest[]> {
   const rows = await query<ClientInterestRow>(
     'SELECT * FROM client_interests ORDER BY interest_date DESC'
   );
-  return rows.map(rowToClientInterest);
+  const interests = rows.map(rowToClientInterest);
+  
+  // Populate client and dog relations
+  for (const interest of interests) {
+    interest.client = (await getClient(interest.clientId)) ?? undefined;
+    interest.dog = (await getDog(interest.dogId)) ?? undefined;
+  }
+  
+  return interests;
 }
 
 export async function getClientInterest(id: string): Promise<ClientInterest | null> {
@@ -381,7 +390,15 @@ export async function getClientInterest(id: string): Promise<ClientInterest | nu
     'SELECT * FROM client_interests WHERE id = ?',
     [id]
   );
-  return rows.length > 0 ? rowToClientInterest(rows[0]) : null;
+  if (rows.length === 0) return null;
+  
+  const interest = rowToClientInterest(rows[0]);
+  
+  // Populate client and dog relations
+  interest.client = (await getClient(interest.clientId)) ?? undefined;
+  interest.dog = (await getDog(interest.dogId)) ?? undefined;
+  
+  return interest;
 }
 
 export async function getInterestsByClient(clientId: string): Promise<ClientInterest[]> {
@@ -389,7 +406,15 @@ export async function getInterestsByClient(clientId: string): Promise<ClientInte
     'SELECT * FROM client_interests WHERE client_id = ? ORDER BY interest_date DESC',
     [clientId]
   );
-  return rows.map(rowToClientInterest);
+  const interests = rows.map(rowToClientInterest);
+  
+  // Populate client and dog relations
+  for (const interest of interests) {
+    interest.client = (await getClient(interest.clientId)) ?? undefined;
+    interest.dog = (await getDog(interest.dogId)) ?? undefined;
+  }
+  
+  return interests;
 }
 
 export async function getInterestsByDog(dogId: string): Promise<ClientInterest[]> {
@@ -397,7 +422,15 @@ export async function getInterestsByDog(dogId: string): Promise<ClientInterest[]
     'SELECT * FROM client_interests WHERE dog_id = ? ORDER BY interest_date DESC',
     [dogId]
   );
-  return rows.map(rowToClientInterest);
+  const interests = rows.map(rowToClientInterest);
+  
+  // Populate client and dog relations
+  for (const interest of interests) {
+    interest.client = (await getClient(interest.clientId)) ?? undefined;
+    interest.dog = (await getDog(interest.dogId)) ?? undefined;
+  }
+  
+  return interests;
 }
 
 export async function createClientInterest(input: CreateClientInterestInput): Promise<ClientInterest> {
@@ -434,6 +467,8 @@ export async function updateClientInterest(
   const updates: string[] = [];
   const values: unknown[] = [];
   
+  if (input.clientId !== undefined) { updates.push('client_id = ?'); values.push(input.clientId); }
+  if (input.dogId !== undefined) { updates.push('dog_id = ?'); values.push(input.dogId); }
   if (input.interestDate !== undefined) { updates.push('interest_date = ?'); values.push(dateToSql(input.interestDate)); }
   if (input.contactMethod !== undefined) { updates.push('contact_method = ?'); values.push(input.contactMethod); }
   if (input.status !== undefined) { updates.push('status = ?'); values.push(input.status); }

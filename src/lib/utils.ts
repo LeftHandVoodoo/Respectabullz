@@ -82,3 +82,42 @@ export function generateLitterCode(breedingDate: Date): string {
   return `${year}-${month}-${random}`;
 }
 
+/**
+ * Formats a phone number string to (xxx) xxx-xxxx format
+ * @param value - The phone number string (can contain digits, spaces, dashes, parentheses)
+ * @returns Formatted phone number string
+ */
+export function formatPhoneNumber(value: string): string {
+  // Remove all non-digit characters
+  const digits = value.replace(/\D/g, '');
+  
+  // If empty, return empty string
+  if (digits.length === 0) return '';
+  
+  // Limit to 10 digits
+  const limitedDigits = digits.slice(0, 10);
+  
+  // Format based on length
+  if (limitedDigits.length <= 3) {
+    return `(${limitedDigits}`;
+  } else if (limitedDigits.length <= 6) {
+    return `(${limitedDigits.slice(0, 3)}) ${limitedDigits.slice(3)}`;
+  } else {
+    return `(${limitedDigits.slice(0, 3)}) ${limitedDigits.slice(3, 6)}-${limitedDigits.slice(6)}`;
+  }
+}
+
+/**
+ * Handles phone number input change event
+ * Formats the value as user types
+ * @param e - Input change event
+ * @param onChange - Callback function to update the value
+ */
+export function handlePhoneNumberChange(
+  e: React.ChangeEvent<HTMLInputElement>,
+  onChange: (value: string) => void
+): void {
+  const formatted = formatPhoneNumber(e.target.value);
+  onChange(formatted);
+}
+

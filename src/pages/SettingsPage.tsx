@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Moon, Sun, Download, Upload, Trash2, Database, Building2, Save, FileArchive, FileJson } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Moon, Sun, Download, Upload, Trash2, Database, Building2, Save, FileArchive, FileJson, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -59,17 +60,39 @@ export function SettingsPage() {
   const { breederSettings, updateBreederSettings, isPending: isBreederPending } = useBreederSettings();
   const isTauri = isTauriEnvironment();
 
-  // Local state for breeder form
-  const [breederForm, setBreederForm] = useState<BreederSettings>(breederSettings);
-  const [hasBreederChanges, setHasBreederChanges] = useState(false);
+  // Local state for breeder form - initialize with defaults if empty
+  const getInitialBreederForm = (settings?: BreederSettings): BreederSettings => {
+    return {
+      kennelName: settings?.kennelName || 'Respectabullz',
+      breederName: settings?.breederName || 'Johnny Bonilla',
+      addressLine1: settings?.addressLine1 || '',
+      addressLine2: settings?.addressLine2 || '',
+      city: settings?.city || 'Martinsburg',
+      state: settings?.state || 'WV',
+      postalCode: settings?.postalCode || '',
+      phone: settings?.phone || '',
+      email: settings?.email || '',
+      kennelRegistration: settings?.kennelRegistration || '',
+      kennelPrefix: settings?.kennelPrefix || '',
+      county: settings?.county || '',
+    };
+  };
 
-  // Sync form with settings when they load
-  useState(() => {
-    setBreederForm(breederSettings);
-  });
+  const [breederForm, setBreederForm] = useState<BreederSettings>(getInitialBreederForm(breederSettings));
+  const [hasBreederChanges, setHasBreederChanges] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Sync form with settings when they load - but only once on initial load
+  useEffect(() => {
+    if (breederSettings && !isInitialized && !hasBreederChanges) {
+      setBreederForm(getInitialBreederForm(breederSettings));
+      setIsInitialized(true);
+    }
+  }, [breederSettings, isInitialized, hasBreederChanges]);
 
   const weightUnit = settings?.weightUnit || 'lbs';
   const notificationsEnabled = settings?.notificationsEnabled === 'true';
+  const contractsDirectory = settings?.contractsDirectory || '';
 
   const handleWeightUnitChange = (value: string) => {
     updateSetting.mutate({ key: 'weightUnit', value });
@@ -77,6 +100,40 @@ export function SettingsPage() {
 
   const handleNotificationsChange = (checked: boolean) => {
     updateSetting.mutate({ key: 'notificationsEnabled', value: String(checked) });
+  };
+
+  const handleSelectContractsDirectory = async () => {
+    if (!isTauri) {
+      toast({
+        title: 'Not Available',
+        description: 'Custom directory selection is only available in the desktop app.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const selectedDir = await invoke<string | null>('select_directory');
+      
+      if (selectedDir) {
+        updateSetting.mutate({ 
+          key: 'contractsDirectory', 
+          value: selectedDir 
+        });
+        toast({
+          title: 'Directory Updated',
+          description: `Contracts will now be saved to: ${selectedDir}`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to select directory:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to open directory picker.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleBreederFieldChange = (field: keyof BreederSettings, value: string) => {
@@ -211,11 +268,10 @@ export function SettingsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="phone">Phone *</Label>
-              <Input
+              <PhoneInput
                 id="phone"
-                value={breederForm.phone}
+                value={breederForm.phone || ''}
                 onChange={(e) => handleBreederFieldChange('phone', e.target.value)}
-                placeholder="(555) 123-4567"
               />
             </div>
             <div className="space-y-2">
@@ -355,6 +411,37 @@ export function SettingsPage() {
               onCheckedChange={handleNotificationsChange}
             />
           </div>
+
+          {/* Contracts Directory */}
+          {isTauri && (
+            <div className="space-y-2 pt-4">
+              <Label>Contracts Save Location</Label>
+              <p className="text-sm text-muted-foreground mb-2">
+                Choose where completed contracts are saved
+              </p>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={contractsDirectory || 'Default (App Data Directory)'}
+                  readOnly
+                  className="flex-1"
+                  placeholder="Default (App Data Directory)"
+                />
+                <Button
+                  variant="outline"
+                  onClick={handleSelectContractsDirectory}
+                  className="shrink-0"
+                >
+                  <FolderOpen className="mr-2 h-4 w-4" />
+                  Choose Folder
+                </Button>
+              </div>
+              {contractsDirectory && (
+                <p className="text-xs text-muted-foreground">
+                  Current: {contractsDirectory}
+                </p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

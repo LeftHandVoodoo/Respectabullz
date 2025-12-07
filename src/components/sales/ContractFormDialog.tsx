@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -243,7 +244,12 @@ export function ContractFormDialog({
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Breeder information is not configured. Please go to Settings to add your kennel details before generating contracts.
+              Breeder information is incomplete. Please go to Settings → Breeder Information and fill in:
+              <ul className="list-disc list-inside mt-1">
+                <li>Address Line 1 (required)</li>
+                <li>Phone Number (required)</li>
+              </ul>
+              Then click "Save Breeder Information" before generating contracts.
             </AlertDescription>
           </Alert>
         )}
@@ -383,7 +389,13 @@ export function ContractFormDialog({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="buyerPhone">Phone</Label>
-                  <Input {...register('buyerPhone')} placeholder="(555) 123-4567" />
+                  <Controller
+                    name="buyerPhone"
+                    control={control}
+                    render={({ field }) => (
+                      <PhoneInput {...field} />
+                    )}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="buyerEmail">Email</Label>

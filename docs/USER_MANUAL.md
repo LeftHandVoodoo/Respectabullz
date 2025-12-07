@@ -1,9 +1,24 @@
 # Respectabullz User Manual
 
-**Version 1.4.0**  
-**Last Updated: December 4, 2025**
+**Version 1.5.2**  
+**Last Updated: December 7, 2025**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
+
+---
+
+## What's New in Version 1.5.2
+
+### New Features
+- **Custom Contracts Directory**: Choose where completed contracts are saved (Settings → Preferences → Contracts Save Location)
+- **Phone Number Auto-formatting**: All phone fields automatically format to (xxx) xxx-xxxx as you type
+- **Breeder Settings Auto-population**: Default values for breeder name (Johnny Bonilla), city (Martinsburg), and state (WV)
+- **Interactive Expense Reports**: Click any pie slice in "Expenses by Category" to view detailed expense lists
+
+### Improvements
+- **Inquiries**: Client and puppy associations are now properly preserved when creating or updating inquiries
+- **Contract Generation**: Improved validation and clearer error messages for required breeder settings
+- **Settings Form**: Fixed form fields being reset while typing
 
 ---
 
@@ -539,8 +554,9 @@ Manage customer information and relationships.
    - **Name**: Client's full name
    - **Email**: Contact email
 3. Optional:
-   - **Phone**: Contact number
+   - **Phone**: Contact number (automatically formats to (xxx) xxx-xxxx as you type)
    - **Address**: Full address
+   - **Country**: Defaults to "United States"
    - **Notes**: Additional information
 4. Save to create client record
 
@@ -585,13 +601,17 @@ Track potential clients before they become sales.
 
 1. Click **"Add Inquiry"** on Inquiries page
 2. Select or create a **Client**
-3. Fill in:
+3. Select a **Puppy** (optional - can be set later)
+4. Fill in:
    - **Interest Date**: When they first contacted you
    - **Status**: New, Contacted, Interested, Not Interested, Converted
+   - **Contact Method**: How they reached you (Phone, Email, Social Media, etc.)
    - **Puppy Preference**: Male, Female, Either
    - **Color Preference**: Optional
    - **Notes**: Details about their interest
-4. Save to track potential sales
+5. Save to track potential sales
+
+**Note:** Both client and puppy can be associated with the inquiry and will be preserved when updating the inquiry.
 
 #### Converting to Sale
 
@@ -660,7 +680,9 @@ Generate professional sales contracts:
    - **Sire and Dam**: Parent information (pre-filled if available)
    - **Co-Buyer**: Optional second buyer name
 3. Click **"Generate Contract"** to create the document
-4. Contract is automatically saved to your app data directory and can be:
+4. Contract is automatically saved and can be:
+   - **Default Location**: `%APPDATA%/com.respectabullz.app/contracts/`
+   - **Custom Location**: If you've set a custom directory in Settings → Preferences → Contracts Save Location
    - Printed for signatures
    - Emailed to clients
    - Linked to the sale record
@@ -670,6 +692,7 @@ Generate professional sales contracts:
 - Auto-filled from breeder settings (configured in Settings → Breeder Information)
 - Includes health guarantee and registration transfer terms
 - Legal document ready for signatures
+- Customizable save location for better organization
 
 ---
 
@@ -695,6 +718,9 @@ Access via **Reports** → **Financial** tab:
 - Pie chart breaking down expenses by category
 - See where your money goes (Food, Vet, Supplies, Breeding, etc.)
 - Percentage breakdown for each category
+- **Interactive**: Click any pie slice to view detailed list of expenses in that category
+- Expense list dialog shows all expenses with date, description, amount, and related dog
+- Scrollable expense list for easy review
 
 ### Breeding Reports
 
@@ -769,11 +795,11 @@ Configure your kennel details for contracts and documents:
 
 1. Go to **Settings** page → **Breeder Information** section
 2. Fill in required fields (marked with *):
-   - **Breeder/Owner Name**: Your full name
+   - **Breeder/Owner Name**: Your full name (defaults to "Johnny Bonilla")
    - **Address Line 1**: Street address
-   - **City**: City name
-   - **State**: State name
-   - **Phone**: Contact phone number
+   - **City**: City name (defaults to "Martinsburg")
+   - **State**: State name (defaults to "WV")
+   - **Phone**: Contact phone number (automatically formats to (xxx) xxx-xxxx as you type)
 3. Optional fields:
    - **Kennel Name**: Your kennel name
    - **Address Line 2**: Suite, unit, etc.
@@ -805,6 +831,15 @@ Configure your kennel details for contracts and documents:
   - Due dates
   - Follow-up reminders
   - Puppy health tasks
+
+**Contracts Save Location:**
+- Choose where completed contracts are saved
+- **Default**: Contracts are saved to `%APPDATA%/com.respectabullz.app/contracts/`
+- **Custom Directory**: Click **"Choose Folder"** to select a custom location
+  - Useful for organizing contracts in a specific folder (e.g., "Documents/Contracts")
+  - Selected directory persists across app restarts
+  - All future contracts will be saved to the selected location
+- To reset to default, clear the custom directory setting
 
 ### Data Management
 

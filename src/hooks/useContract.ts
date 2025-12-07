@@ -5,6 +5,7 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
+import { useSettings } from './useSettings';
 import {
   generateContractDocumentFromJson,
   downloadContract,
@@ -32,6 +33,9 @@ interface GenerateContractResult {
  * Hook for generating contract documents
  */
 export function useGenerateContract() {
+  const { data: settings } = useSettings();
+  const contractsDirectory = settings?.contractsDirectory || '';
+  
   return useMutation({
     mutationFn: async (options: GenerateContractOptions): Promise<GenerateContractResult> => {
       const {
@@ -46,10 +50,10 @@ export function useGenerateContract() {
       // Generate filename
       const outputFilename = filename || generateContractFilename(contractData.buyerName);
 
-      // Save to app data directory (contracts folder)
+      // Save to app data directory (contracts folder) or custom directory
       let savedPath: string;
       try {
-        savedPath = await saveContractToAppData(blob, outputFilename);
+        savedPath = await saveContractToAppData(blob, outputFilename, contractsDirectory);
       } catch (error) {
         // If saving fails, fall back to download
         console.warn('Failed to save contract to app data, falling back to download:', error);
