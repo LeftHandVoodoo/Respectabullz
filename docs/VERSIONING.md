@@ -88,15 +88,33 @@ For testing releases:
 
 ## Current Version
 
-**1.5.2** (2025-12-04) - Current Release
+**1.6.0** (2025-12-10) - Current Release
 
-Minor release - New features:
-- Reports: Expense drilldown on pie charts - Click any category slice in "Expenses by Category" to view detailed expense list
-- Reports: Scrollable expense drilldown dialog - Expense list modal is properly contained and scrollable
+Minor release - Major contract generation overhaul:
+- Complete contract template update to match new format
+- Dual format output: Word (.docx) and PDF (.pdf) generation
+- Enhanced field replacement for accurate data population
+- Comprehensive test coverage (13 tests)
+- Fixed contract generation error from inquiries page
 
 ---
 
 ## Release History
+
+**1.6.0** (2025-12-10)
+
+Minor release - Contract generation overhaul:
+- **Contract Generation**: Complete update to match new contract template format
+  - Updated JSON template (v2) with all sections from new contract document
+  - Enhanced field replacement to support new template patterns
+  - Added PDF generation capability using @react-pdf/renderer
+  - Contract generation now produces both Word (.docx) and PDF (.pdf) formats by default
+  - Updated contract form dialog to generate both formats simultaneously
+  - All existing data fields maintained - no database changes required
+  - Added comprehensive test suite for contract utility functions (13 tests)
+- **Contract Generation Error**: Fixed "format is not a function" error when generating contracts from inquiries page
+  - Resolved naming conflict where `format` parameter was shadowing the date-fns `format` function
+  - Renamed parameter to `fileFormat` to allow proper date formatting
 
 **1.5.3** (2025-12-07)
 

@@ -216,6 +216,7 @@ export function ContractFormDialog({
       const result = await generateContract.mutateAsync({
         contractData,
         autoDownload: true,
+        format: 'both', // Generate both Word and PDF
       });
       
       onContractGenerated?.(contractData, result.filePath);
@@ -572,7 +573,7 @@ export function ContractFormDialog({
               disabled={generateContract.isPending || !isBreederConfigured}
             >
               <Printer className="mr-2 h-4 w-4" />
-              {generateContract.isPending ? 'Generating...' : 'Generate & Download'}
+              {generateContract.isPending ? 'Generating...' : 'Generate Word & PDF'}
             </Button>
             <Button
               type="submit"

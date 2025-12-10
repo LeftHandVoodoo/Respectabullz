@@ -1,27 +1,23 @@
 # Respectabullz User Manual
 
-**Version 1.5.3**
-**Last Updated: December 7, 2025**
+**Version 1.6.0**
+**Last Updated: December 10, 2025**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
 
 ---
 
-## What's New in Version 1.5.3
+## What's New in Version 1.6.0
 
-### New Features
-- **Custom Contracts Directory**: Choose where completed contracts are saved (Settings → Preferences → Contracts Save Location)
-- **Phone Number Auto-formatting**: All phone fields automatically format to (xxx) xxx-xxxx as you type
-- **Breeder Settings Auto-population**: Default values for breeder name (Johnny Bonilla), city (Martinsburg), and state (WV)
-- **Interactive Expense Reports**: Click any pie slice in "Expenses by Category" to view detailed expense lists
+### Major Updates
+- **Contract Generation Overhaul**: Complete update to match new contract template format
+  - New contract template with all sections including spay/neuter contract, food brands, vaccination schedule, and first aid information
+  - Enhanced field replacement for accurate data population
+  - **Dual Format Output**: Contracts now generate in both Word (.docx) and PDF (.pdf) formats simultaneously
+  - All existing data fields maintained - no changes needed to your data
 
 ### Bug Fixes
-- **Inquiries**: Client and puppy associations now properly preserved when creating or updating inquiries
-- **Contract Generation**: Improved validation and clearer error messages for required breeder settings
-- **Settings Form**: Fixed form fields being reset while typing
-- **Database Reliability**: Added safety checks to prevent crashes during database operations
-- **Document Upload**: User-facing error notifications when document uploads fail
-- **Waitlist Entries**: Fixed general waitlist entry creation
+- **Contract Generation**: Fixed "format is not a function" error when generating contracts from inquiries page
 
 ---
 

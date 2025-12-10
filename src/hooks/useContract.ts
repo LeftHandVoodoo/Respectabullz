@@ -8,6 +8,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useSettings } from './useSettings';
 import {
   generateContractDocumentFromJson,
+  generateContractPDF,
   downloadContract,
   saveContractToAppData,
   generateContractFilename,
@@ -27,6 +28,9 @@ interface GenerateContractResult {
   filename: string;
   filePath: string; // Full path where the contract was saved
   templateData: Record<string, string | number | boolean>;
+  pdfBlob?: Blob;
+  pdfFilename?: string;
+  pdfFilePath?: string;
 }
 
 /**
@@ -42,38 +46,65 @@ export function useGenerateContract() {
         contractData,
         autoDownload = true,
         filename,
+        format = 'docx',
       } = options;
 
-      // Generate the document from the JSON template
+      // Generate the Word document
       const blob = await generateContractDocumentFromJson(contractData);
+      const outputFilename = filename || generateContractFilename(contractData.buyerName, undefined, 'docx');
 
-      // Generate filename
-      const outputFilename = filename || generateContractFilename(contractData.buyerName);
-
-      // Save to app data directory (contracts folder) or custom directory
+      // Save Word document
       let savedPath: string;
       try {
         savedPath = await saveContractToAppData(blob, outputFilename, contractsDirectory);
       } catch (error) {
-        // If saving fails, fall back to download
         console.warn('Failed to save contract to app data, falling back to download:', error);
         if (autoDownload) {
           downloadContract(blob, outputFilename);
         }
-        savedPath = outputFilename; // Use filename as path in fallback
+        savedPath = outputFilename;
       }
 
-      return {
+      const result: GenerateContractResult = {
         blob,
         filename: outputFilename,
         filePath: savedPath,
         templateData: prepareTemplateData(contractData),
       };
+
+      // Generate PDF if requested
+      if (format === 'pdf' || format === 'both') {
+        const pdfBlob = await generateContractPDF(contractData);
+        const pdfFilename = filename 
+          ? filename.replace(/\.docx$/, '.pdf') 
+          : generateContractFilename(contractData.buyerName, undefined, 'pdf');
+
+        try {
+          const pdfPath = await saveContractToAppData(pdfBlob, pdfFilename, contractsDirectory);
+          result.pdfBlob = pdfBlob;
+          result.pdfFilename = pdfFilename;
+          result.pdfFilePath = pdfPath;
+        } catch (error) {
+          console.warn('Failed to save PDF contract to app data:', error);
+          if (autoDownload) {
+            downloadContract(pdfBlob, pdfFilename);
+          }
+          result.pdfBlob = pdfBlob;
+          result.pdfFilename = pdfFilename;
+          result.pdfFilePath = pdfFilename;
+        }
+      }
+
+      return result;
     },
     onSuccess: (result) => {
+      const message = result.pdfFilePath 
+        ? `Contracts saved:\nWord: ${result.filePath}\nPDF: ${result.pdfFilePath}`
+        : `Contract saved to: ${result.filePath}`;
+      
       toast({
         title: 'Contract Generated',
-        description: `Contract saved to: ${result.filePath}`,
+        description: message,
       });
     },
     onError: (error) => {

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2025-12-10
+
+### Changed
+- **Contract Generation**: Complete overhaul to match new contract template format
+  - Updated JSON template (v2) with all sections from new contract document
+  - Enhanced field replacement to support new template patterns
+  - Added PDF generation capability using @react-pdf/renderer
+  - Contract generation now produces both Word (.docx) and PDF (.pdf) formats by default
+  - Updated contract form dialog to generate both formats simultaneously
+  - All existing data fields maintained - no database changes required
+  - Added comprehensive test suite for contract utility functions (13 tests)
+
+### Fixed
+- **Contract Generation Error**: Fixed "format is not a function" error when generating contracts from inquiries page
+  - Resolved naming conflict where `format` parameter in `generateContractFilename()` was shadowing the date-fns `format` function
+  - Renamed parameter to `fileFormat` to allow proper date formatting
+
 ## [1.5.3] - 2025-12-07
 
 ### Added

@@ -527,43 +527,82 @@ function applyDynamicContent(originalText: string, data: TemplateDataMap): strin
 
   let result = trimmed;
 
-  if (trimmed.startsWith('This Agreement dated')) {
-    result = `This Agreement dated ${data.agreementDate || '________'} is between (Buyer: ${formatBuyerContact(data)}) herein referred to as Buyer and ${data.breederName || 'Owner Name'} of ${data.kennelName || data.breederName || 'Kennel Name'} herein referred to as Breeder.`;
-  } else if (trimmed.startsWith('In Consideration of the total sum of')) {
-    result = `In Consideration of the total sum of $${data.salePriceAmount || '0.00'} (${data.salePriceWords || 'Zero Dollars and no cents'}) and the mutual promises contained herein, Breeder has agreed to sell, and Buyer has agreed to purchase ${formatSaleCounts(data)}.`;
-  } else if (trimmed.startsWith('Born on')) {
-    result = `Born on ${data.puppyDOBLong || data.puppyDOB || '00/00/0000'}`;
-  } else if (trimmed.startsWith('Sire:')) {
-    result = `Sire: ${data.sireName || '_____________________________'}`;
-  } else if (trimmed.startsWith('Dam:')) {
-    result = `Dam: ${data.damName || '_____________________________'}`;
-  } else if (trimmed.includes('State of ________, County of ________')) {
+  // Main header - new format
+  if (trimmed.startsWith('This Agreement dated') && trimmed.includes('20  is between')) {
+    result = `This Agreement dated ${data.agreementDate || '________'}, ${data.agreementYear || '20__'} is between (Buyer: ${data.buyerName || 'Name'}, ${data.buyerFullAddress || 'Address'}, ${data.buyerPhone || 'Phone Number'}, ${data.buyerEmail || 'Email Address'}) herein referred to as Buyer and ${data.breederName || '(Owner Name)'} of ${data.kennelName || '(Kennel Name)'} Herein referred to as Breeder.`;
+  } 
+  // Sale consideration - new format
+  else if (trimmed.startsWith('In Consideration of the total sum of $') && trimmed.includes('(#)')) {
+    result = `In Consideration of the total sum of $${data.salePriceAmount || '______'}.00 (${data.salePriceWords || '_____ Dollars and no cents'}) and the mutual promises contained herein, Breeder has agreed to sell, and Buyer has agreed to purchase ${data.puppyCount || '_____'} (#) ${data.maleCount || '_____'}male ${data.femaleCount || '_____'}female American Bully puppy.`;
+  }
+  // Birth date
+  else if (trimmed === 'Born on 00/00/0000') {
+    result = `Born on ${data.puppyDOB || '00/00/0000'}`;
+  }
+  // Sire
+  else if (trimmed.startsWith('Sire:') && trimmed.includes('\t')) {
+    result = `Sire: ${data.sireName || '\t'}`;
+  }
+  // Dam
+  else if (trimmed.startsWith('Dam:') && trimmed.includes('\t')) {
+    result = `Dam: ${data.damName || '\t'}`;
+  }
+  // Court jurisdiction - multiple formats
+  else if (trimmed.includes('State of') && trimmed.includes('County of') && trimmed.includes('\t')) {
+    result = trimmed
+      .replace(/State of\s+\t/g, `State of ${data.state || '\t'}`)
+      .replace(/County of\s+\t/g, `County of ${data.county || '\t'}`);
+  }
+  else if (trimmed.includes('State of ________, County of ________')) {
     result = trimmed.replace(
       'State of ________, County of ________',
       `State of ${data.state || '________'}, County of ${data.county || '________'}`
     );
-  } else if (trimmed.includes('State of ___________ County of ____________')) {
+  } 
+  else if (trimmed.includes('State of ___________ County of ____________')) {
     result = trimmed.replace(
       'State of ___________ County of ____________',
-      `State of ${data.state || '________'} County of ${data.county || '________'}`
+      `State of ${data.state || '___________'} County of ${data.county || '____________'}`
     );
-  } else if (trimmed.includes('State of (______), County of (_____)')) {
-    result = trimmed.replace(
-      'State of (______), County of (_____)',
-      `State of (${data.state || '____'}), County of (${data.county || '____'})`
-    );
-  } else if (trimmed === 'Signed on ________ day of _________, 20___') {
-    result = `Signed on ${data.signingDate || data.agreementDate || '________'}`;
-  } else if (trimmed.startsWith('STATE OF')) {
-    result = `STATE OF ${data.state || '________'} )`;
-  } else if (trimmed.startsWith('COUNTY')) {
-    result = `COUNTY OF ${data.county || '________'} )SS.:`;
-  } else if (trimmed.startsWith('On this _____ day of _________')) {
-    result = `On this ${data.signingDate || data.agreementDate || '_____'}, before me, the undersigned, a Notary Public in and for said State, personally appeared ${data.buyerName || '_____________________'}, personally known to me or proved to me on the basis of satisfactory evidence to be the individual whose name is subscribed to the within Instrument and acknowledged to me that they executed the same in their capacity, and that by their signature on the instrument, the individuals, or the person upon behalf of which the individuals acted, executed the instrument.`;
-  } else if (trimmed.startsWith('This Agreement is made and entered into this ______ day of')) {
-    result = `This Agreement is made and entered into this ${data.agreementDate || '________'}`;
-  } else if (trimmed.startsWith('For the purpose of setting forth the terms and conditions of purchase')) {
-    result = `For the purpose of setting forth the terms and conditions of purchase by the Buyer of a Purebred American Bully from the litter Born on ${data.puppyDOBLong || data.puppyDOB || '________'}. Out of ${data.sireName || '________'} (Sire), And ${data.damName || '________'} (Dam).\n\nFor $${data.salePriceAmount || '0.00'} the Breeder agrees to sell and buyer agrees to purchase a ${data.femaleCount ?? 0} female, ${data.maleCount ?? 0} male companion puppy from the litter described above subject to the following terms.\n\nBreeder warrants that the above described puppy is a purebred American Bully being purchased as a companion pet and that the registration papers have NOT been provided to the Buyer.`;
+  } 
+  else if (trimmed.includes('State of (')) {
+    result = trimmed
+      .replace(/State of \(\s*\t\s*\)/g, `State of (${data.state || '\t'})`)
+      .replace(/County of \(\s*\t\s*\)/g, `County of (${data.county || '\t'})`);
+  }
+  // Signing date - new format
+  else if (trimmed.startsWith('Signed on') && trimmed.includes('day of') && trimmed.includes('20\t')) {
+    const signingDate = data.signingDate || data.agreementDate || '________';
+    result = `Signed on ${signingDate}`;
+  }
+  // STATE OF (notary section)
+  else if (trimmed === 'STATE OF \t)') {
+    result = `STATE OF ${data.state || '\t'})`;
+  }
+  // COUNTY OF (notary section)  
+  else if (trimmed === 'COUNTY OF\t)SS.:') {
+    result = `COUNTY OF ${data.county || '\t'})SS.:`;
+  }
+  // Notary date and name - new format
+  else if (trimmed.startsWith('On this') && trimmed.includes('Two Thousand and Twenty One')) {
+    const notaryDate = data.signingDate || data.agreementDate || '\t';
+    result = `On this ${notaryDate}, before me, the undersigned, a Notary Public in and for said State, personally appeared ${data.buyerName || '\t'}, personally known to me or proved to me on the basis of satisfactory evidence to be the individual whose name is subscribed to the within Instrument and acknowledged to me that s/he/they executed the same in her/his/their capacity, and that by her/his/their signature on the instrument, the individuals, or the person upon behalf of which the individuals acted, executed the instrument.`;
+  }
+  // Spay/Neuter contract date
+  else if (trimmed.startsWith('This Agreement is made and entered into this') && trimmed.includes('day of') && trimmed.includes('20 ')) {
+    result = `This Agreement is made and entered into this ${data.agreementDate || '\t'}day of ${data.agreementYear || '20 '}`;
+  }
+  // By and between (spay/neuter)
+  else if (trimmed.startsWith('By and between') && trimmed.includes('(Breeder) and')) {
+    result = `By and between ${data.breederName || '(Breeder)'} and ${data.buyerName || '(Buyer)'},`;
+  }
+  // For the purpose of (spay/neuter)
+  else if (trimmed.startsWith('For the purpose of setting forth') && trimmed.includes('Born on')) {
+    result = `For the purpose of setting forth the terms and conditions of purchase by the Buyer of a Purebred American Bully from the litter Born on ${data.puppyDOBLong || data.puppyDOB || '.'}.Out of ${data.sireName || '\t\t\t\t\t\t\t\t\t\t'} (Sire), And ${data.damName || '\t\t\t\t\t\t\t\t'} (Dam).`;
+  }
+  // For $ the Breeder agrees (spay/neuter)
+  else if (trimmed.startsWith('For $') && trimmed.includes('the Breeder agrees to sell')) {
+    result = `For $${data.salePriceAmount || '\t\t\t\t'} the Breeder agrees to sell and buyer agrees to purchase a ${data.femaleCount || '______'}female, ${data.maleCount || '_____'}male companion puppy from the litter described above subject to the following terms.`;
   }
 
   result = applyTokenReplacements(result, data);
@@ -617,6 +656,119 @@ function createTableBlock(block: Extract<ContractTemplateBlock, { type: 'table' 
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows,
   });
+}
+
+/**
+ * Generate a PDF contract document from the JSON template definition.
+ * This function dynamically imports @react-pdf/renderer to avoid JSX parsing issues.
+ */
+export async function generateContractPDF(contractData: ContractData): Promise<Blob> {
+  // Dynamic import to avoid JSX in .ts file
+  const ReactPDF = await import('@react-pdf/renderer');
+  const React = await import('react');
+  
+  const { pdf, Document: PDFDocument, Page, Text, View, StyleSheet } = ReactPDF;
+  const { createElement } = React;
+  
+  const templateData = prepareTemplateData(contractData);
+  
+  // Define PDF styles
+  const styles = StyleSheet.create({
+    page: {
+      padding: 72, // 1 inch margins (72 points)
+      fontSize: 11,
+      fontFamily: 'Times-Roman',
+      lineHeight: 1.15,
+    },
+    text: {
+      marginBottom: 8,
+      textAlign: 'left',
+    },
+    bullet: {
+      marginBottom: 6,
+      marginLeft: 20,
+      textAlign: 'left',
+    },
+    table: {
+      marginVertical: 10,
+      borderStyle: 'solid',
+      borderWidth: 1,
+      borderColor: '#000000',
+    },
+    tableRow: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: '#000000',
+    },
+    tableCell: {
+      flex: 1,
+      padding: 4,
+      fontSize: 9,
+      borderRightWidth: 1,
+      borderRightColor: '#000000',
+    },
+    tableHeader: {
+      flex: 1,
+      padding: 4,
+      fontSize: 9,
+      fontFamily: 'Times-Bold',
+      borderRightWidth: 1,
+      borderRightColor: '#000000',
+    },
+  });
+
+  // Process blocks into React PDF components
+  const renderBlock = (block: ContractTemplateBlock, index: number) => {
+    if (block.type === 'paragraph') {
+      const content = applyDynamicContent(block.text, templateData);
+      const isBullet = block.style === 'bullet';
+      
+      return createElement(
+        Text,
+        { key: index, style: isBullet ? styles.bullet : styles.text },
+        content
+      );
+    } else if (block.type === 'table') {
+      return createElement(
+        View,
+        { key: index, style: styles.table },
+        block.rows.map((row, rowIndex) =>
+          createElement(
+            View,
+            { key: rowIndex, style: styles.tableRow },
+            row.map((cell, cellIndex) => {
+              const content = applyDynamicContent(cell, templateData);
+              const isHeader = rowIndex === 0;
+              return createElement(
+                Text,
+                {
+                  key: cellIndex,
+                  style: isHeader ? styles.tableHeader : styles.tableCell,
+                },
+                content
+              );
+            })
+          )
+        )
+      );
+    }
+    return null;
+  };
+
+  // Create the PDF document
+  const PDFDoc = createElement(
+    PDFDocument,
+    null,
+    createElement(
+      Page,
+      { size: 'LETTER', style: styles.page },
+      contractTemplate.blocks.map((block, index) => renderBlock(block, index))
+    )
+  );
+
+  // Generate the PDF blob
+  const pdfBlob = await pdf(PDFDoc).toBlob();
+  return pdfBlob;
 }
 
 /**
@@ -743,14 +895,15 @@ export async function saveContractToAppData(
  * Generate a filename for a contract
  * @param clientName - The client's name
  * @param saleId - The sale ID (optional)
+ * @param fileFormat - The file format ('docx' or 'pdf')
  * @returns A sanitized filename
  */
-export function generateContractFilename(clientName: string, saleId?: string): string {
+export function generateContractFilename(clientName: string, saleId?: string, fileFormat: 'docx' | 'pdf' = 'docx'): string {
   const timestamp = format(new Date(), 'yyyy-MM-dd');
   const safeName = clientName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
   const idPart = saleId ? `-${saleId.substring(0, 8)}` : '';
   
-  return `Contract_${safeName}${idPart}_${timestamp}.docx`;
+  return `Contract_${safeName}${idPart}_${timestamp}.${fileFormat}`;
 }
 
 // ============================================
