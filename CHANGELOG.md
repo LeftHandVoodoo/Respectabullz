@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Fillable Contract Template Support**: New option to fill pre-made fillable Word templates
+  - Added `fillFillableContract()` function that fills Word Content Controls (SDT fields)
+  - Uses PizZip for direct XML manipulation of .docx files
+  - Supports 155 fillable fields mapped to ContractData properties
+  - Template mode toggle in Contract Form Dialog: "Generated" vs "Fillable"
+  - Added `fillable_contract_2.docx` template to public folder
+  - Hook updated with `templateMode` option ('generated' | 'fillable')
+
+### Fixed
+- **Fillable Contract Generation**: Fixed broken regex in `replaceSDTContent()` that prevented SDT element finding
+  - Replaced incorrect negative lookahead pattern with proper matchAll approach
+  - Now correctly locates the containing SDT element for field replacement
+
 ## [1.6.0] - 2025-12-10
 
 ### Changed

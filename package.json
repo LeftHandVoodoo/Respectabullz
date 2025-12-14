@@ -61,6 +61,7 @@
     "jszip": "^3.10.1",
     "lucide-react": "^0.454.0",
     "pdfjs-dist": "^5.4.296",
+    "pizzip": "^3.2.0",
     "react": "^18.3.1",
     "react-big-calendar": "^1.15.0",
     "react-dom": "^18.3.1",

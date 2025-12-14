@@ -9,6 +9,7 @@ import { useSettings } from './useSettings';
 import {
   generateContractDocumentFromJson,
   generateContractPDF,
+  fillFillableContract,
   downloadContract,
   saveContractToAppData,
   generateContractFilename,
@@ -21,6 +22,18 @@ interface GenerateContractOptions {
   contractData: ContractData;
   autoDownload?: boolean;
   filename?: string;
+  format?: 'docx' | 'pdf' | 'both';
+  /**
+   * Template mode:
+   * - 'generated': Generate document from scratch using the JSON template (default)
+   * - 'fillable': Fill the fillable Word template (fillable_contract_2.docx)
+   */
+  templateMode?: 'generated' | 'fillable';
+  /**
+   * Custom template path when using 'fillable' mode.
+   * If not provided, uses the default template at /contacts/fillable_contract_2.docx
+   */
+  fillableTemplatePath?: string;
 }
 
 interface GenerateContractResult {
@@ -31,6 +44,7 @@ interface GenerateContractResult {
   pdfBlob?: Blob;
   pdfFilename?: string;
   pdfFilePath?: string;
+  templateMode: 'generated' | 'fillable';
 }
 
 /**
@@ -47,10 +61,35 @@ export function useGenerateContract() {
         autoDownload = true,
         filename,
         format = 'docx',
+        templateMode = 'generated',
+        fillableTemplatePath = '/contacts/fillable_contract_2.docx',
       } = options;
 
-      // Generate the Word document
-      const blob = await generateContractDocumentFromJson(contractData);
+      let blob: Blob;
+
+      // Generate the Word document based on template mode
+      if (templateMode === 'fillable') {
+        // Use the fillable template approach
+        try {
+          // Fetch the template file
+          const response = await fetch(fillableTemplatePath);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch template: ${response.status} ${response.statusText}`);
+          }
+          const templateArrayBuffer = await response.arrayBuffer();
+          
+          // Fill the template with contract data
+          blob = await fillFillableContract(contractData, templateArrayBuffer);
+        } catch (error) {
+          console.error('Failed to fill template, falling back to generated:', error);
+          // Fallback to generated mode if template fails
+          blob = await generateContractDocumentFromJson(contractData);
+        }
+      } else {
+        // Generate document from scratch using JSON template
+        blob = await generateContractDocumentFromJson(contractData);
+      }
+
       const outputFilename = filename || generateContractFilename(contractData.buyerName, undefined, 'docx');
 
       // Save Word document
@@ -70,6 +109,7 @@ export function useGenerateContract() {
         filename: outputFilename,
         filePath: savedPath,
         templateData: prepareTemplateData(contractData),
+        templateMode,
       };
 
       // Generate PDF if requested
@@ -98,9 +138,10 @@ export function useGenerateContract() {
       return result;
     },
     onSuccess: (result) => {
+      const modeLabel = result.templateMode === 'fillable' ? ' (Fillable Template)' : '';
       const message = result.pdfFilePath 
-        ? `Contracts saved:\nWord: ${result.filePath}\nPDF: ${result.pdfFilePath}`
-        : `Contract saved to: ${result.filePath}`;
+        ? `Contracts saved${modeLabel}:\nWord: ${result.filePath}\nPDF: ${result.pdfFilePath}`
+        : `Contract saved${modeLabel} to: ${result.filePath}`;
       
       toast({
         title: 'Contract Generated',

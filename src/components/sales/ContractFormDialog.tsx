@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { FileText, User, Building2, Dog, DollarSign, AlertCircle, Printer, ArrowRight } from 'lucide-react';
+import { FileText, User, Building2, Dog, DollarSign, AlertCircle, Printer, ArrowRight, FileCheck } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useBreederSettings } from '@/hooks/useBreederSettings';
 import { useGenerateContract } from '@/hooks/useContract';
@@ -98,6 +99,7 @@ export function ContractFormDialog({
   const { breederSettings, isConfigured: isBreederConfigured } = useBreederSettings();
   const generateContract = useGenerateContract();
   const [activeTab, setActiveTab] = useState('buyer');
+  const [templateMode, setTemplateMode] = useState<'generated' | 'fillable'>('fillable');
 
   const {
     control,
@@ -217,6 +219,7 @@ export function ContractFormDialog({
         contractData,
         autoDownload: true,
         format: 'both', // Generate both Word and PDF
+        templateMode, // Use selected template mode ('generated' or 'fillable')
       });
       
       onContractGenerated?.(contractData, result.filePath);
@@ -256,17 +259,34 @@ export function ContractFormDialog({
         )}
 
         <form onSubmit={handleSubmit(handleProceedToSale)} className="space-y-4">
-          {/* Agreement Date */}
-          <div className="flex items-center gap-4">
-            <Label htmlFor="agreementDate" className="w-32">Agreement Date</Label>
-            <Input
-              type="date"
-              {...register('agreementDate')}
-              className="w-48"
-            />
-            {errors.agreementDate && (
-              <span className="text-sm text-destructive">{errors.agreementDate.message}</span>
-            )}
+          {/* Agreement Date and Template Mode */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <Label htmlFor="agreementDate" className="w-32">Agreement Date</Label>
+              <Input
+                type="date"
+                {...register('agreementDate')}
+                className="w-48"
+              />
+              {errors.agreementDate && (
+                <span className="text-sm text-destructive">{errors.agreementDate.message}</span>
+              )}
+            </div>
+            
+            {/* Template Mode Selection */}
+            <div className="flex items-center gap-3 p-2 bg-muted/50 rounded-md">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="template-mode" className="text-sm text-muted-foreground">Generated</Label>
+              <Switch
+                id="template-mode"
+                checked={templateMode === 'fillable'}
+                onCheckedChange={(checked: boolean) => setTemplateMode(checked ? 'fillable' : 'generated')}
+              />
+              <Label htmlFor="template-mode" className="text-sm text-muted-foreground flex items-center gap-1">
+                <FileCheck className="h-4 w-4" />
+                Fillable
+              </Label>
+            </div>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -573,7 +593,12 @@ export function ContractFormDialog({
               disabled={generateContract.isPending || !isBreederConfigured}
             >
               <Printer className="mr-2 h-4 w-4" />
-              {generateContract.isPending ? 'Generating...' : 'Generate Word & PDF'}
+              {generateContract.isPending 
+                ? 'Generating...' 
+                : templateMode === 'fillable' 
+                  ? 'Generate Fillable Contract' 
+                  : 'Generate Word & PDF'
+              }
             </Button>
             <Button
               type="submit"

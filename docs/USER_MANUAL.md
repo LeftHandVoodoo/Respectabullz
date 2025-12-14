@@ -14,10 +14,13 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
   - New contract template with all sections including spay/neuter contract, food brands, vaccination schedule, and first aid information
   - Enhanced field replacement for accurate data population
   - **Dual Format Output**: Contracts now generate in both Word (.docx) and PDF (.pdf) formats simultaneously
+  - **Fillable Template Support**: New option to fill pre-made fillable Word templates with form fields
+  - Template mode toggle: Choose between "Generated" (from scratch) or "Fillable" (pre-made template)
   - All existing data fields maintained - no changes needed to your data
 
 ### Bug Fixes
 - **Contract Generation**: Fixed "format is not a function" error when generating contracts from inquiries page
+- **Fillable Contract Generation**: Fixed bug that prevented SDT field replacement in fillable templates
 
 ---
 
@@ -672,14 +675,17 @@ If shipping a puppy:
 
 Generate professional sales contracts:
 1. When creating or editing a sale, click **"Generate Contract"** button
-2. Fill in contract details:
+2. Select template mode (toggle in the contract dialog):
+   - **Fillable**: Uses pre-made fillable Word template with form fields
+   - **Generated**: Creates document from scratch using JSON template
+3. Fill in contract details:
    - **Buyer Information**: Name, address, contact details (pre-filled from client)
    - **Puppy Information**: Name, breed, sex, color, date of birth, microchip, registration number
    - **Sale Details**: Sale price, registration type (pet or full rights), agreement date
    - **Sire and Dam**: Parent information (pre-filled if available)
    - **Co-Buyer**: Optional second buyer name
-3. Click **"Generate Contract"** to create the document
-4. Contract is automatically saved and can be:
+4. Click **"Generate Contract"** to create the document
+5. Contract is automatically saved and can be:
    - **Default Location**: `%APPDATA%/com.respectabullz.app/contracts/`
    - **Custom Location**: If you've set a custom directory in Settings → Preferences → Contracts Save Location
    - Printed for signatures
@@ -692,6 +698,7 @@ Generate professional sales contracts:
 - Includes health guarantee and registration transfer terms
 - Legal document ready for signatures
 - Customizable save location for better organization
+- **Fillable Template Mode**: Fill pre-made Word templates with form fields for easier editing
 
 ---
 

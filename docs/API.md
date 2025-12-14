@@ -537,6 +537,23 @@ generateContractDocumentFromJson(contractData: ContractData): Promise<Blob>
 
 **Settings Integration:** The save location is controlled by the `contractsDirectory` setting, which can be set via Settings page or defaults to app data directory.
 
+### fillFillableContract
+Fills a pre-made fillable Word template with contract data by replacing Word Content Controls (SDT fields).
+
+```typescript
+fillFillableContract(contractData: ContractData, templateArrayBuffer: ArrayBuffer): Promise<Blob>
+```
+
+**Parameters:**
+- `contractData`: ContractData object containing breeder, buyer, puppy, and sale information
+- `templateArrayBuffer`: The fillable Word template file as an ArrayBuffer
+
+**Returns:** Blob of the filled Word document (.docx)
+
+**Template:** Uses Word Content Controls (SDT) with field aliases (Field_1, Field_3, etc.) that are mapped to ContractData properties
+
+**Note:** This function directly manipulates the .docx XML structure using PizZip to find and replace SDT field content. The template must be a valid Word document with properly configured Content Controls.
+
 ### prepareTemplateData
 Prepares contract data for template rendering.
 

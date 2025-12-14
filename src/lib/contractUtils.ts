@@ -18,6 +18,7 @@ import {
 } from 'docx';
 import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
+import PizZip from 'pizzip';
 import contractTemplateJson from '../../contacts/contract_template_respectabullz.json';
 import type { ContractData, BreederSettings, Client, Dog } from '@/types';
 
@@ -496,24 +497,6 @@ function applyTokenReplacements(text: string, data: TemplateDataMap): string {
   return result;
 }
 
-function formatBuyerContact(data: TemplateDataMap): string {
-  const parts = [
-    data.buyerName,
-    data.buyerFullAddress,
-    data.buyerPhone,
-    data.buyerEmail,
-  ].filter(Boolean);
-
-  return parts.length ? parts.join(', ') : 'Buyer Information';
-}
-
-function formatSaleCounts(data: TemplateDataMap): string {
-  const total = data.puppyCount ?? 1;
-  const males = data.maleCount ?? 0;
-  const females = data.femaleCount ?? 0;
-  return `${total} (#) ${males} male ${females} female American Bully puppy`;
-}
-
 function applyDynamicContent(originalText: string, data: TemplateDataMap): string {
   if (!originalText) return '';
 
@@ -842,17 +825,14 @@ export async function saveContractToAppData(
       const arrayBuffer = await blob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
-      // Determine save path
-      let contractsPath: string;
-      let baseDir: typeof BaseDirectory.AppData;
-      
+      // Try custom directory first if provided
       if (customDirectory) {
         // Use custom directory (absolute path)
-        contractsPath = await join(customDirectory, filename);
+        const customPath = await join(customDirectory, filename);
         // For absolute paths, we'll write directly without baseDir
         try {
-          await writeFile(contractsPath, uint8Array);
-          return contractsPath;
+          await writeFile(customPath, uint8Array);
+          return customPath;
         } catch (error) {
           console.error('Failed to save to custom directory, falling back to default:', error);
           // Fall through to default directory
@@ -860,8 +840,8 @@ export async function saveContractToAppData(
       }
       
       // Default: Save to contracts folder in app data directory
-      contractsPath = `contracts/${filename}`;
-      baseDir = BaseDirectory.AppData;
+      const contractsPath = `contracts/${filename}`;
+      const baseDir = BaseDirectory.AppData;
       
       // Ensure contracts directory exists
       try {
@@ -904,6 +884,373 @@ export function generateContractFilename(clientName: string, saleId?: string, fi
   const idPart = saleId ? `-${saleId.substring(0, 8)}` : '';
   
   return `Contract_${safeName}${idPart}_${timestamp}.${fileFormat}`;
+}
+
+// ============================================
+// FILLABLE WORD DOCUMENT SUPPORT
+// ============================================
+
+/**
+ * MIME type for Word documents
+ */
+const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+/**
+ * Escape special XML characters
+ */
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+/**
+ * Extract date parts from a date for fillable fields
+ */
+function getDatePart(date: Date | string | undefined, part: 'month' | 'day' | 'year' | 'monthDay' | 'yearShort'): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  
+  switch (part) {
+    case 'month': return format(d, 'MM');
+    case 'day': return format(d, 'dd');
+    case 'year': return format(d, 'yyyy');
+    case 'yearShort': return format(d, 'yy');
+    case 'monthDay': return format(d, 'MMMM d');
+    default: return '';
+  }
+}
+
+/**
+ * Get ordinal day format (e.g., "2nd", "15th")
+ */
+function getOrdinalDay(date: Date | string | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  
+  const day = d.getDate();
+  const suffix = getOrdinalSuffix(day);
+  return `${day}${suffix}`;
+}
+
+/**
+ * Helper to safely convert template data values to strings
+ */
+function str(value: string | number | boolean | undefined | null): string {
+  if (value === undefined || value === null) return '';
+  return String(value);
+}
+
+/**
+ * Helper to safely get string value for date parsing
+ */
+function strDate(value: string | number | boolean | undefined): string | undefined {
+  if (value === undefined || typeof value !== 'string') return undefined;
+  return value;
+}
+
+/**
+ * Mapping of fillable field aliases to functions that extract values from ContractData.
+ * Based on the fillable_contract_2.docx structure analysis.
+ * 
+ * Field positions (from JSON serialization):
+ * - Field_1 through Field_17: Agreement header (date, buyer info, breeder info)
+ * - Field_19 through Field_29: Sale consideration (price, quantities)
+ * - Field_31 through Field_35: Puppy DOB
+ * - Field_37, Field_39: Sire and Dam names
+ * - Field_41 through Field_65: Bullet point prefixes (just "•" characters, no data needed)
+ * - Field_67/69, Field_71/73, Field_73/75: State/County references
+ * - Field_77 through Field_113: More bullet prefixes and State/County
+ * - Field_115 through Field_119: Signing date
+ * - Field_121 through Field_131: Signature lines
+ * - Field_133/135: STATE/COUNTY headers (notary)
+ * - Field_137 through Field_143: Notary date and person
+ * - Field_145 through Field_171: Signature/notary lines (mostly underscores)
+ */
+type FillableFieldGetter = (data: ReturnType<typeof prepareTemplateData>) => string;
+
+const FILLABLE_FIELD_MAP: Record<string, FillableFieldGetter> = {
+  // ======== Agreement Header (Paragraph 1) ========
+  // "This Agreement dated [Field_1], 20[Field_3] is between Buyer: [Field_5](Name: [Field_7], Address: [Field_9], Phone Number: [Field_11], Email Address: [Field_13]) herein referred to as Buyer and Owner Name: [Field_15] of Kennel Name: [Field_17]..."
+  'Field_1': (d) => {
+    const dateStr = strDate(d.agreementDate);
+    if (!dateStr) return '';
+    // Try to extract month and day from the date string
+    const match = dateStr.match(/^(\w+\s+\d+)/);
+    return match ? match[1] : dateStr.split(',')[0] || '';
+  },
+  'Field_3': (d) => str(d.agreementYear),
+  'Field_5': (_d) => '', // Empty spacer between "Buyer:" and "(Name:"
+  'Field_7': (d) => str(d.buyerName),
+  'Field_9': (d) => str(d.buyerFullAddress),
+  'Field_11': (d) => str(d.buyerPhone),
+  'Field_13': (d) => str(d.buyerEmail),
+  'Field_15': (d) => str(d.breederName),
+  'Field_17': (d) => str(d.kennelName),
+  
+  // ======== Sale Consideration (Paragraph 2) ========
+  // "In Consideration of the total sum of $[Field_19].00 ([Field_21] Dollars and no cents)...purchase [Field_23] ([Field_25]) [Field_27]male [Field_29]female..."
+  'Field_19': (d) => str(d.salePriceAmount).replace('.00', ''),
+  'Field_21': (d) => str(d.salePriceWords).replace(' Dollars and no cents', '').replace(' Dollars and ', ''),
+  'Field_23': (d) => numberToWords(Number(d.puppyCount) || 1).toLowerCase(),
+  'Field_25': (d) => str(d.puppyCount || 1),
+  'Field_27': (d) => str(d.maleCount || ''),
+  'Field_29': (d) => str(d.femaleCount || ''),
+  
+  // ======== Puppy DOB (Paragraph 3) ========
+  // "Born on [Field_31]/[Field_33]/[Field_35]"
+  'Field_31': (d) => getDatePart(strDate(d.puppyDOB), 'month'),
+  'Field_33': (d) => getDatePart(strDate(d.puppyDOB), 'day'),
+  'Field_35': (d) => getDatePart(strDate(d.puppyDOB), 'year'),
+  
+  // ======== Sire and Dam ========
+  'Field_37': (d) => str(d.sireName),
+  'Field_39': (d) => str(d.damName),
+  
+  // ======== Bullet point prefixes (Field_41 - Field_65) ========
+  // These are just "•" characters, leave empty or keep original
+  
+  // ======== Court jurisdiction (multiple locations) ========
+  // "State of [Field_67], County of [Field_69]" in non-transferable clause
+  'Field_67': (d) => str(d.state),
+  'Field_69': (d) => str(d.county),
+  
+  // More state/county references
+  'Field_71': (_d) => '', // Bullet prefix
+  'Field_73': (d) => str(d.state),
+  'Field_75': (d) => str(d.county),
+  
+  // Additional state/county in legal section
+  'Field_77': (_d) => '', // Bullet prefix
+  'Field_79': (_d) => '', // Bullet prefix
+  'Field_81': (_d) => '', // Bullet prefix (microchip clause)
+  'Field_83': (_d) => '', // Dollar amount for microchip breach - keep as is
+  'Field_85': (_d) => '', // Dollar amount words - keep as is
+  'Field_87': (_d) => '', // Bullet prefix (registry name clause)
+  'Field_89': (d) => str(d.kennelPrefix) || str(d.kennelName), // Kennel prefix reference
+  'Field_91': (_d) => '', // Bullet prefix (obedience training)
+  'Field_93': (d) => str(d.kennelName), // Kennel name reference
+  
+  // More bullet prefixes
+  'Field_95': (_d) => '', // Bullet
+  'Field_97': (_d) => '', // Bullet
+  'Field_99': (_d) => '', // Bullet
+  'Field_101': (_d) => '', // Bullet
+  'Field_103': (_d) => '', // Bullet
+  'Field_105': (_d) => '', // Bullet
+  
+  // State/County in governing law section (near end of main contract)
+  'Field_107': (d) => str(d.state),
+  'Field_109': (d) => str(d.county),
+  'Field_111': (d) => str(d.state),
+  'Field_113': (d) => str(d.county),
+  
+  // ======== Signing Date ========
+  // "Signed on [Field_115]day of [Field_117], 20[Field_119]"
+  'Field_115': (d) => getOrdinalDay(strDate(d.signingDate) || strDate(d.agreementDate)),
+  'Field_117': (d) => {
+    const dateStr = strDate(d.signingDate) || strDate(d.agreementDate);
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? '' : format(date, 'MMMM');
+  },
+  'Field_119': (d) => {
+    const dateStr = strDate(d.signingDate) || strDate(d.agreementDate);
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? '' : format(date, 'yy');
+  },
+  
+  // ======== Signature Lines (Field_121 - Field_131) ========
+  // These are typically left empty or kept as underscores for manual signing
+  'Field_121': (_d) => '', // Breeder signature line (leave blank for signing)
+  'Field_123': (_d) => '', // Signature line spacer
+  'Field_125': (_d) => '', // Signature line spacer
+  'Field_127': (_d) => '', // Signature line spacer
+  'Field_129': (_d) => '', // Buyer signature line (leave blank for signing)
+  'Field_131': (d) => str(d.coBuyerName), // Co-Buyer name
+  
+  // ======== Notary Section ========
+  // "STATE OF [Field_133])"
+  'Field_133': (d) => str(d.state),
+  // "COUNTY OF [Field_135])SS.:"
+  'Field_135': (d) => str(d.county),
+  
+  // "On this [Field_137]day of [Field_139], 20[Field_141], before me...personally appeared [Field_143]..."
+  'Field_137': (d) => getOrdinalDay(strDate(d.signingDate) || strDate(d.agreementDate)),
+  'Field_139': (d) => {
+    const dateStr = strDate(d.signingDate) || strDate(d.agreementDate);
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? '' : format(date, 'MMMM');
+  },
+  'Field_141': (d) => {
+    const dateStr = strDate(d.signingDate) || strDate(d.agreementDate);
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? '' : format(date, 'yy');
+  },
+  'Field_143': (d) => str(d.buyerName), // Person appearing before notary
+  
+  // ======== Notary/Signature Underscores (Field_145 - Field_171) ========
+  // These are decorative underscores for signature lines, leave as-is
+  // The remaining fields are mostly underscores/spacers
+};
+
+/**
+ * Replace content within a Word Content Control (SDT) in the XML.
+ * Finds the SDT element with the matching alias and replaces the text content.
+ */
+function replaceSDTContent(xml: string, alias: string, value: string): string {
+  // Word Content Controls (SDT) have this structure:
+  // <w:sdt>
+  //   <w:sdtPr>
+  //     <w:alias w:val="Field_1"/>
+  //     ...
+  //   </w:sdtPr>
+  //   <w:sdtContent>
+  //     <w:p>...<w:t>old text</w:t>...</w:p>
+  //   </w:sdtContent>
+  // </w:sdt>
+  
+  // We need to find SDT with this alias and replace the text in <w:t> inside <w:sdtContent>
+  // Use a regex approach that finds the alias and then updates the content
+  
+  // First, find the position of this alias
+  const aliasPattern = new RegExp(`<w:alias\\s+w:val="${alias}"`, 'g');
+  const match = aliasPattern.exec(xml);
+  
+  if (!match) {
+    return xml; // Alias not found, return unchanged
+  }
+  
+  // Find the containing <w:sdt> element
+  // Work backwards from alias to find <w:sdt>, then forward to find </w:sdt>
+  const aliasPos = match.index!;
+  
+  // Find the start of the <w:sdt> that contains this alias
+  // Find all <w:sdt> tags before the alias position and take the last one
+  const beforeAlias = xml.substring(0, aliasPos);
+  const sdtMatches = [...beforeAlias.matchAll(/<w:sdt[^>]*>/g)];
+  if (sdtMatches.length === 0) {
+    return xml; // Could not find containing SDT
+  }
+  const sdtStartPos = sdtMatches[sdtMatches.length - 1].index!;
+  
+  // Find the end of </w:sdtContent> which marks the content area
+  const afterAlias = xml.substring(aliasPos);
+  const sdtContentEndMatch = afterAlias.match(/<\/w:sdtContent>/);
+  if (!sdtContentEndMatch) {
+    return xml;
+  }
+  const sdtContentEndPos = aliasPos + sdtContentEndMatch.index! + sdtContentEndMatch[0].length;
+  
+  // Extract the SDT element
+  const sdtElement = xml.substring(sdtStartPos, sdtContentEndPos);
+  
+  // Find and replace the text within <w:t> tags inside <w:sdtContent>
+  // The content is between </w:sdtPr> and </w:sdtContent>
+  const sdtContentMatch = sdtElement.match(/<w:sdtContent[^>]*>([\s\S]*?)<\/w:sdtContent>/);
+  if (!sdtContentMatch) {
+    return xml;
+  }
+  
+  const sdtContent = sdtContentMatch[1];
+  
+  // Replace text in <w:t> elements while preserving structure
+  // Handle case where there may be multiple <w:t> elements or space preservation
+  let newSdtContent = sdtContent;
+  
+  // Simple approach: replace text in <w:t>...</w:t> patterns
+  // Keep the first <w:t> and replace its content, remove duplicates if needed
+  const wtPattern = /<w:t[^>]*>([^<]*)<\/w:t>/g;
+  let firstMatch = true;
+  
+  newSdtContent = sdtContent.replace(wtPattern, (fullMatch, _textContent) => {
+    if (firstMatch) {
+      firstMatch = false;
+      // Preserve space attribute if present
+      const spaceAttr = fullMatch.match(/xml:space="[^"]*"/);
+      const spaceAttrStr = spaceAttr ? ` ${spaceAttr[0]}` : '';
+      return `<w:t${spaceAttrStr}>${escapeXml(value)}</w:t>`;
+    }
+    // For subsequent <w:t> elements in the same SDT, empty them
+    return '<w:t></w:t>';
+  });
+  
+  // If no <w:t> was found at all, the content structure might be different
+  if (firstMatch && value) {
+    // Try to insert text in a simple way
+    newSdtContent = sdtContent.replace(
+      /(<w:r[^>]*>)([\s\S]*?)(<\/w:r>)/,
+      `$1<w:t>${escapeXml(value)}</w:t>$3`
+    );
+  }
+  
+  // Rebuild the SDT element with new content
+  const newSdtElement = sdtElement.replace(
+    /<w:sdtContent[^>]*>[\s\S]*?<\/w:sdtContent>/,
+    `<w:sdtContent>${newSdtContent}</w:sdtContent>`
+  );
+  
+  // Replace in the full XML
+  return xml.substring(0, sdtStartPos) + newSdtElement + xml.substring(sdtContentEndPos);
+}
+
+/**
+ * Fill a fillable Word document template with contract data.
+ * Uses the fillable_contract_2.docx template which has Word Content Controls (SDT fields).
+ * 
+ * @param contractData - The contract data to fill in
+ * @param templateArrayBuffer - The template file as an ArrayBuffer (from fetch or file read)
+ * @returns A Blob containing the filled Word document
+ */
+export async function fillFillableContract(
+  contractData: ContractData,
+  templateArrayBuffer: ArrayBuffer
+): Promise<Blob> {
+  // Prepare the template data
+  const templateData = prepareTemplateData(contractData);
+  
+  // Load the template as a ZIP archive
+  const zip = new PizZip(templateArrayBuffer);
+  
+  // Get the main document XML
+  const documentFile = zip.file('word/document.xml');
+  if (!documentFile) {
+    throw new Error('Invalid Word document: word/document.xml not found');
+  }
+  
+  let documentXml = documentFile.asText();
+  
+  // Fill each mapped field
+  for (const [fieldAlias, getValue] of Object.entries(FILLABLE_FIELD_MAP)) {
+    try {
+      const value = getValue(templateData);
+      if (value !== undefined) {
+        documentXml = replaceSDTContent(documentXml, fieldAlias, value);
+      }
+    } catch (error) {
+      console.warn(`Failed to fill field ${fieldAlias}:`, error);
+    }
+  }
+  
+  // Update the document XML in the ZIP
+  zip.file('word/document.xml', documentXml);
+  
+  // Generate the filled document as a Blob
+  const filledDocBlob = zip.generate({
+    type: 'blob',
+    mimeType: DOCX_MIME_TYPE,
+    compression: 'DEFLATE',
+  });
+  
+  return filledDocBlob;
 }
 
 // ============================================
