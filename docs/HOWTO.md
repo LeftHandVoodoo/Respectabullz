@@ -1,6 +1,6 @@
 # Respectabullz How-To Guide
 
-**Version 1.6.1**
+**Version 1.7.0**
 **Last Updated: December 23, 2025**
 
 This guide provides step-by-step instructions for common breeding operation workflows. For detailed feature documentation, see [USER_MANUAL.md](USER_MANUAL.md).

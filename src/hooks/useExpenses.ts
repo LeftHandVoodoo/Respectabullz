@@ -21,9 +21,14 @@ export function useCreateExpense() {
 
   return useMutation({
     mutationFn: (input: CreateExpenseInput) => db.createExpense(input),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      // Also invalidate transports if this was a transport expense
+      // (a linked transport record is created automatically)
+      if (variables.category === 'transport') {
+        queryClient.invalidateQueries({ queryKey: ['transports'] });
+      }
       toast({
         title: 'Expense recorded',
         description: 'The expense has been added successfully.',
@@ -73,6 +78,8 @@ export function useDeleteExpense() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      // Also invalidate transports (linked transport records are deleted automatically)
+      queryClient.invalidateQueries({ queryKey: ['transports'] });
       toast({
         title: 'Expense deleted',
         description: 'The expense has been removed successfully.',

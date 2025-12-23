@@ -8,7 +8,9 @@ describe('cn (class name utility)', () => {
   });
 
   it('handles conditional classes', () => {
-    expect(cn('base', true && 'included', false && 'excluded')).toBe('base included');
+    const includeClass = true;
+    const excludeClass = false;
+    expect(cn('base', includeClass && 'included', excludeClass && 'excluded')).toBe('base included');
   });
 
   it('handles tailwind class conflicts', () => {

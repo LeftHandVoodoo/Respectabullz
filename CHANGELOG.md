@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2025-12-23
+
+### Added
+- **In-App Auto-Updater**: Check for and install updates without manual download/reinstall
+  - New "Application Updates" section in Settings page
+  - Check for updates from GitHub releases
+  - Download progress indicator with percentage
+  - One-click install with automatic app restart
+  - Shows release notes before updating
+  - Uses Tauri's built-in updater plugin for secure, efficient updates
+- **Transport and Expense Tests**: Comprehensive test coverage for transport-expense relationship
+  - Database operations tests for expenses CRUD (create, read, update, delete)
+  - Database operations tests for transports CRUD
+  - Tests for automatic expense creation when transport has cost
+  - Tests for cascading delete (deleting transport removes linked expense)
+  - Tests for expense filtering by dogId, category, and litterId
+  - Component tests for DogTransportsList display and interactions
+
+### Fixed
+- **Transport Expense Linking**: Transport expenses added from Dog Financial page now appear on Transport page
+  - When creating an expense with category "transport" and a related dog, a linked transport record is automatically created
+  - Deleting a transport expense also removes the linked transport record
+  - Query cache is properly invalidated to refresh the Transport page
+- **Dog Detail Transport Tab**: Fixed transport tab showing placeholder text instead of actual transport records
+  - Created new `DogTransportsList` component to display transport history for a specific dog
+  - Shows transport date, mode, shipper info, route, tracking number, and cost
+  - Added ability to add/edit/delete transport records directly from dog detail page
+  - TransportFormDialog now supports `defaultDogId` prop to pre-select dog when adding from dog page
+- **Version Sync**: Fixed version mismatch across VERSION file and Cargo.toml (now all 5 sources at 1.7.0)
+- **ESLint Errors**: Fixed 5 ESLint errors
+  - `no-constant-binary-expression` in utils.test.ts: Used variables instead of literal boolean expressions
+  - `no-case-declarations` in migrations.ts: Wrapped case block in braces for proper lexical scoping
+  - `prefer-const` in HelpSection.tsx: Changed `let` to `const` for non-reassigned variable
+  - `setState-in-effect` in HelpSection.tsx: Pre-render markdown at module level to avoid synchronous setState in useEffect
+
 ## [1.6.2] - 2025-12-23
 
 ### Fixed

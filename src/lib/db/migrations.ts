@@ -249,7 +249,7 @@ async function applyMigration(version: number): Promise<void> {
       }
       break;
     
-    case 3:
+    case 3: {
       // Migration 3: Add document management system
       console.log('[DB] Creating document management tables...');
       
@@ -379,7 +379,8 @@ async function applyMigration(version: number): Promise<void> {
       
       console.log('[DB] Document management tables and tags created successfully');
       break;
-    
+    }
+
     default:
       throw new Error(`Unknown migration version: ${version}`);
   }

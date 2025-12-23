@@ -1,6 +1,6 @@
 # Respectabullz Data Model
 
-**Version 1.6.1**
+**Version 1.7.0**
 
 ## Overview
 

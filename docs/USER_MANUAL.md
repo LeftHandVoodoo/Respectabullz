@@ -1,26 +1,30 @@
 # Respectabullz User Manual
 
-**Version 1.6.1**
+**Version 1.7.0**
 **Last Updated: December 23, 2025**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
 
 ---
 
-## What's New in Version 1.6.0
+## What's New in Version 1.7.0
 
 ### Major Updates
-- **Contract Generation Overhaul**: Complete update to match new contract template format
-  - New contract template with all sections including spay/neuter contract, food brands, vaccination schedule, and first aid information
-  - Enhanced field replacement for accurate data population
-  - **Dual Format Output**: Contracts now generate in both Word (.docx) and PDF (.pdf) formats simultaneously
-  - **Fillable Template Support**: New option to fill pre-made fillable Word templates with form fields
-  - Template mode toggle: Choose between "Generated" (from scratch) or "Fillable" (pre-made template)
-  - All existing data fields maintained - no changes needed to your data
+- **In-App Auto-Updater**: Check for and install updates directly from the app
+  - New "Application Updates" section in Settings page
+  - Check for updates from GitHub releases with one click
+  - Download progress indicator with percentage
+  - One-click install with automatic app restart
+  - Shows release notes before updating
+  - Uses Tauri's built-in updater plugin for secure updates
 
 ### Bug Fixes
-- **Contract Generation**: Fixed "format is not a function" error when generating contracts from inquiries page
-- **Fillable Contract Generation**: Fixed bug that prevented SDT field replacement in fillable templates
+- **Transport Expense Linking**: Transport expenses added from Dog Financial page now appear on Transport page
+  - Expense with "transport" category and related dog now creates linked transport record
+  - Deleting transport expense removes linked transport record
+- **Dog Detail Transport Tab**: Fixed transport tab showing placeholder instead of actual records
+  - New transport history display with date, mode, shipper, route, tracking, and cost
+  - Add/edit/delete transport records directly from dog detail page
 
 ---
 
@@ -846,6 +850,24 @@ Configure your kennel details for contracts and documents:
   - Selected directory persists across app restarts
   - All future contracts will be saved to the selected location
 - To reset to default, clear the custom directory setting
+
+### Application Updates
+
+Check for and install updates directly from within the app:
+
+1. Go to **Settings** → **Application Updates** section
+2. Click **"Check for Updates"** to see if a new version is available
+3. If an update is available:
+   - View the version number and release notes
+   - Click **"Download Update"** to start the download
+   - Progress bar shows download percentage
+4. Once downloaded, click **"Install and Restart"**
+   - The app will close, install the update, and restart automatically
+
+**Notes:**
+- Updates are downloaded securely from GitHub releases
+- Your data is preserved during updates
+- No manual download or reinstall required
 
 ### Data Management
 

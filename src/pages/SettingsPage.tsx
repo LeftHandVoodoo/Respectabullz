@@ -44,6 +44,7 @@ import { VERSION } from '@/lib/version';
 import { formatBytes, isTauriEnvironment } from '@/lib/backupUtils';
 import type { BreederSettings } from '@/types';
 import { HelpSection } from '@/components/settings/HelpSection';
+import { UpdateChecker } from '@/components/settings/UpdateChecker';
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -613,6 +614,9 @@ export function SettingsPage() {
 
       {/* Help & Documentation */}
       <HelpSection />
+
+      {/* Application Updates */}
+      {isTauri && <UpdateChecker />}
 
       {/* About */}
       <Card>

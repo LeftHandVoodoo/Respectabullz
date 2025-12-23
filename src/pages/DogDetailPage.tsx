@@ -41,6 +41,7 @@ import { GeneticTestsList } from '@/components/genetics/GeneticTestsList';
 import { PedigreeChart } from '@/components/pedigree/PedigreeChart';
 import { RegistrationStatusCard } from '@/components/registry/RegistrationStatusCard';
 import { DogExpensesList } from '@/components/expenses/DogExpensesList';
+import { DogTransportsList } from '@/components/transport/DogTransportsList';
 import { PacketExportDialog } from '@/components/packet/PacketExportDialog';
 import { DocumentList } from '@/components/documents';
 import { useDocumentsForDog } from '@/hooks/useDocuments';
@@ -310,20 +311,7 @@ export function DogDetailPage() {
         </TabsContent>
 
         <TabsContent value="transport">
-          <Card>
-            <CardHeader>
-              <CardTitle>Transport History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {dog.transports?.length === 0 ? (
-                <p className="text-muted-foreground">No transport records</p>
-              ) : (
-                <p className="text-muted-foreground">
-                  Transport records will be displayed here...
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <DogTransportsList dogId={dog.id} />
         </TabsContent>
 
         <TabsContent value="financial">

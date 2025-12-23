@@ -92,14 +92,14 @@ export async function getExpense(id: string): Promise<Expense | null> {
 export async function createExpense(input: CreateExpenseInput): Promise<Expense> {
   const id = generateId();
   const now = nowIso();
-  
+
   // Normalize empty strings to null for optional fields
   const relatedDogId = input.relatedDogId && typeof input.relatedDogId === 'string' && input.relatedDogId.trim() !== '' ? input.relatedDogId : null;
   const relatedLitterId = input.relatedLitterId && typeof input.relatedLitterId === 'string' && input.relatedLitterId.trim() !== '' ? input.relatedLitterId : null;
-  
+
   await execute(
-    `INSERT INTO expenses 
-     (id, date, amount, category, vendor_name, description, payment_method, 
+    `INSERT INTO expenses
+     (id, date, amount, category, vendor_name, description, payment_method,
       is_tax_deductible, receipt_path, related_dog_id, related_litter_id, notes, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
@@ -119,9 +119,43 @@ export async function createExpense(input: CreateExpenseInput): Promise<Expense>
       now,
     ]
   );
-  
+
   const expense = await getExpense(id);
   if (!expense) throw new Error('Failed to create expense');
+
+  // If this is a transport expense with a related dog, also create a transport record
+  // so it appears on the Transport page
+  if (input.category === 'transport' && relatedDogId) {
+    const transportId = generateId();
+    await execute(
+      `INSERT INTO transports
+       (id, dog_id, date, mode, shipper_business_name, contact_name, phone, email,
+        origin_city, origin_state, destination_city, destination_state,
+        tracking_number, cost, expense_id, notes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        transportId,
+        relatedDogId,
+        dateToSql(input.date),
+        'other', // Default mode when created from expense form
+        input.vendorName ?? null,
+        null, // contactName
+        null, // phone
+        null, // email
+        null, // originCity
+        null, // originState
+        null, // destinationCity
+        null, // destinationState
+        null, // trackingNumber
+        input.amount,
+        id, // Link back to the expense
+        input.description ?? input.notes ?? null,
+        now,
+        now,
+      ]
+    );
+  }
+
   return expense;
 }
 
@@ -162,6 +196,9 @@ export async function updateExpense(id: string, input: UpdateExpenseInput): Prom
 }
 
 export async function deleteExpense(id: string): Promise<boolean> {
+  // Delete any linked transport records first
+  await execute('DELETE FROM transports WHERE expense_id = ?', [id]);
+
   const result = await execute('DELETE FROM expenses WHERE id = ?', [id]);
   return result.rowsAffected > 0;
 }

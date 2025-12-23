@@ -14,7 +14,7 @@ import howToRaw from '../../../docs/HOWTO.md?raw';
  */
 function generateHeaderId(text: string): string {
   // Remove markdown formatting before generating ID
-  let cleanText = text
+  const cleanText = text
     .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
     .replace(/\*(.*?)\*/g, '$1') // Remove italic
     .replace(/`([^`]+)`/g, '$1') // Remove inline code
@@ -173,23 +173,16 @@ function renderMarkdown(markdown: string): string {
   return html.join('');
 }
 
+// Pre-render markdown content at module level to avoid setState in effects
+const preRenderedManual = renderMarkdown(userManualRaw);
+const preRenderedHowTo = renderMarkdown(howToRaw);
+
 export function HelpSection() {
-  const [userManualContent, setUserManualContent] = useState<string>('');
-  const [howToContent, setHowToContent] = useState<string>('');
-  const [loading, setLoading] = useState(true);
+  const [userManualContent] = useState<string>(preRenderedManual);
+  const [howToContent] = useState<string>(preRenderedHowTo);
+  const loading = false; // Content is pre-rendered, no loading needed
   const manualContentRef = useRef<HTMLDivElement>(null);
   const howToContentRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    try {
-      setUserManualContent(renderMarkdown(userManualRaw));
-      setHowToContent(renderMarkdown(howToRaw));
-      setLoading(false);
-    } catch (error) {
-      console.error('Failed to load help content:', error);
-      setLoading(false);
-    }
-  }, []);
 
   // Handle anchor link clicks for smooth scrolling
   useEffect(() => {

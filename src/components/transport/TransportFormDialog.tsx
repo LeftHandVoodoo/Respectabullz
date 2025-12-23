@@ -48,12 +48,14 @@ interface TransportFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   transport?: Transport;
+  defaultDogId?: string;
 }
 
 export function TransportFormDialog({
   open,
   onOpenChange,
   transport,
+  defaultDogId,
 }: TransportFormDialogProps) {
   const createTransport = useCreateTransport();
   const updateTransport = useUpdateTransport();
@@ -75,7 +77,7 @@ export function TransportFormDialog({
     },
   });
 
-  // Populate form when editing
+  // Populate form when editing or set defaults
   useEffect(() => {
     if (transport && open) {
       setValue('dogId', transport.dogId);
@@ -94,11 +96,12 @@ export function TransportFormDialog({
       setValue('notes', transport.notes || '');
     } else if (!transport && open) {
       reset({
+        dogId: defaultDogId || '',
         date: new Date().toISOString().split('T')[0],
         mode: 'ground',
       });
     }
-  }, [transport, open, setValue, reset]);
+  }, [transport, open, setValue, reset, defaultDogId]);
 
   const onSubmit = async (data: TransportFormData) => {
     const transportData = {
