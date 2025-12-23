@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2025-12-23
+
 ### Added
 - **Fillable Contract Template Support**: New option to fill pre-made fillable Word templates
   - Added `fillFillableContract()` function that fills Word Content Controls (SDT fields)
@@ -20,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fillable Contract Generation**: Fixed broken regex in `replaceSDTContent()` that prevented SDT element finding
   - Replaced incorrect negative lookahead pattern with proper matchAll approach
   - Now correctly locates the containing SDT element for field replacement
+- **Contract JSON Template**: Fixed placeholder formatting in generated contract template
+  - Added proper tab delimiters for date, buyer info, and breeder fields
+  - Fixed birth date, sale terms, and notary section placeholders for consistent field filling
 
 ## [1.6.0] - 2025-12-10
 

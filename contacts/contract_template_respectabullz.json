@@ -43,17 +43,17 @@
     {
       "type": "paragraph",
       "style": "normal",
-      "text": "This Agreement dated \t, 20  is between (Buyer: Name Address, Phone Number, Email Address) herein referred to as Buyer and (Owner Name) of (Kennel Name-) Herein referred to as Breeder."
+      "text": "This Agreement dated \t, 20\t is between Buyer: \t(Name: \t, Address: \t, Phone Number: \t, Email Address: \t) herein referred to as Buyer and Owner Name: \t of Kennel Name: \t Herein referred to as Breeder."
     },
     {
       "type": "paragraph",
       "style": "normal",
-      "text": "In Consideration of the total sum of $\t.00 ( \tDollars and no cents) and the mutual promises contained herein, Breeder has agreed to sell, and Buyer has agreed to purchase \t (#) \tmale \tfemale American Bully puppy."
+      "text": "In Consideration of the total sum of $\t.00 ( \tDollars and no cents) and the mutual promises contained herein, Breeder has agreed to sell, and Buyer has agreed to purchase \t (\t) \tmale \tfemale American Bully puppy."
     },
     {
       "type": "paragraph",
       "style": "normal",
-      "text": "Born on 00/00/0000"
+      "text": "Born on \t/\t/\t"
     },
     {
       "type": "paragraph",
@@ -198,7 +198,7 @@
     {
       "type": "paragraph",
       "style": "bullet",
-      "text": "•\tBreeder has had a Microchip implanted and registered. The Breeders name shall remain as a secondary contact on the microchip, with the Buyer as first contact. Any Attempt to remove Breeder from the microchip information, is an immediate breach of contract and Buyer agrees to pay Breeder a total sum of $x,000 (x Dollars and no cents) for breach of contract terms."
+      "text": "•\tBreeder has had a Microchip implanted and registered. The Breeders name shall remain as a secondary contact on the microchip, with the Buyer as first contact. Any Attempt to remove Breeder from the microchip information, is an immediate breach of contract and Buyer agrees to pay Breeder a total sum of $\t,000 (\t Dollars and no cents) for breach of contract terms."
     },
     {
       "type": "paragraph",
@@ -358,7 +358,7 @@
     {
       "type": "paragraph",
       "style": "normal",
-      "text": "On this \tday of \t, Two Thousand and Twenty One, before me, the undersigned, a Notary Public in and for said State, personally appeared \t, personally known to me or proved to me on the basis of satisfactory evidence to be the individual whose name is subscribed to the within Instrument and acknowledged to me that s/he/they executed the same in her/his/their capacity, and that by her/his/their signature on the instrument, the individuals, or the person upon behalf of which the individuals acted, executed the instrument."
+      "text": "On this \tday of \t, 20\t, before me, the undersigned, a Notary Public in and for said State, personally appeared \t, personally known to me or proved to me on the basis of satisfactory evidence to be the individual whose name is subscribed to the within Instrument and acknowledged to me that s/he/they executed the same in her/his/their capacity, and that by her/his/their signature on the instrument, the individuals, or the person upon behalf of which the individuals acted, executed the instrument."
     },
     {
       "type": "paragraph",
@@ -503,7 +503,7 @@
     {
       "type": "paragraph",
       "style": "normal",
-      "text": "This Agreement is made and entered into this \tday of 20 "
+      "text": "This Agreement is made and entered into this \tday of \t, 20\t"
     },
     {
       "type": "paragraph",
@@ -513,7 +513,7 @@
     {
       "type": "paragraph",
       "style": "normal",
-      "text": "By and between (Breeder) and (Buyer),"
+      "text": "By and between Breeder: \t and Buyer: \t,"
     },
     {
       "type": "paragraph",
@@ -523,12 +523,12 @@
     {
       "type": "paragraph",
       "style": "normal",
-      "text": "For the purpose of setting forth the terms and conditions of purchase by the Buyer of a Purebred American Bully from the litter Born on .Out of (Sire), And \t(Dam)."
+      "text": "For the purpose of setting forth the terms and conditions of purchase by the Buyer of a Purebred American Bully from the litter Born on \t/\t/\t. Out of Sire: \t, And Dam: \t."
     },
     {
       "type": "paragraph",
       "style": "normal",
-      "text": "For $ the Breeder agrees to sell and buyer agrees to purchase a \tfemale, \tmale companion puppy from the litter described above subject to the following terms."
+      "text": "For $\t the Breeder agrees to sell and buyer agrees to purchase a \tfemale, \tmale companion puppy from the litter described above subject to the following terms."
     },
     {
       "type": "paragraph",

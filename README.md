@@ -6,7 +6,7 @@
 
 # Respectabullz - Breeder Management Application
 
-**Version 1.6.0** - Latest Release
+**Version 1.6.1** - Latest Release
 
 A comprehensive desktop application for managing dog breeding operations, built with Tauri, React, TypeScript, and SQLite.
 
@@ -97,6 +97,9 @@ A comprehensive desktop application for managing dog breeding operations, built 
 ```bash
 # Install dependencies
 npm install
+
+# Copy environment config
+cp .env.example .env
 
 # Generate Prisma client
 npm run db:generate
@@ -201,6 +204,19 @@ npm run lint
 
 # Open Prisma Studio (database viewer)
 npm run db:studio
+```
+
+### Testing
+
+```bash
+# Run tests
+npm run test
+
+# Run tests with UI
+npm run test:ui
+
+# Run tests with coverage
+npm run test:coverage
 ```
 
 ## Documentation

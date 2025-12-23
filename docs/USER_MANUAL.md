@@ -1,7 +1,7 @@
 # Respectabullz User Manual
 
-**Version 1.6.0**
-**Last Updated: December 10, 2025**
+**Version 1.6.1**
+**Last Updated: December 23, 2025**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
 
