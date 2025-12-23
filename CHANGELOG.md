@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Transport Page**: Fixed dog name not displaying in transport list
+  - Added JOIN query to fetch dog relation when retrieving transports
+  - Transport records now properly show the associated dog's name
+
 ## [1.6.1] - 2025-12-23
 
 ### Added

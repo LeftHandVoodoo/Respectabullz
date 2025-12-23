@@ -191,6 +191,10 @@ interface TransportRow {
   updated_at: string;
 }
 
+interface TransportRowWithDog extends TransportRow {
+  dog_name: string | null;
+}
+
 function rowToTransport(row: TransportRow): Transport {
   return {
     id: row.id,
@@ -214,12 +218,28 @@ function rowToTransport(row: TransportRow): Transport {
   };
 }
 
+function rowToTransportWithDog(row: TransportRowWithDog): Transport {
+  const transport = rowToTransport(row);
+  if (row.dog_name) {
+    // Only populate minimal dog info needed for display (id + name)
+    transport.dog = { id: row.dog_id, name: row.dog_name } as Transport['dog'];
+  }
+  return transport;
+}
+
 export async function getTransports(dogId?: string): Promise<Transport[]> {
   const sql = dogId
-    ? 'SELECT * FROM transports WHERE dog_id = ? ORDER BY date DESC'
-    : 'SELECT * FROM transports ORDER BY date DESC';
-  const rows = await query<TransportRow>(sql, dogId ? [dogId] : []);
-  return rows.map(rowToTransport);
+    ? `SELECT t.*, d.name as dog_name
+       FROM transports t
+       LEFT JOIN dogs d ON t.dog_id = d.id
+       WHERE t.dog_id = ?
+       ORDER BY t.date DESC`
+    : `SELECT t.*, d.name as dog_name
+       FROM transports t
+       LEFT JOIN dogs d ON t.dog_id = d.id
+       ORDER BY t.date DESC`;
+  const rows = await query<TransportRowWithDog>(sql, dogId ? [dogId] : []);
+  return rows.map(rowToTransportWithDog);
 }
 
 export async function getTransport(id: string): Promise<Transport | null> {
