@@ -1,13 +1,13 @@
 """
 Update the Contract of Sale template with docxtemplater placeholders.
-Creates a new file contacts/Contract Template.docx preserving the original.
+Creates a new file contracts/Contract Template.docx preserving the original.
 """
 
 from pathlib import Path
 from docx import Document
 
-SOURCE_PATH = Path("contacts/Contract of Sale.docx")
-TARGET_PATH = Path("contacts/Contract Template.docx")
+SOURCE_PATH = Path("contracts/Contract of Sale.docx")
+TARGET_PATH = Path("contracts/Contract Template.docx")
 
 
 def replace_paragraph_contains(doc: Document, needle: str, replacement: str) -> None:

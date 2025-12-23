@@ -2,8 +2,8 @@ from pathlib import Path
 from docx import Document
 import sys
 
-source = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("contacts/Contract of Sale.docx")
-dump_path = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("contacts/contract_dump.txt")
+source = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("contracts/Contract of Sale.docx")
+dump_path = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("contracts/contract_dump.txt")
 
 doc = Document(source)
 
