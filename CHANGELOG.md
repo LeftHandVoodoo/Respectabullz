@@ -10,13 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.7.0] - 2025-12-23
 
 ### Added
-- **In-App Auto-Updater**: Check for and install updates without manual download/reinstall
-  - New "Application Updates" section in Settings page
-  - Check for updates from GitHub releases
-  - Download progress indicator with percentage
-  - One-click install with automatic app restart
-  - Shows release notes before updating
-  - Uses Tauri's built-in updater plugin for secure, efficient updates
 - **Transport and Expense Tests**: Comprehensive test coverage for transport-expense relationship
   - Database operations tests for expenses CRUD (create, read, update, delete)
   - Database operations tests for transports CRUD

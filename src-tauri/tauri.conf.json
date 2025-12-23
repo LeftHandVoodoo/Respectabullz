@@ -47,14 +47,6 @@
       "digestAlgorithm": "sha256",
       "timestampUrl": ""
     },
-    "createUpdaterArtifacts": true
-  },
-  "plugins": {
-    "updater": {
-      "endpoints": [
-        "https://github.com/LeftHandVoodoo/Respectabullz/releases/latest/download/latest.json"
-      ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEIwODNCMkZCMzk2MzFCQjIKUldTeUcyTTUrN0tEc0N2Ujhpd1lseVFQSkljNmlRcis0UXd6UWFHSTJjcVNRTmdXai9nZFRLRlAK"
-    }
+    "createUpdaterArtifacts": false
   }
 }
