@@ -1,4 +1,5 @@
 import * as React from 'react';
+import type { LucideIcon } from 'lucide-react';
 import {
   FileText,
   FileType,
@@ -50,7 +51,7 @@ interface DocumentCardProps {
   onDelete?: (doc: DocumentWithRelations) => void;
 }
 
-function getDocumentIcon(filename: string) {
+function getDocumentIcon(filename: string): LucideIcon {
   if (isImageFile(filename)) return Image;
   if (isPdfFile(filename)) return FileText;
   if (isWordFile(filename)) return FileType;
@@ -70,8 +71,8 @@ export function DocumentCard({ document, onView, onEdit, onDelete }: DocumentCar
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const deleteDocument = useDeleteDocument();
 
-  const IconComponent = getDocumentIcon(document.filename);
-  const iconColor = getIconColor(document.filename);
+  const IconComponent = React.useMemo(() => getDocumentIcon(document.filename), [document.filename]);
+  const iconColor = React.useMemo(() => getIconColor(document.filename), [document.filename]);
 
   const handleOpenWithSystem = async () => {
     await openDocumentWithSystem(document.filename);

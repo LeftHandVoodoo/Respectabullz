@@ -704,7 +704,7 @@ This marks the first stable production release of Respectabullz. All core featur
   - Price-to-words conversion for contract amounts
   - ContractPreview component with print support
   - Conversion flow: Inquiries → Contract Form → Sale Form
-  - Template placeholder guide (contacts/CONTRACT_TEMPLATE_GUIDE.md)
+  - Template placeholder guide (contracts/CONTRACT_TEMPLATE_GUIDE.md)
   - Contracts automatically saved to `%APPDATA%/com.respectabullz.app/contracts/`
 - useBreederSettings hook for managing breeder/kennel information
 - useContract hook for document generation
@@ -718,7 +718,7 @@ This marks the first stable production release of Respectabullz. All core featur
 
 - InquiriesPage now shows ContractFormDialog before SaleFormDialog during conversion
 - SaleFormDialog contract path field now includes open button and helper text
-- Contract generation now renders from `contacts/contract_template_respectabullz.json` using the `docx` library for pixel-perfect output; removed the old docxtemplater implementation and unused dependencies
+- Contract generation now renders from `contracts/contract_template_respectabullz.json` using the `docx` library for pixel-perfect output; removed the old docxtemplater implementation and unused dependencies
 - Updated all documentation to reflect contract generation system
 
 ## [0.3.0] - 2025-12-02

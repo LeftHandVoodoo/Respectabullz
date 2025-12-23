@@ -529,7 +529,7 @@ generateContractDocumentFromJson(contractData: ContractData): Promise<Blob>
 
 **Returns:** Blob of the generated Word document (.docx)
 
-**Template:** Uses `contacts/contract_template_respectabullz.json` as the source template
+**Template:** Uses `contracts/contract_template_respectabullz.json` as the source template
 
 **Storage:** Generated contracts are saved to:
 - Default: `%APPDATA%/com.respectabullz.app/contracts/`

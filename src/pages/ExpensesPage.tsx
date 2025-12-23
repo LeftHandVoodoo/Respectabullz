@@ -93,6 +93,22 @@ type SortColumn = 'date' | 'category' | 'dog' | 'vendor' | 'description' | 'amou
 type SortDirection = 'asc' | 'desc';
 type Timeframe = '7days' | '30days' | '90days' | 'month' | 'custom';
 
+// Extracted SortIcon component to avoid recreation during render
+function SortIcon({ column, sortColumn, sortDirection }: {
+  column: SortColumn;
+  sortColumn: SortColumn;
+  sortDirection: SortDirection;
+}) {
+  if (sortColumn !== column) {
+    return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+  }
+  return sortDirection === 'asc' ? (
+    <ArrowUp className="ml-2 h-4 w-4" />
+  ) : (
+    <ArrowDown className="ml-2 h-4 w-4" />
+  );
+}
+
 // Component to show document count for an expense
 function ExpenseDocumentCount({ expense, onClick }: { expense: Expense; onClick: (expense: Expense) => void }) {
   const { data: count = 0 } = useDocumentCountForExpense(expense.id);
@@ -357,17 +373,6 @@ export function ExpensesPage() {
     }
   };
 
-  const SortIcon = ({ column }: { column: SortColumn }) => {
-    if (sortColumn !== column) {
-      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
-    }
-    return sortDirection === 'asc' ? (
-      <ArrowUp className="ml-2 h-4 w-4" />
-    ) : (
-      <ArrowDown className="ml-2 h-4 w-4" />
-    );
-  };
-
   // Calculate totals - filtered total and included total (excluding excluded items)
   const filteredTotal = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
   const includedExpenses = filteredExpenses.filter(e => !excludedExpenseIds.has(e.id));
@@ -409,7 +414,7 @@ export function ExpensesPage() {
       header: (
         <>
           Date
-          <SortIcon column="date" />
+          <SortIcon column="date" sortColumn={sortColumn} sortDirection={sortDirection} />
         </>
       ),
       sortable: true,
@@ -425,7 +430,7 @@ export function ExpensesPage() {
       header: (
         <>
           Category
-          <SortIcon column="category" />
+          <SortIcon column="category" sortColumn={sortColumn} sortDirection={sortDirection} />
         </>
       ),
       sortable: true,
@@ -451,7 +456,7 @@ export function ExpensesPage() {
       header: (
         <>
           Dog
-          <SortIcon column="dog" />
+          <SortIcon column="dog" sortColumn={sortColumn} sortDirection={sortDirection} />
         </>
       ),
       sortable: true,
@@ -470,7 +475,7 @@ export function ExpensesPage() {
       header: (
         <>
           Vendor
-          <SortIcon column="vendor" />
+          <SortIcon column="vendor" sortColumn={sortColumn} sortDirection={sortDirection} />
         </>
       ),
       sortable: true,
@@ -486,7 +491,7 @@ export function ExpensesPage() {
       header: (
         <>
           Description
-          <SortIcon column="description" />
+          <SortIcon column="description" sortColumn={sortColumn} sortDirection={sortDirection} />
         </>
       ),
       cellClassName: 'max-w-[200px] truncate',
@@ -503,7 +508,7 @@ export function ExpensesPage() {
       header: (
         <>
           Amount
-          <SortIcon column="amount" />
+          <SortIcon column="amount" sortColumn={sortColumn} sortDirection={sortDirection} />
         </>
       ),
       headerClassName: 'text-right',
@@ -521,7 +526,7 @@ export function ExpensesPage() {
       header: (
         <>
           Tax Deductible
-          <SortIcon column="taxDeductible" />
+          <SortIcon column="taxDeductible" sortColumn={sortColumn} sortDirection={sortDirection} />
         </>
       ),
       sortable: true,
@@ -574,7 +579,7 @@ export function ExpensesPage() {
         </div>
       ),
     },
-  ], [sortColumn, sortDirection, excludedExpenseIds, filteredExpenses, dogs, customCategories, handleSort]);
+  ], [sortColumn, sortDirection, excludedExpenseIds, filteredExpenses, dogs, customCategories, handleSort, excludeAllExpenses]);
 
   const categoryData = useMemo(() => {
     if (!expensesForChart) return [];

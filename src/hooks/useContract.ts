@@ -31,7 +31,7 @@ interface GenerateContractOptions {
   templateMode?: 'generated' | 'fillable';
   /**
    * Custom template path when using 'fillable' mode.
-   * If not provided, uses the default template at /contacts/fillable_contract_2.docx
+   * If not provided, uses the default template at /contracts/fillable_contract_2.docx
    */
   fillableTemplatePath?: string;
 }
@@ -62,7 +62,7 @@ export function useGenerateContract() {
         filename,
         format = 'docx',
         templateMode = 'generated',
-        fillableTemplatePath = '/contacts/fillable_contract_2.docx',
+        fillableTemplatePath = '/contracts/fillable_contract_2.docx',
       } = options;
 
       let blob: Blob;

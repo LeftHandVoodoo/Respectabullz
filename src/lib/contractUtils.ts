@@ -19,7 +19,7 @@ import {
 import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
 import PizZip from 'pizzip';
-import contractTemplateJson from '../../contacts/contract_template_respectabullz.json';
+import contractTemplateJson from '../../contracts/contract_template_respectabullz.json';
 import type { ContractData, BreederSettings, Client, Dog } from '@/types';
 
 type TemplateAlignment = 'left' | 'right' | 'center' | 'justify';
