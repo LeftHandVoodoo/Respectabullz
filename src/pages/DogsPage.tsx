@@ -30,6 +30,22 @@ const statusColors: Record<DogStatus, 'default' | 'secondary' | 'destructive' | 
 type SortColumn = 'name' | 'age' | 'status' | 'sex' | null;
 type SortDirection = 'asc' | 'desc';
 
+// Extracted SortIcon component to avoid recreation during render
+function SortIcon({ column, sortColumn, sortDirection }: {
+  column: SortColumn;
+  sortColumn: SortColumn;
+  sortDirection: SortDirection;
+}) {
+  if (sortColumn !== column) {
+    return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+  }
+  return sortDirection === 'asc' ? (
+    <ArrowUp className="ml-2 h-4 w-4" />
+  ) : (
+    <ArrowDown className="ml-2 h-4 w-4" />
+  );
+}
+
 export function DogsPage() {
   const navigate = useNavigate();
   const { data: dogs, isLoading } = useDogs();
@@ -98,25 +114,13 @@ export function DogsPage() {
     return filtered;
   }, [dogs, search, statusFilter, sexFilter, sortColumn, sortDirection]);
 
-  const dogsColumns: VirtualTableColumn<Dog>[] = useMemo(() => {
-    const SortIcon = ({ column }: { column: SortColumn }) => {
-      if (sortColumn !== column) {
-        return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
-      }
-      return sortDirection === 'asc' ? (
-        <ArrowUp className="ml-2 h-4 w-4" />
-      ) : (
-        <ArrowDown className="ml-2 h-4 w-4" />
-      );
-    };
-
-    return [
+  const dogsColumns: VirtualTableColumn<Dog>[] = useMemo(() => [
       {
         key: 'name',
         header: (
           <>
             Name
-            <SortIcon column="name" />
+            <SortIcon column="name" sortColumn={sortColumn} sortDirection={sortDirection} />
           </>
         ),
         sortable: true,
