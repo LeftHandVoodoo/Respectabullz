@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Plus, Search, Download, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Dog, Eye, RotateCcw, FileText, Paperclip } from 'lucide-react';
 import {
   Tooltip,
@@ -350,9 +350,9 @@ export function ExpensesPage() {
     setExcludedExpenseIds(new Set());
   };
 
-  const excludeAllExpenses = () => {
+  const excludeAllExpenses = useCallback(() => {
     setExcludedExpenseIds(new Set(filteredExpenses.map(e => e.id)));
-  };
+  }, [filteredExpenses]);
 
   // Reset all filters and exclusions
   const resetFilters = () => {
@@ -362,7 +362,7 @@ export function ExpensesPage() {
     setExcludedExpenseIds(new Set());
   };
 
-  const handleSort = (column: SortColumn) => {
+  const handleSort = useCallback((column: SortColumn) => {
     if (sortColumn === column) {
       // Toggle direction if clicking the same column
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -371,7 +371,7 @@ export function ExpensesPage() {
       setSortColumn(column);
       setSortDirection(column === 'date' ? 'desc' : 'desc'); // Default to desc for both
     }
-  };
+  }, [sortColumn, sortDirection]);
 
   // Calculate totals - filtered total and included total (excluding excluded items)
   const filteredTotal = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
