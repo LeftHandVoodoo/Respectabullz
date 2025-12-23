@@ -148,7 +148,7 @@ export function DogsPage() {
         header: (
           <>
             Sex
-            <SortIcon column="sex" />
+            <SortIcon column="sex" sortColumn={sortColumn} sortDirection={sortDirection} />
           </>
         ),
         sortable: true,
@@ -169,7 +169,7 @@ export function DogsPage() {
         header: (
           <>
             Age
-            <SortIcon column="age" />
+            <SortIcon column="age" sortColumn={sortColumn} sortDirection={sortDirection} />
           </>
         ),
         sortable: true,
@@ -190,7 +190,7 @@ export function DogsPage() {
         header: (
           <>
             Status
-            <SortIcon column="status" />
+            <SortIcon column="status" sortColumn={sortColumn} sortDirection={sortDirection} />
           </>
         ),
         sortable: true,
@@ -201,8 +201,7 @@ export function DogsPage() {
           </Badge>
         ),
       },
-    ];
-  }, [sortColumn, sortDirection, handleSort]);
+    ], [sortColumn, sortDirection, handleSort]);
 
   return (
     <div className="space-y-6">

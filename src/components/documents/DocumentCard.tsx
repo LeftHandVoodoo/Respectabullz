@@ -1,5 +1,4 @@
 import * as React from 'react';
-import type { LucideIcon } from 'lucide-react';
 import {
   FileText,
   FileType,
@@ -51,14 +50,6 @@ interface DocumentCardProps {
   onDelete?: (doc: DocumentWithRelations) => void;
 }
 
-function getDocumentIcon(filename: string): LucideIcon {
-  if (isImageFile(filename)) return Image;
-  if (isPdfFile(filename)) return FileText;
-  if (isWordFile(filename)) return FileType;
-  if (isExcelFile(filename)) return Table;
-  return File;
-}
-
 function getIconColor(filename: string): string {
   if (isImageFile(filename)) return 'text-teal-500';
   if (isPdfFile(filename)) return 'text-red-500';
@@ -67,11 +58,19 @@ function getIconColor(filename: string): string {
   return 'text-gray-500';
 }
 
+// Separate component to render the document icon - avoids "component created during render" error
+function DocumentIcon({ filename, className }: { filename: string; className?: string }) {
+  if (isImageFile(filename)) return <Image className={className} />;
+  if (isPdfFile(filename)) return <FileText className={className} />;
+  if (isWordFile(filename)) return <FileType className={className} />;
+  if (isExcelFile(filename)) return <Table className={className} />;
+  return <File className={className} />;
+}
+
 export function DocumentCard({ document, onView, onEdit, onDelete }: DocumentCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const deleteDocument = useDeleteDocument();
 
-  const IconComponent = React.useMemo(() => getDocumentIcon(document.filename), [document.filename]);
   const iconColor = React.useMemo(() => getIconColor(document.filename), [document.filename]);
 
   const handleOpenWithSystem = async () => {
@@ -104,7 +103,7 @@ export function DocumentCard({ document, onView, onEdit, onDelete }: DocumentCar
         <div className="flex items-start gap-3">
           {/* File icon */}
           <div className={`p-2 rounded-lg bg-muted ${iconColor}`}>
-            <IconComponent className="h-6 w-6" />
+            <DocumentIcon filename={document.filename} className="h-6 w-6" />
           </div>
 
           {/* Document info */}

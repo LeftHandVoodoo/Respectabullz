@@ -330,7 +330,7 @@ export function ExpensesPage() {
     }
 
     return filtered;
-  }, [expenses, search, selectedCategories, selectedDogs, sortColumn, sortDirection]);
+  }, [expenses, search, selectedCategories, selectedDogs, sortColumn, sortDirection, dogs]);
 
   // Toggle expense exclusion
   const toggleExpenseExclusion = (expenseId: string) => {

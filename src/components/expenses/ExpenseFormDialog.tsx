@@ -153,7 +153,7 @@ export function ExpenseFormDialog({
       setValue('category', newCategoryName.trim());
       setNewCategoryName('');
       setShowNewCategoryDialog(false);
-    } catch (error) {
+    } catch {
       // Error is handled by the hook's toast
     }
   };

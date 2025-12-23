@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Transport Page**: Fixed dog name not displaying in transport list
   - Added JOIN query to fetch dog relation when retrieving transports
   - Transport records now properly show the associated dog's name
+- **React Compiler Compatibility**: Fixed 27 ESLint errors for `react-hooks/static-components`
+  - DocumentCard.tsx: Created `DocumentIcon` component to avoid component recreation during render
+  - ExpensesPage.tsx: Extracted `SortIcon` to module-level component with explicit props
+  - DogsPage.tsx: Extracted `SortIcon` to module-level component with explicit props
+- **React Hook Dependencies**: Fixed exhaustive-deps warnings in ExpensesPage.tsx
+  - Added missing `dogs` dependency to `filteredExpenses` useMemo
+  - Wrapped `excludeAllExpenses` and `handleSort` in useCallback for stable references
+  - Added `excludeAllExpenses` to `expenseColumns` useMemo dependency array
+- **Unused Variables**: Fixed unused `error` variable warning in ExpenseFormDialog.tsx
+  - Changed catch block to omit unused error parameter
 
 ## [1.6.1] - 2025-12-23
 
