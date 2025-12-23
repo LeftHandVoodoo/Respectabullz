@@ -11,7 +11,7 @@ The contract system uses [docxtemplater](https://docxtemplater.com/) to fill in 
 1. Open your contract template in Microsoft Word
 2. Find each blank or underscore area where data should be filled
 3. Replace it with the appropriate placeholder from the list below
-4. Save the file as `Contract Template.docx` in the `contacts/` folder
+4. Save the file as `Contract Template.docx` in the `contracts/` folder
 
 ## Available Placeholders
 
@@ -146,7 +146,7 @@ In Consideration of the total sum of {salePrice} ({salePriceWords})
 
 Save your template as:
 ```
-contacts/Contract Template.docx
+contracts/Contract Template.docx
 ```
 
 Generated contracts will be saved to the user's downloads folder.

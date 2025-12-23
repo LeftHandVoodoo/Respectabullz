@@ -5,7 +5,7 @@ Updated the contract generation system to use the new contract format from `cont
 
 ## Changes Made
 
-### 1. Updated JSON Template (`contacts/contract_template_respectabullz.json`)
+### 1. Updated JSON Template (`contracts/contract_template_respectabullz.json`)
 - **Version**: Upgraded from v1 to v2
 - **Structure**: Complete rewrite to match new contract format
 - Added all sections from the new contract including:
