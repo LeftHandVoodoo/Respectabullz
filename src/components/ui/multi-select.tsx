@@ -9,7 +9,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 
 export interface MultiSelectOption {
@@ -121,7 +120,7 @@ export function MultiSelect({
             </Button>
           </div>
         </div>
-        <ScrollArea className="max-h-[200px]">
+        <div className="max-h-[300px] overflow-y-auto">
           <div className="p-2">
             {filteredOptions.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
@@ -149,7 +148,7 @@ export function MultiSelect({
               ))
             )}
           </div>
-        </ScrollArea>
+        </div>
         {selected.length > 0 && (
           <div className="p-2 border-t">
             <div className="flex flex-wrap gap-1">

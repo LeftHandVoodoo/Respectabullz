@@ -45,28 +45,38 @@ import type { Expense } from '@/types';
 
 // Built-in category colors
 const BUILT_IN_CATEGORY_COLORS: Record<string, string> = {
-  transport: '#3b82f6',
-  vet: '#ef4444',
-  food: '#22c55e',
-  supplies: '#f59e0b',
-  registration: '#8b5cf6',
   breeding: '#a855f7',
+  equipment: '#0ea5e9',
+  food: '#22c55e',
+  grooming: '#f472b6',
+  insurance: '#14b8a6',
   marketing: '#ec4899',
-  utilities: '#6b7280',
   misc: '#64748b',
+  registration: '#8b5cf6',
+  show_fees: '#f97316',
+  supplies: '#f59e0b',
+  training: '#6366f1',
+  transport: '#3b82f6',
+  utilities: '#6b7280',
+  vet: '#ef4444',
 };
 
 // Built-in categories with their display names
 const BUILT_IN_CATEGORIES: Record<string, string> = {
-  transport: 'Transport',
-  vet: 'Vet',
-  food: 'Food',
-  supplies: 'Supplies',
-  registration: 'Registration',
   breeding: 'Breeding',
+  equipment: 'Equipment',
+  food: 'Food',
+  grooming: 'Grooming',
+  insurance: 'Insurance',
   marketing: 'Marketing',
-  utilities: 'Utilities',
   misc: 'Misc',
+  registration: 'Registration',
+  show_fees: 'Show Fees',
+  supplies: 'Supplies',
+  training: 'Training',
+  transport: 'Transport',
+  utilities: 'Utilities',
+  vet: 'Vet',
 };
 
 // Generate a color from category name (deterministic)
@@ -171,21 +181,23 @@ export function ExpensesPage() {
   // Build category options for multi-select
   // Include: built-in categories + custom categories + any categories used in existing expenses
   const categoryOptions: MultiSelectOption[] = useMemo(() => {
+    // Use lowercase keys for deduplication, but preserve original values
     const categoryMap = new Map<string, MultiSelectOption>();
 
-    // Add built-in categories
+    // Add built-in categories first (these take priority)
     Object.entries(BUILT_IN_CATEGORIES).forEach(([value, label]) => {
-      categoryMap.set(value, {
+      categoryMap.set(value.toLowerCase(), {
         value,
         label,
         color: BUILT_IN_CATEGORY_COLORS[value],
       });
     });
 
-    // Add custom categories from database
+    // Add custom categories from database (skip if matches built-in, case-insensitive)
     (customCategories || []).forEach((cat) => {
-      if (!categoryMap.has(cat.name)) {
-        categoryMap.set(cat.name, {
+      const key = cat.name.toLowerCase();
+      if (!categoryMap.has(key)) {
+        categoryMap.set(key, {
           value: cat.name,
           label: cat.name,
           color: cat.color || getCategoryColor(cat.name),
@@ -193,14 +205,17 @@ export function ExpensesPage() {
       }
     });
 
-    // Add categories from existing expenses (catches any categories not in built-in or custom)
+    // Add categories from existing expenses (catches any orphaned categories)
     (expenses || []).forEach((expense) => {
-      if (expense.category && !categoryMap.has(expense.category)) {
-        categoryMap.set(expense.category, {
-          value: expense.category,
-          label: expense.category,
-          color: getCategoryColor(expense.category, customCategories),
-        });
+      if (expense.category) {
+        const key = expense.category.toLowerCase();
+        if (!categoryMap.has(key)) {
+          categoryMap.set(key, {
+            value: expense.category,
+            label: expense.category,
+            color: getCategoryColor(expense.category, customCategories),
+          });
+        }
       }
     });
 

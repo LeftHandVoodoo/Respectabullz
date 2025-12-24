@@ -53,15 +53,20 @@ interface ExpenseFormDialogProps {
 
 // Built-in categories with their display names
 const BUILT_IN_CATEGORIES: Record<string, string> = {
-  transport: 'Transport',
-  vet: 'Vet',
-  food: 'Food',
-  supplies: 'Supplies',
-  registration: 'Registration',
   breeding: 'Breeding',
+  equipment: 'Equipment',
+  food: 'Food',
+  grooming: 'Grooming',
+  insurance: 'Insurance',
   marketing: 'Marketing',
-  utilities: 'Utilities',
   misc: 'Misc',
+  registration: 'Registration',
+  show_fees: 'Show Fees',
+  supplies: 'Supplies',
+  training: 'Training',
+  transport: 'Transport',
+  utilities: 'Utilities',
+  vet: 'Vet',
 };
 
 export function ExpenseFormDialog({
