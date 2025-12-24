@@ -7,7 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.7.2] - 2025-12-24
+## [1.8.0] - 2025-12-24
+
+### Added
+- **Contacts Management System**: New dedicated section for managing business contacts
+  - Full CRUD operations for contacts (create, read, update, delete)
+  - Contact fields: name, primary/secondary phone, email, full address, notes
+  - Social media integration: Facebook, Instagram, TikTok, Twitter/X, Website
+  - Business card support via existing document management system
+  - Multi-category tagging with many-to-many relationships
+  - 5 predefined categories: Client, Shipping Company, Graphic Designer, Breeder, Vet
+  - Custom category creation with user-defined colors
+  - Search by name, email, phone, or city
+  - Filter by one or more categories using MultiSelect
+  - Detail panel with clickable contact info and social media links
+  - New navigation item in Business section of sidebar
+
+### Changed
+- **Database Schema**: Added migration version 4 with 3 new tables
+  - `contact_categories` - Predefined and custom categories with colors
+  - `contacts` - Main contacts table with all contact fields
+  - `contact_category_links` - Many-to-many junction table for category assignments
+
+## [1.7.3] - 2025-12-24
 
 ### Fixed
 - **Heat Cycle Dog Association**: Fixed heat cycles not displaying associated dog after creation
@@ -20,6 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Expense Category Filter**: Fixed category filter not showing all available categories
   - Filter now includes: built-in categories + custom categories + any categories used in existing expenses
   - Ensures all categories (including custom ones added later) can be filtered
+  - Added missing built-in categories: Training, Equipment, Grooming, Insurance, Show Fees
+  - Fixed scroll not working in MultiSelect dropdown (replaced ScrollArea with native scroll)
+  - Fixed duplicate categories appearing due to case-sensitivity (e.g., "Grooming" vs "grooming")
 - **ESLint Warnings**: Resolved all 25 ESLint warnings to pass `--max-warnings 0`
   - Fixed unused `defaultCountry` parameter in `phone-input.tsx` (renamed to `_defaultCountry`)
   - Fixed unused `actionTypes` const in `use-toast.ts` (converted to inline type definition)

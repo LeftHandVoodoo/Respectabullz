@@ -5,7 +5,7 @@ import { query, execute } from './connection';
 import { SCHEMA_SQL } from './schema';
 
 // Current schema version - increment when schema changes
-const CURRENT_VERSION = 3;
+const CURRENT_VERSION = 4;
 
 /**
  * Initialize the database schema
@@ -378,6 +378,96 @@ async function applyMigration(version: number): Promise<void> {
       }
       
       console.log('[DB] Document management tables and tags created successfully');
+      break;
+    }
+
+    case 4: {
+      // Migration 4: Add contacts management system
+      console.log('[DB] Creating contacts management tables...');
+
+      // Create contact_categories table (predefined + custom categories)
+      await execute(`
+        CREATE TABLE IF NOT EXISTS contact_categories (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL UNIQUE,
+          color TEXT,
+          is_predefined INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
+      await execute(`
+        CREATE INDEX IF NOT EXISTS idx_contact_categories_name ON contact_categories(name)
+      `);
+
+      // Create contacts table
+      await execute(`
+        CREATE TABLE IF NOT EXISTS contacts (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          phone_primary TEXT,
+          phone_secondary TEXT,
+          email TEXT,
+          address_line1 TEXT,
+          address_line2 TEXT,
+          city TEXT,
+          state TEXT,
+          postal_code TEXT,
+          facebook TEXT,
+          instagram TEXT,
+          tiktok TEXT,
+          twitter TEXT,
+          website TEXT,
+          notes TEXT,
+          business_card_document_id TEXT REFERENCES documents(id) ON DELETE SET NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
+      await execute(`
+        CREATE INDEX IF NOT EXISTS idx_contacts_name ON contacts(name)
+      `);
+      await execute(`
+        CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email)
+      `);
+
+      // Create contact_category_links junction table (many-to-many)
+      await execute(`
+        CREATE TABLE IF NOT EXISTS contact_category_links (
+          id TEXT PRIMARY KEY,
+          contact_id TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+          category_id TEXT NOT NULL REFERENCES contact_categories(id) ON DELETE CASCADE,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE(contact_id, category_id)
+        )
+      `);
+      await execute(`
+        CREATE INDEX IF NOT EXISTS idx_contact_category_links_contact ON contact_category_links(contact_id)
+      `);
+      await execute(`
+        CREATE INDEX IF NOT EXISTS idx_contact_category_links_category ON contact_category_links(category_id)
+      `);
+
+      // Seed predefined contact categories
+      console.log('[DB] Seeding predefined contact categories...');
+      const predefinedCategories = [
+        { name: 'Client', color: '#3B82F6' },           // Blue
+        { name: 'Shipping Company', color: '#F97316' }, // Orange
+        { name: 'Graphic Designer', color: '#8B5CF6' }, // Purple
+        { name: 'Breeder', color: '#10B981' },          // Green
+        { name: 'Vet', color: '#EF4444' },              // Red
+      ];
+
+      for (const cat of predefinedCategories) {
+        const catId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        await execute(
+          `INSERT OR IGNORE INTO contact_categories (id, name, color, is_predefined, created_at, updated_at)
+           VALUES (?, ?, ?, 1, datetime('now'), datetime('now'))`,
+          [catId, cat.name, cat.color]
+        );
+      }
+
+      console.log('[DB] Contacts management tables and categories created successfully');
       break;
     }
 

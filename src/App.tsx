@@ -13,6 +13,7 @@ import { TransportPage } from './pages/TransportPage';
 import { ExpensesPage } from './pages/ExpensesPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { ClientsPage } from './pages/ClientsPage';
+import { ContactsPage } from './pages/ContactsPage';
 import { InquiriesPage } from './pages/InquiriesPage';
 import { SalesPage } from './pages/SalesPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -35,6 +36,7 @@ function App() {
           <Route path="/expenses" element={<ExpensesPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/inquiries" element={<InquiriesPage />} />
           <Route path="/sales" element={<SalesPage />} />
           <Route path="/settings" element={<SettingsPage />} />

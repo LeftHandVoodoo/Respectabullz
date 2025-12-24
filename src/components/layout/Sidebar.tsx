@@ -8,6 +8,7 @@ import {
   DollarSign,
   BarChart3,
   Users,
+  BookUser,
   MessageSquare,
   ShoppingCart,
   Settings,
@@ -38,6 +39,7 @@ const navigationGroups = [
     title: 'Business',
     items: [
       { name: 'Clients', href: '/clients', icon: Users },
+      { name: 'Contacts', href: '/contacts', icon: BookUser },
       { name: 'Inquiries', href: '/inquiries', icon: MessageSquare },
       { name: 'Sales', href: '/sales', icon: ShoppingCart },
     ],

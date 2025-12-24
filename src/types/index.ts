@@ -998,3 +998,90 @@ export interface DocumentWithRelations extends Document {
   expenses?: Expense[];
 }
 
+// ============================================
+// CONTACTS MANAGEMENT SYSTEM
+// ============================================
+
+// Contact category (predefined + custom)
+export interface ContactCategory {
+  id: string;
+  name: string;
+  color?: string | null;
+  isPredefined: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Predefined contact category names
+export type PredefinedContactCategory =
+  | 'Client'
+  | 'Shipping Company'
+  | 'Graphic Designer'
+  | 'Breeder'
+  | 'Vet';
+
+// Contact entity
+export interface Contact {
+  id: string;
+  name: string;
+  phonePrimary?: string | null;
+  phoneSecondary?: string | null;
+  email?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+  facebook?: string | null;
+  instagram?: string | null;
+  tiktok?: string | null;
+  twitter?: string | null;
+  website?: string | null;
+  notes?: string | null;
+  businessCardDocumentId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  // Relations (populated when included)
+  categories?: ContactCategory[];
+  businessCardDocument?: Document | null;
+}
+
+// Contact-to-category junction
+export interface ContactCategoryLink {
+  id: string;
+  contactId: string;
+  categoryId: string;
+  createdAt: Date;
+  // Relations
+  contact?: Contact;
+  category?: ContactCategory;
+}
+
+// Input types for contact operations
+export type CreateContactInput = Omit<Contact, 'id' | 'createdAt' | 'updatedAt' | 'categories' | 'businessCardDocument'> & {
+  categoryIds?: string[];
+};
+export type UpdateContactInput = Partial<CreateContactInput>;
+
+export interface CreateContactCategoryInput {
+  name: string;
+  color?: string | null;
+  isPredefined?: boolean;
+}
+export type UpdateContactCategoryInput = Partial<CreateContactCategoryInput>;
+
+// Predefined contact categories with colors
+export const PREDEFINED_CONTACT_CATEGORIES: { name: PredefinedContactCategory; color: string }[] = [
+  { name: 'Client', color: '#3B82F6' },           // Blue
+  { name: 'Shipping Company', color: '#F97316' }, // Orange
+  { name: 'Graphic Designer', color: '#8B5CF6' }, // Purple
+  { name: 'Breeder', color: '#10B981' },          // Green
+  { name: 'Vet', color: '#EF4444' },              // Red
+];
+
+// Contact with full relations
+export interface ContactWithRelations extends Contact {
+  categories: ContactCategory[];
+  businessCardDocument?: Document | null;
+}
+

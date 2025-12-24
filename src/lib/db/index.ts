@@ -187,6 +187,27 @@ export {
   getBreedingStats,
 } from './dashboard';
 
+// Contacts operations
+export {
+  getContacts,
+  getContact,
+  getContactsByCategory,
+  createContact,
+  updateContact,
+  deleteContact,
+  searchContacts,
+  getContactCategories,
+  getContactCategory,
+  getContactCategoryByName,
+  createContactCategory,
+  updateContactCategory,
+  deleteContactCategory,
+  getCategoriesForContact,
+  setContactCategories,
+  addCategoryToContact,
+  removeCategoryFromContact,
+} from './contacts';
+
 // Legacy/compatibility functions
 export * from './legacy';
 
