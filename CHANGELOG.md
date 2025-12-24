@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Heat Cycle Dog Association**: Fixed heat cycles not displaying associated dog after creation
   - `getHeatCycles()` and `getHeatCycle()` now populate the `bitch` relation with full dog data
   - Heat cycle list and detail views now correctly show the female dog's name
+- **Expense Category Filter**: Fixed category filter not showing all available categories
+  - Filter now includes: built-in categories + custom categories + any categories used in existing expenses
+  - Ensures all categories (including custom ones added later) can be filtered
 - **ESLint Warnings**: Resolved all 25 ESLint warnings to pass `--max-warnings 0`
   - Fixed unused `defaultCountry` parameter in `phone-input.tsx` (renamed to `_defaultCountry`)
   - Fixed unused `actionTypes` const in `use-toast.ts` (converted to inline type definition)

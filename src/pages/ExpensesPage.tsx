@@ -169,19 +169,43 @@ export function ExpensesPage() {
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
 
   // Build category options for multi-select
+  // Include: built-in categories + custom categories + any categories used in existing expenses
   const categoryOptions: MultiSelectOption[] = useMemo(() => {
-    const builtIn = Object.entries(BUILT_IN_CATEGORIES).map(([value, label]) => ({
-      value,
-      label,
-      color: BUILT_IN_CATEGORY_COLORS[value],
-    }));
-    const custom = (customCategories || []).map((cat) => ({
-      value: cat.name,
-      label: cat.name,
-      color: cat.color || getCategoryColor(cat.name),
-    }));
-    return [...builtIn, ...custom].sort((a, b) => a.label.localeCompare(b.label));
-  }, [customCategories]);
+    const categoryMap = new Map<string, MultiSelectOption>();
+
+    // Add built-in categories
+    Object.entries(BUILT_IN_CATEGORIES).forEach(([value, label]) => {
+      categoryMap.set(value, {
+        value,
+        label,
+        color: BUILT_IN_CATEGORY_COLORS[value],
+      });
+    });
+
+    // Add custom categories from database
+    (customCategories || []).forEach((cat) => {
+      if (!categoryMap.has(cat.name)) {
+        categoryMap.set(cat.name, {
+          value: cat.name,
+          label: cat.name,
+          color: cat.color || getCategoryColor(cat.name),
+        });
+      }
+    });
+
+    // Add categories from existing expenses (catches any categories not in built-in or custom)
+    (expenses || []).forEach((expense) => {
+      if (expense.category && !categoryMap.has(expense.category)) {
+        categoryMap.set(expense.category, {
+          value: expense.category,
+          label: expense.category,
+          color: getCategoryColor(expense.category, customCategories),
+        });
+      }
+    });
+
+    return Array.from(categoryMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [customCategories, expenses]);
 
   // Build dog options for multi-select (only dogs that have expenses)
   const dogOptions: MultiSelectOption[] = useMemo(() => {
