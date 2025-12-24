@@ -40,25 +40,4 @@ export async function showNotification(options: NotificationOptions): Promise<vo
   }
 }
 
-// Reminder notification helpers
-export function notifyVaccinationDue(dogName: string, vaccineType: string): void {
-  showNotification({
-    title: 'Vaccination Reminder',
-    body: `${dogName} is due for ${vaccineType} vaccination`,
-  });
-}
-
-export function notifyLitterDue(litterCode: string, damName: string): void {
-  showNotification({
-    title: 'Litter Due Date',
-    body: `Litter ${litterCode} (${damName}) is due soon`,
-  });
-}
-
-export function notifyHeatCycleStart(bitchName: string): void {
-  showNotification({
-    title: 'Heat Cycle Alert',
-    body: `${bitchName} appears to be starting a heat cycle`,
-  });
-}
 

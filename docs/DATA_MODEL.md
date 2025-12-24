@@ -1,6 +1,6 @@
 # Respectabullz Data Model
 
-**Version 1.7.0**
+**Version 1.8.0**
 
 ## Overview
 
@@ -680,6 +680,70 @@ Junction table linking documents to expenses (many-to-many relationship).
 
 **Unique Constraint:** (expenseId, documentId) - prevents duplicate document attachments
 
+## Contact Management Entities
+
+### ContactCategory
+Categories for organizing contacts (vets, breeders, shippers, etc.).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| name | String (unique) | Category name |
+| color | String? | Hex color code for display |
+| isPredefined | Boolean | Whether category is system-defined (cannot be deleted) |
+| createdAt | DateTime | Creation timestamp |
+| updatedAt | DateTime | Last update timestamp |
+
+**Predefined Categories:**
+- Client, Shipping Company, Graphic Designer, Breeder, Vet
+
+**Relationships:**
+- Has many: ContactCategoryLink (many-to-many with Contact)
+
+### Contact
+Business contacts (veterinarians, breeders, shippers, graphic designers, etc.).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| name | String | Contact's name (required) |
+| phonePrimary | String? | Primary phone number |
+| phoneSecondary | String? | Secondary phone number |
+| email | String? | Email address |
+| addressLine1 | String? | Street address |
+| addressLine2 | String? | Apt/Suite |
+| city | String? | City |
+| state | String? | State |
+| postalCode | String? | ZIP code |
+| facebook | String? | Facebook profile URL |
+| instagram | String? | Instagram handle |
+| tiktok | String? | TikTok handle |
+| twitter | String? | Twitter/X handle |
+| website | String? | Website URL |
+| notes | String? | Additional notes |
+| businessCardDocumentId | String? | FK to Document (optional business card image) |
+| createdAt | DateTime | Record creation |
+| updatedAt | DateTime | Last update |
+
+**Relationships:**
+- Has many: ContactCategoryLink (many-to-many with ContactCategory)
+- Has one: Document (optional business card)
+
+### ContactCategoryLink
+Junction table linking contacts to categories (many-to-many relationship).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (CUID) | Primary key |
+| contactId | String | FK to Contact |
+| categoryId | String | FK to ContactCategory |
+| createdAt | DateTime | Link creation timestamp |
+
+**Relationships:**
+- Belongs to: Contact, ContactCategory (cascade delete from Contact)
+
+**Unique Constraint:** (contactId, categoryId) - prevents duplicate category assignments
+
 ## Indexes
 
 The following fields are indexed for query performance:
@@ -705,6 +769,9 @@ The following fields are indexed for query performance:
 - `DogDocument.dogId`, `DogDocument.documentId` - For dog document queries
 - `LitterDocument.litterId`, `LitterDocument.documentId` - For litter document queries
 - `ExpenseDocument.expenseId`, `ExpenseDocument.documentId` - For expense document queries
+- `Contact.name` - For contact lookup and search
+- `ContactCategory.name` - For category lookup
+- `ContactCategoryLink.contactId`, `ContactCategoryLink.categoryId` - For contact-category queries
 
 ## Data Integrity Rules
 
@@ -717,6 +784,7 @@ The following fields are indexed for query performance:
    - Deleting a Dog cascades to DogDocument records
    - Deleting a Litter cascades to LitterDocument records
    - Deleting an Expense cascades to ExpenseDocument records
+   - Deleting a Contact cascades to ContactCategoryLink records
 2. **Unique Constraints**: 
    - Litter.code must be unique
    - Setting.key must be unique
@@ -727,6 +795,8 @@ The following fields are indexed for query performance:
    - DogDocument (dogId, documentId) must be unique
    - LitterDocument (litterId, documentId) must be unique
    - ExpenseDocument (expenseId, documentId) must be unique
+   - ContactCategory.name must be unique
+   - ContactCategoryLink (contactId, categoryId) must be unique
 3. **Status Updates**: Creating a Sale with puppies automatically sets each Dog.status to 'sold'
 4. **Interest Conversion**: Converting a ClientInterest to a Sale updates the interest status to 'converted' and links it to the sale
 

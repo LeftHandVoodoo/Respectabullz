@@ -1,21 +1,32 @@
 # Respectabullz User Manual
 
-**Version 1.7.1**
+**Version 1.8.0**
 **Last Updated: December 24, 2025**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
 
 ---
 
-## What's New in Version 1.7.1
+## What's New in Version 1.8.0
 
-### Removed
-- **In-App Auto-Updater**: Temporarily removed due to code signing requirements (will return in future release)
+### Added
+- **Contacts Management System**: New dedicated section for managing business contacts
+  - Full CRUD operations for contacts (create, read, update, delete)
+  - Contact fields: name, primary/secondary phone, email, full address, notes
+  - Social media integration: Facebook, Instagram, TikTok, Twitter/X, Website
+  - Business card support via existing document management system
+  - Multi-category tagging with many-to-many relationships
+  - 5 predefined categories: Client, Shipping Company, Graphic Designer, Breeder, Vet
+  - Custom category creation with user-defined colors
+  - Search by name, email, phone, or city
+  - Filter by one or more categories using MultiSelect
+  - Detail panel with clickable contact info and social media links
+  - New navigation item in Business section of sidebar
 
 ### Bug Fixes
-- **Missing Expense Category**: Added "Breeding" category to expense options
-- **Transport/Expense Sync**: Fixed duplicate transport records when creating transport with cost
-- **Date Timezone Bug**: Fixed dates shifting by one day when editing records across all form dialogs
+- **Heat Cycle Dog Association**: Fixed heat cycles not displaying associated dog after creation
+- **Heat Cycle Query Performance**: Fixed N+1 query problem in heat cycle fetching
+- **Expense Category Filter**: Fixed category filter not showing all available categories and scroll issues
 
 ---
 
@@ -72,7 +83,7 @@ The application is organized into four main sections accessible from the left si
 
 - **Core Management**: Dogs, Litters, Heat Cycles
 - **Operations**: Transport, Expenses
-- **Business**: Clients, Inquiries, Sales
+- **Business**: Contacts, Clients, Inquiries, Sales
 - **Analytics**: Reports
 
 Click any menu item to navigate to that section. The active page is highlighted in blue.
@@ -541,6 +552,50 @@ View financial summaries:
 ---
 
 ## Business Management
+
+### Contacts
+
+The Contacts section helps you manage business contacts such as veterinarians, breeders, shippers, and graphic designers.
+
+#### Adding a Contact
+
+1. Click **"Add Contact"** on the Contacts page
+2. Fill in contact information:
+   - **Name**: Contact's name (required)
+   - **Primary Phone**: Main contact number
+   - **Secondary Phone**: Alternate phone number
+   - **Email**: Email address
+   - **Address**: Full address (street, city, state, ZIP)
+   - **Notes**: Additional information
+3. Add **Social Media** links (optional):
+   - Facebook, Instagram, TikTok, Twitter/X, Website
+4. Assign **Categories** (multi-select):
+   - Predefined: Client, Shipping Company, Graphic Designer, Breeder, Vet
+   - Create custom categories with your own colors
+5. Click **"Save"**
+
+#### Managing Contacts
+
+**Searching and Filtering:**
+- Use the search box to find contacts by name, email, phone, or city
+- Filter by category using the category dropdown (supports multiple selection)
+- Categories are displayed as colored badges on contact cards
+
+**Contact Detail Panel:**
+- Click any contact to view full details in the side panel
+- Clickable phone numbers, email addresses, and social media links
+- Edit or delete contacts using the action buttons
+
+**Categories:**
+- Create custom categories with custom colors
+- A contact can belong to multiple categories
+- Categories help organize contacts by type (e.g., "Vet" + "Breeder" for a breeding veterinarian)
+
+**Business Card Support:**
+- Upload business cards via the document management system
+- Attach documents to contact records for reference
+
+---
 
 ### Clients
 
@@ -1041,18 +1096,20 @@ For issues or questions:
 
 ## Version History
 
+- **v1.8.0**: Contacts Management System for business contacts with multi-category tagging
+- **v1.7.x**: Heat cycle and expense category bug fixes, N+1 query performance fix
+- **v1.6.x**: Fillable contract template support, contract generation fixes
+- **v1.5.x**: Document management, PDF preview, custom contracts directory
 - **v1.4.0**: Full column sorting on Expenses page, litter form dialog scrolling fix, expense filter bug fixes, enhanced seed data
 - **v1.3.0**: Enhanced seed data coverage, multi-select expense filters, expense exclusion capabilities
 - **v1.2.0**: SQLite database migration, modular database architecture, comprehensive test infrastructure
 - **v1.1.0**: Reusable dialog components, virtual scrolling, centralized error tracking
-- **v1.0.2**: Dark mode set as default theme for new installations
-- **v1.0.1**: First-launch dialog, Windows NSIS installer, TypeScript fixes
-- **v1.0.0**: First stable release - Customer packet PDF export, comprehensive dog management, all core features production-ready
+- **v1.0.x**: First stable release - Customer packet PDF export, comprehensive dog management, all core features production-ready
 
 See [CHANGELOG.md](../CHANGELOG.md) for complete version history.
 
 ---
 
-**Respectabullz User Manual v1.4.0**  
-*Last Updated: December 4, 2025*
+**Respectabullz User Manual v1.8.0**
+*Last Updated: December 24, 2025*
 

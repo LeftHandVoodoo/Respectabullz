@@ -1,6 +1,6 @@
 # Respectabullz Internal API Reference
 
-**Version 1.7.0**
+**Version 1.8.0**
 
 ## Overview
 
@@ -14,6 +14,7 @@ The database layer has been refactored into modular domain-specific files:
 - `src/lib/db/sales.ts` - Sales and client operations
 - `src/lib/db/operations.ts` - Expenses and transports
 - `src/lib/db/documents.ts` - Document management and tagging
+- `src/lib/db/contacts.ts` - Contacts management
 - `src/lib/db/settings.ts` - Settings management
 - `src/lib/db/dashboard.ts` - Dashboard statistics
 - `src/lib/db/index.ts` - Re-exports all functions for backwards compatibility
@@ -349,6 +350,137 @@ Deletes a client.
 
 ```typescript
 deleteClient(id: string): Promise<boolean>
+```
+
+---
+
+## Contact Operations
+
+### getContactCategories
+Retrieves all contact categories (predefined and custom).
+
+```typescript
+getContactCategories(): Promise<ContactCategory[]>
+```
+
+**Returns:** Array of ContactCategory objects sorted by predefined status and name.
+
+### getContactCategory
+Retrieves a single contact category by ID.
+
+```typescript
+getContactCategory(id: string): Promise<ContactCategory | null>
+```
+
+### createContactCategory
+Creates a new contact category.
+
+```typescript
+createContactCategory(input: CreateContactCategoryInput): Promise<ContactCategory>
+```
+
+**Parameters:**
+- `input.name`: Category name (required)
+- `input.color`: Optional hex color code
+- `input.isPredefined`: Boolean (defaults to false)
+
+### updateContactCategory
+Updates a contact category.
+
+```typescript
+updateContactCategory(id: string, input: UpdateContactCategoryInput): Promise<ContactCategory | null>
+```
+
+### deleteContactCategory
+Deletes a custom category (predefined categories cannot be deleted).
+
+```typescript
+deleteContactCategory(id: string): Promise<boolean>
+```
+
+**Returns:** true if deleted, false if category is predefined or not found.
+
+### getContacts
+Retrieves all contacts with their categories.
+
+```typescript
+getContacts(): Promise<ContactWithRelations[]>
+```
+
+**Returns:** Array of Contact objects with populated categories.
+
+### getContact
+Retrieves a single contact by ID with categories.
+
+```typescript
+getContact(id: string): Promise<ContactWithRelations | null>
+```
+
+### getContactsByCategory
+Retrieves all contacts in a specific category.
+
+```typescript
+getContactsByCategory(categoryId: string): Promise<ContactWithRelations[]>
+```
+
+### createContact
+Creates a new contact.
+
+```typescript
+createContact(input: CreateContactInput): Promise<ContactWithRelations>
+```
+
+**Parameters:**
+- `input.name`: Contact name (required)
+- `input.phonePrimary`: Primary phone number
+- `input.phoneSecondary`: Secondary phone number
+- `input.email`: Email address
+- `input.addressLine1`, `addressLine2`, `city`, `state`, `postalCode`: Address fields
+- `input.facebook`, `instagram`, `tiktok`, `twitter`, `website`: Social media links
+- `input.notes`: Notes
+- `input.businessCardDocumentId`: Link to uploaded business card document
+- `input.categoryIds`: Array of category IDs to assign
+
+### updateContact
+Updates a contact.
+
+```typescript
+updateContact(id: string, input: UpdateContactInput): Promise<ContactWithRelations | null>
+```
+
+### deleteContact
+Deletes a contact.
+
+```typescript
+deleteContact(id: string): Promise<boolean>
+```
+
+### setContactCategories
+Sets categories for a contact (replaces existing categories).
+
+```typescript
+setContactCategories(contactId: string, categoryIds: string[]): Promise<void>
+```
+
+### addCategoryToContact
+Adds a category to a contact.
+
+```typescript
+addCategoryToContact(contactId: string, categoryId: string): Promise<void>
+```
+
+### removeCategoryFromContact
+Removes a category from a contact.
+
+```typescript
+removeCategoryFromContact(contactId: string, categoryId: string): Promise<void>
+```
+
+### searchContacts
+Searches contacts by name, email, or phone.
+
+```typescript
+searchContacts(searchTerm: string): Promise<ContactWithRelations[]>
 ```
 
 ---
@@ -829,6 +961,8 @@ useDeleteEntity()       // Delete
 | Transport | useTransports | - | useCreateTransport | useUpdateTransport | useDeleteTransport |
 | Expense | useExpenses | - | useCreateExpense | useUpdateExpense | useDeleteExpense |
 | Client | useClients | useClient | useCreateClient | useUpdateClient | useDeleteClient |
+| Contact | useContacts | useContact | useCreateContact | useUpdateContact | useDeleteContact |
+| ContactCategory | useContactCategories | - | useCreateContactCategory | useUpdateContactCategory | useDeleteContactCategory |
 | ClientInterest | useClientInterests | - | useCreateClientInterest | useUpdateClientInterest | useDeleteClientInterest |
 | Sale | useSales | - | useCreateSale | useUpdateSale | useDeleteSale |
 | Dashboard | useDashboardStats | - | - | - | - |

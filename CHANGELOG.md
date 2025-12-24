@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.1] - 2025-12-24
+
+### Changed
+- **Bundle Size Optimization**: Reduced initial bundle from 4,291 kB to 320 kB (93% reduction)
+  - Implemented React.lazy() for all pages except Dashboard for code splitting
+  - Added Suspense boundary with skeleton loading fallback
+  - Configured Vite manual chunks for vendor libraries:
+    - `vendor-react`: React, ReactDOM, React Router (165 kB)
+    - `vendor-radix`: All Radix UI components (164 kB)
+    - `vendor-recharts`: Recharts library (411 kB, loaded only for Reports/Expenses)
+    - `vendor-pdf-renderer`: @react-pdf/renderer (1,489 kB, loaded only when generating PDFs)
+    - `vendor-pdf-viewer`: react-pdf and pdfjs-dist (462 kB, loaded only for document viewing)
+    - `vendor-data`: TanStack Query/Table, React Hook Form, Zod (126 kB)
+    - `vendor-docs`: docx, jszip, file-saver (443 kB, loaded only for document export)
+    - `vendor-tauri`: Tauri API and plugins (6 kB)
+  - Heavy libraries (recharts, PDF, document generation) now load on-demand
+
+### Removed
+- **Dead Code Cleanup**: Removed unused notification helper functions
+  - `notifyVaccinationDue()` - never called
+  - `notifyLitterDue()` - never called
+  - `notifyHeatCycleStart()` - never called
+
 ## [1.8.0] - 2025-12-24
 
 ### Added

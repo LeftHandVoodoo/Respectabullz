@@ -88,18 +88,48 @@ For testing releases:
 
 ## Current Version
 
-**1.6.0** (2025-12-10) - Current Release
+**1.8.0** (2025-12-24) - Current Release
 
-Minor release - Major contract generation overhaul:
-- Complete contract template update to match new format
-- Dual format output: Word (.docx) and PDF (.pdf) generation
-- Enhanced field replacement for accurate data population
-- Comprehensive test coverage (13 tests)
-- Fixed contract generation error from inquiries page
+Minor release - Contacts Management System:
+- New Contacts page for managing business contacts (vets, breeders, shippers, etc.)
+- Full CRUD operations with search, filter by category, and detail panel
+- Multi-category support with 5 predefined categories and custom category creation
+- Social media fields: Facebook, Instagram, TikTok, Twitter/X, Website
+- Database migration v4 with 3 new tables (contact_categories, contacts, contact_category_links)
 
 ---
 
 ## Release History
+
+**1.8.0** (2025-12-24)
+
+Minor release - Contacts Management System:
+- **Contacts Management**: New dedicated section for managing business contacts
+  - Full CRUD operations for contacts (create, read, update, delete)
+  - Contact fields: name, primary/secondary phone, email, full address, notes
+  - Social media integration: Facebook, Instagram, TikTok, Twitter/X, Website
+  - Business card support via existing document management system
+  - Multi-category tagging with many-to-many relationships
+  - 5 predefined categories: Client, Shipping Company, Graphic Designer, Breeder, Vet
+  - Custom category creation with user-defined colors
+  - Search by name, email, phone, or city
+  - Filter by one or more categories using MultiSelect
+  - Database migration v4 with 3 new tables
+
+**1.7.3** (2025-12-24)
+
+Patch release - Bug fixes:
+- Fixed heat cycle dog association display
+- Fixed N+1 query problem in heat cycle fetching
+- Fixed expense category filter scroll and duplicate issues
+
+**1.7.1** (2025-12-24)
+
+Patch release - Bug fixes:
+- Removed in-app auto-updater due to code signing requirements
+- Fixed missing "Breeding" expense category
+- Fixed transport/expense sync duplicate issues
+- Fixed date timezone bug causing dates to shift by one day
 
 **1.6.0** (2025-12-10)
 
