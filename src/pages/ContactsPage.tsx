@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Plus,
   Search,
@@ -12,6 +12,9 @@ import {
   Globe,
   Twitter,
   ExternalLink,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +42,8 @@ export function ContactsPage() {
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [editingContact, setEditingContact] = useState<ContactWithRelations | undefined>();
   const [contactToDelete, setContactToDelete] = useState<ContactWithRelations | null>(null);
+  const [sortColumn, setSortColumn] = useState<'name' | 'categories' | 'location' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const handleEdit = (contact: ContactWithRelations) => {
     setEditingContact(contact);
@@ -52,6 +57,29 @@ export function ContactsPage() {
     }
   };
 
+  const handleSort = useCallback((column: 'name' | 'categories' | 'location') => {
+    setSortColumn((prevColumn) => {
+      if (prevColumn === column) {
+        // Toggle direction if same column
+        setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        return prevColumn;
+      } else {
+        // New column, start with ascending
+        setSortDirection('asc');
+        return column;
+      }
+    });
+  }, []);
+
+  const getSortIcon = useCallback((column: 'name' | 'categories' | 'location') => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="ml-1 h-3 w-3" />;
+    }
+    return sortDirection === 'asc'
+      ? <ArrowUp className="ml-1 h-3 w-3" />
+      : <ArrowDown className="ml-1 h-3 w-3" />;
+  }, [sortColumn, sortDirection]);
+
   // Build category options for filter
   const categoryOptions: MultiSelectOption[] = useMemo(() => {
     return categories.map((cat: ContactCategory) => ({
@@ -61,9 +89,9 @@ export function ContactsPage() {
     }));
   }, [categories]);
 
-  // Filter contacts by search and categories
+  // Filter and sort contacts
   const filteredContacts = useMemo(() => {
-    return (
+    let result =
       contacts?.filter((contact) => {
         // Search filter
         const matchesSearch =
@@ -81,9 +109,39 @@ export function ContactsPage() {
           contact.categories?.some((cat) => selectedCategories.includes(cat.id));
 
         return matchesSearch && matchesCategory;
-      }) ?? []
-    );
-  }, [contacts, search, selectedCategories]);
+      }) ?? [];
+
+    // Apply sorting
+    if (sortColumn) {
+      result = [...result].sort((a, b) => {
+        let comparison = 0;
+
+        switch (sortColumn) {
+          case 'name':
+            comparison = a.name.localeCompare(b.name);
+            break;
+          case 'categories': {
+            // Sort by first category name, or empty string if no categories
+            const aCat = a.categories?.[0]?.name ?? '';
+            const bCat = b.categories?.[0]?.name ?? '';
+            comparison = aCat.localeCompare(bCat);
+            break;
+          }
+          case 'location': {
+            // Sort by city, then state
+            const aLoc = `${a.city ?? ''}, ${a.state ?? ''}`.trim();
+            const bLoc = `${b.city ?? ''}, ${b.state ?? ''}`.trim();
+            comparison = aLoc.localeCompare(bLoc);
+            break;
+          }
+        }
+
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    return result;
+  }, [contacts, search, selectedCategories, sortColumn, sortDirection]);
 
   const selectedContactData = contacts?.find((c) => c.id === selectedContact);
 
@@ -98,7 +156,14 @@ export function ContactsPage() {
     () => [
       {
         key: 'name',
-        header: 'Name',
+        header: (
+          <span className="flex items-center">
+            Name
+            {getSortIcon('name')}
+          </span>
+        ),
+        sortable: true,
+        onSort: () => handleSort('name'),
         cell: (contact) => (
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
@@ -124,7 +189,14 @@ export function ContactsPage() {
       },
       {
         key: 'categories',
-        header: 'Categories',
+        header: (
+          <span className="flex items-center">
+            Categories
+            {getSortIcon('categories')}
+          </span>
+        ),
+        sortable: true,
+        onSort: () => handleSort('categories'),
         cell: (contact) => (
           <div className="flex flex-wrap gap-1">
             {contact.categories?.slice(0, 3).map((cat) => (
@@ -167,7 +239,14 @@ export function ContactsPage() {
       },
       {
         key: 'location',
-        header: 'Location',
+        header: (
+          <span className="flex items-center">
+            Location
+            {getSortIcon('location')}
+          </span>
+        ),
+        sortable: true,
+        onSort: () => handleSort('location'),
         cell: (contact) =>
           contact.city && contact.state ? `${contact.city}, ${contact.state}` : '-',
       },
@@ -218,7 +297,7 @@ export function ContactsPage() {
         ),
       },
     ],
-    []
+    [getSortIcon, handleSort]
   );
 
   // Helper to render social link

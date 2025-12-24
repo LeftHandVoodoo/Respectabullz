@@ -1,6 +1,6 @@
 # Respectabullz Internal API Reference
 
-**Version 1.8.0**
+**Version 1.9.0**
 
 ## Overview
 
@@ -478,7 +478,7 @@ removeCategoryFromContact(contactId: string, categoryId: string): Promise<void>
 ```
 
 ### searchContacts
-Searches contacts by name, email, or phone.
+Searches contacts by name, company name, email, or phone.
 
 ```typescript
 searchContacts(searchTerm: string): Promise<ContactWithRelations[]>

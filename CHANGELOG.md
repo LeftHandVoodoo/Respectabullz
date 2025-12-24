@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Displayed in contact list, detail panel, and form
   - Included in search functionality
   - Database migration v5 adds `company_name` column to contacts table
+- **Contacts Column Sorting**: Added sortable columns to contacts table
+  - Click column headers to sort by Name, Categories, or Location
+  - Toggle between ascending (A-Z) and descending (Z-A) order
+  - Sort indicator icons show current sort state
 
 ## [1.8.1] - 2025-12-24
 

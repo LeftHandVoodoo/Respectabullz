@@ -90,11 +90,12 @@ For testing releases:
 
 **1.9.0** (2025-12-24) - Current Release
 
-Minor release - Contact Company Name:
+Minor release - Contact Enhancements:
 - Added company name field to contacts for storing business/company names
 - Displayed in contact list, detail panel, and form
 - Included in contact search functionality
 - Database migration v5 adds `company_name` column to contacts table
+- Added sortable columns (Name, Categories, Location) to contacts table
 
 ---
 
@@ -102,12 +103,16 @@ Minor release - Contact Company Name:
 
 **1.9.0** (2025-12-24)
 
-Minor release - Contact Company Name:
+Minor release - Contact Enhancements:
 - **Contact Company Name**: Added company name field to contacts
   - New optional field to capture company/business name for contacts
   - Displayed in contact list, detail panel, and form
   - Included in search functionality
   - Database migration v5 adds `company_name` column to contacts table
+- **Contacts Column Sorting**: Added sortable columns to contacts table
+  - Click column headers to sort by Name, Categories, or Location
+  - Toggle between ascending (A-Z) and descending (Z-A) order
+  - Sort indicator icons show current sort state
 
 **1.8.1** (2025-12-24)
 

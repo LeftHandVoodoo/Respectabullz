@@ -99,18 +99,14 @@ A comprehensive desktop application for managing dog breeding operations, built 
 # Install dependencies
 npm install
 
-# Copy environment config
-cp .env.example .env
-
-# Generate Prisma client
-npm run db:generate
-
-# Push database schema
-npm run db:push
-
-# Start development server
+# Start development server (Vite only - for frontend development)
 npm run dev
+
+# Or start full Tauri development (recommended)
+npm run tauri:dev
 ```
+
+> **Note:** The app uses SQLite via `tauri-plugin-sql` at runtime. The Prisma schema exists for type reference but Prisma commands (`db:generate`, `db:push`) are not required for development. The database is created automatically on first launch.
 
 **Build for Production:**
 
@@ -140,6 +136,7 @@ respectabullz/
 │   │   ├── registry/   # Registration tracking components
 │   │   ├── inquiries/   # Client interest/inquiry components
 │   │   ├── sales/       # Sale form components
+│   │   ├── contacts/    # Business contacts management
 │   │   └── ...
 │   ├── hooks/           # React Query hooks
 │   ├── lib/             # Utilities and database
@@ -219,6 +216,15 @@ npm run test:ui
 # Run tests with coverage
 npm run test:coverage
 ```
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| `npm run tauri:dev` fails | Ensure Rust is installed: `rustup --version`. Install from [rustup.rs](https://rustup.rs/) |
+| Port 1420 already in use | Stop any process using the port, or modify `devUrl` in `src-tauri/tauri.conf.json` |
+| Database not found errors | The database is created automatically on first launch in `%APPDATA%/com.respectabullz.app/` |
+| Build fails on Windows | Ensure Visual Studio Build Tools are installed (required for Rust on Windows) |
 
 ## Documentation
 

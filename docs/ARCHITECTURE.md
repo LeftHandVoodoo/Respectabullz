@@ -1,6 +1,6 @@
 # Respectabullz Architecture
 
-**Version 1.7.0**
+**Version 1.9.0**
 
 ## Overview
 
@@ -155,7 +155,8 @@ respectabullz/
 │   │   ├── expenses/        # Expense components
 │   │   ├── inquiries/       # Client interest/inquiry components
 │   │   ├── sales/           # Sale form and contract components
-│   │   └── clients/         # Client components
+│   │   ├── clients/         # Client components
+│   │   └── contacts/        # Business contacts management
 │   ├── hooks/               # Custom React hooks
 │   │   ├── useDogs.ts       # Dog CRUD operations
 │   │   ├── useLitters.ts    # Litter operations
@@ -174,6 +175,7 @@ respectabullz/
 │   │   ├── useBreederSettings.ts # Breeder/kennel settings
 │   │   ├── useContract.ts   # Contract document generation
 │   │   ├── useDashboard.ts  # Dashboard stats
+│   │   ├── useContacts.ts   # Business contacts operations
 │   │   └── useSettings.ts   # App settings
 │   ├── lib/                 # Utilities and services
 │   │   ├── db.ts            # Database client
@@ -285,8 +287,16 @@ User Action → Form Submit → Data Hook (useMutation)
 - 5-minute stale time for data freshness
 - Background refetching on window focus
 
-### Lazy Loading
-- Routes not code-split (app is small enough)
+### Lazy Loading & Code Splitting
+- All pages except Dashboard use React.lazy() for code splitting
+- Suspense boundary with skeleton loading fallback for smooth page transitions
+- Vite manual chunks for vendor libraries:
+  - `vendor-react`: React, ReactDOM, React Router (165 kB)
+  - `vendor-radix`: All Radix UI components (164 kB)
+  - `vendor-recharts`: Recharts library (411 kB, loaded only for Reports/Expenses)
+  - `vendor-pdf-renderer`: @react-pdf/renderer (1,489 kB, loaded only when generating PDFs)
+  - `vendor-pdf-viewer`: react-pdf and pdfjs-dist (462 kB, loaded only for document viewing)
+- Initial bundle reduced from 4,291 kB to 320 kB (93% reduction)
 - Virtual scrolling implemented for large lists using @tanstack/react-virtual
 
 ### Database Optimization
@@ -324,18 +334,22 @@ User Action → Form Submit → Data Hook (useMutation)
 
 ## Future Considerations
 
+### Completed Improvements (as of 1.9.0)
+- ✅ PDF generation for contracts (dual Word + PDF output since 1.6.0)
+- ✅ PDF viewer with page navigation and zoom controls (since 1.5.0)
+- ✅ Code splitting with 93% bundle size reduction (since 1.8.1)
+
 ### Planned Improvements
 1. Full Prisma integration with Tauri IPC
 2. Photo image optimization and thumbnail generation
-3. PDF generation for printable reports (contracts currently generate as Word documents)
-4. Calendar integration with external calendars
-5. Multi-device sync (optional cloud backup)
-6. Contract template editor UI
-7. Photo/document deletion cleanup (orphaned files)
-8. Document preview improvements (PDF viewer, Office document rendering)
+3. Calendar integration with external calendars
+4. Multi-device sync (optional cloud backup)
+5. Contract template editor UI
+6. Photo/document deletion cleanup (orphaned files)
+7. Office document rendering in document viewer
 
 ### Scalability
 - Current architecture supports ~10,000 dogs
-- Beyond that, pagination and virtual scrolling needed
-- Consider SQLite WAL mode for concurrent access
+- Virtual scrolling implemented for large lists (auto-enables for lists > 50 items)
+- Consider SQLite WAL mode for concurrent access if needed
 
