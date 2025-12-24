@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Missing Expense Category**: Added missing "Breeding" category to expense options
+  - "Breeding" category was documented but not implemented in the code
+  - Now displays alongside other built-in categories (Food, Vet, Supplies, Registration, Transport, Marketing, Utilities, Misc)
+  - Updated documentation to include Registration and Utilities categories
+- **Transport/Expense Sync Bug**: Fixed duplicate transport records when creating transport with cost
+  - Creating a transport with cost was calling `createExpense()` which auto-created a second transport
+  - Added `skipTransportCreation` flag to prevent circular creation between transport and expense
+  - Transport and Expenses pages now properly stay in sync without duplicates
+
 ## [1.7.0] - 2025-12-23
 
 ### Added

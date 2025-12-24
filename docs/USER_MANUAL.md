@@ -525,8 +525,10 @@ Comprehensive financial tracking for your breeding operation.
 - **Vet**: Veterinary services, medications
 - **Supplies**: Leashes, crates, toys, etc.
 - **Breeding**: Stud fees, AI costs, progesterone tests
+- **Registration**: AKC/UKC registration fees, paperwork
 - **Transport**: Shipping costs
 - **Marketing**: Advertising, website, photos
+- **Utilities**: Facility-related expenses (electric, water, etc.)
 - **Misc**: Other expenses
 
 #### Expense Reports

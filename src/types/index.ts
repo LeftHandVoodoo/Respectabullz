@@ -61,14 +61,15 @@ export type LitterStatus =
   | 'ready_to_go'
   | 'completed';
 // Built-in expense categories
-export type BuiltInExpenseCategory = 
-  | 'transport' 
-  | 'vet' 
-  | 'food' 
-  | 'supplies' 
-  | 'registration' 
-  | 'marketing' 
-  | 'utilities' 
+export type BuiltInExpenseCategory =
+  | 'transport'
+  | 'vet'
+  | 'food'
+  | 'supplies'
+  | 'registration'
+  | 'breeding'
+  | 'marketing'
+  | 'utilities'
   | 'misc';
 
 // Expense category can be any string (built-in or custom)

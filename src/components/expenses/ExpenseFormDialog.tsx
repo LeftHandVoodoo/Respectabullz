@@ -57,6 +57,7 @@ const BUILT_IN_CATEGORIES: Record<string, string> = {
   food: 'Food',
   supplies: 'Supplies',
   registration: 'Registration',
+  breeding: 'Breeding',
   marketing: 'Marketing',
   utilities: 'Utilities',
   misc: 'Misc',

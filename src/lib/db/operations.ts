@@ -89,7 +89,17 @@ export async function getExpense(id: string): Promise<Expense | null> {
   return rows.length > 0 ? rowToExpense(rows[0]) : null;
 }
 
-export async function createExpense(input: CreateExpenseInput): Promise<Expense> {
+// Internal options for createExpense - not exposed in public API
+interface CreateExpenseOptions {
+  // When true, skip auto-creating a transport record even if category is 'transport'
+  // Used by createTransport to avoid duplicate transport creation
+  skipTransportCreation?: boolean;
+}
+
+export async function createExpense(
+  input: CreateExpenseInput,
+  options: CreateExpenseOptions = {}
+): Promise<Expense> {
   const id = generateId();
   const now = nowIso();
 
@@ -125,7 +135,8 @@ export async function createExpense(input: CreateExpenseInput): Promise<Expense>
 
   // If this is a transport expense with a related dog, also create a transport record
   // so it appears on the Transport page
-  if (input.category === 'transport' && relatedDogId) {
+  // Skip if called from createTransport (which handles its own transport record)
+  if (input.category === 'transport' && relatedDogId && !options.skipTransportCreation) {
     const transportId = generateId();
     await execute(
       `INSERT INTO transports
@@ -287,19 +298,23 @@ export async function getTransport(id: string): Promise<Transport | null> {
 export async function createTransport(input: CreateTransportInput): Promise<Transport> {
   const id = generateId();
   const now = nowIso();
-  
+
   // Create linked expense if cost is provided
+  // Pass skipTransportCreation to prevent duplicate transport creation
   let expenseId: string | null = null;
   if (input.cost && input.cost > 0) {
-    const expense = await createExpense({
-      date: input.date,
-      amount: input.cost,
-      category: 'transport',
-      vendorName: input.shipperBusinessName,
-      description: `Transport for dog`,
-      relatedDogId: input.dogId,
-      isTaxDeductible: false,
-    });
+    const expense = await createExpense(
+      {
+        date: input.date,
+        amount: input.cost,
+        category: 'transport',
+        vendorName: input.shipperBusinessName,
+        description: `Transport for dog`,
+        relatedDogId: input.dogId,
+        isTaxDeductible: false,
+      },
+      { skipTransportCreation: true }
+    );
     expenseId = expense.id;
   }
   
