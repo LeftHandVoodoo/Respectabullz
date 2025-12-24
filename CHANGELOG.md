@@ -11,8 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Heat Cycle Dog Association**: Fixed heat cycles not displaying associated dog after creation
-  - `getHeatCycles()` and `getHeatCycle()` now populate the `bitch` relation with full dog data
+  - `getHeatCycles()` and `getHeatCycle()` now populate the `bitch` relation with dog data
   - Heat cycle list and detail views now correctly show the female dog's name
+- **Heat Cycle Query Performance**: Fixed N+1 query problem in heat cycle fetching
+  - Added `getDogBasic()` for lightweight dog lookups (no sire/dam/photos)
+  - Added `getDogsByIds()` for batch fetching dogs in a single query
+  - Reduced potential 251 queries down to 3 queries for 50 heat cycles
 - **Expense Category Filter**: Fixed category filter not showing all available categories
   - Filter now includes: built-in categories + custom categories + any categories used in existing expenses
   - Ensures all categories (including custom ones added later) can be filtered

@@ -11,6 +11,8 @@ export * from './legacy';
 export {
   getDogs,
   getDog,
+  getDogBasic,
+  getDogsByIds,
   createDog,
   updateDog,
   deleteDog,

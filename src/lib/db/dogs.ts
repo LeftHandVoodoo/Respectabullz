@@ -121,6 +121,33 @@ export async function getDogs(): Promise<Dog[]> {
 }
 
 /**
+ * Get a single dog by ID WITHOUT relations (sire, dam, photos)
+ * Use this for lightweight lookups where you only need basic dog info
+ */
+export async function getDogBasic(id: string): Promise<Dog | null> {
+  const rows = await query<DogRow>('SELECT * FROM dogs WHERE id = ?', [id]);
+  if (rows.length === 0) return null;
+  return rowToDog(rows[0]);
+}
+
+/**
+ * Get multiple dogs by IDs WITHOUT relations (batch fetch for efficiency)
+ * Returns a Map for O(1) lookups
+ */
+export async function getDogsByIds(ids: string[]): Promise<Map<string, Dog>> {
+  if (ids.length === 0) return new Map();
+
+  const placeholders = ids.map(() => '?').join(',');
+  const rows = await query<DogRow>(`SELECT * FROM dogs WHERE id IN (${placeholders})`, ids);
+
+  const map = new Map<string, Dog>();
+  for (const row of rows) {
+    map.set(row.id, rowToDog(row));
+  }
+  return map;
+}
+
+/**
  * Get a single dog by ID with relations populated
  */
 export async function getDog(id: string): Promise<Dog | null> {
