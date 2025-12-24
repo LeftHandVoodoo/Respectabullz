@@ -1,21 +1,21 @@
 # Respectabullz User Manual
 
-**Version 1.7.0**
-**Last Updated: December 23, 2025**
+**Version 1.7.1**
+**Last Updated: December 24, 2025**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
 
 ---
 
-## What's New in Version 1.7.0
+## What's New in Version 1.7.1
+
+### Removed
+- **In-App Auto-Updater**: Temporarily removed due to code signing requirements (will return in future release)
 
 ### Bug Fixes
-- **Transport Expense Linking**: Transport expenses added from Dog Financial page now appear on Transport page
-  - Expense with "transport" category and related dog now creates linked transport record
-  - Deleting transport expense removes linked transport record
-- **Dog Detail Transport Tab**: Fixed transport tab showing placeholder instead of actual records
-  - New transport history display with date, mode, shipper, route, tracking, and cost
-  - Add/edit/delete transport records directly from dog detail page
+- **Missing Expense Category**: Added "Breeding" category to expense options
+- **Transport/Expense Sync**: Fixed duplicate transport records when creating transport with cost
+- **Date Timezone Bug**: Fixed dates shifting by one day when editing records across all form dialogs
 
 ---
 
