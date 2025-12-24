@@ -9,15 +9,6 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
 
 ## What's New in Version 1.7.0
 
-### Major Updates
-- **In-App Auto-Updater**: Check for and install updates directly from the app
-  - New "Application Updates" section in Settings page
-  - Check for updates from GitHub releases with one click
-  - Download progress indicator with percentage
-  - One-click install with automatic app restart
-  - Shows release notes before updating
-  - Uses Tauri's built-in updater plugin for secure updates
-
 ### Bug Fixes
 - **Transport Expense Linking**: Transport expenses added from Dog Financial page now appear on Transport page
   - Expense with "transport" category and related dog now creates linked transport record

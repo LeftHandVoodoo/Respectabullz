@@ -10,7 +10,7 @@
 
 A comprehensive desktop application for managing dog breeding operations, built with Tauri, React, TypeScript, and SQLite.
 
-> **New in 1.7.0**: In-app auto-updater for seamless updates, plus transport-expense linking fixes. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **New in 1.7.0**: Transport-expense linking fixes and comprehensive test coverage. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Features
 

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **In-App Auto-Updater**: Temporarily removed due to code signing requirements
+  - Feature requires signed binaries for secure updates
+  - Will be re-added once code signing is configured for releases
+
 ### Fixed
 - **Missing Expense Category**: Added missing "Breeding" category to expense options
   - "Breeding" category was documented but not implemented in the code
@@ -16,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Creating a transport with cost was calling `createExpense()` which auto-created a second transport
   - Added `skipTransportCreation` flag to prevent circular creation between transport and expense
   - Transport and Expenses pages now properly stay in sync without duplicates
+- **Date Timezone Bug**: Fixed dates shifting by one day when editing records
+  - HTML date inputs return strings like "2025-11-09" which were parsed as UTC midnight
+  - In US timezones, this caused dates to display as the previous day
+  - Added `parseLocalDate()` utility function that parses date strings as local time
+  - Fixed all form dialogs: Transport, Expense, Dog, Litter, Sale, Contract, Health Records, Vaccinations, Weights, Heat Cycles, Genetic Tests, Client Interests, Waitlist, Puppy Health Tasks, and Registration
 
 ## [1.7.0] - 2025-12-23
 
