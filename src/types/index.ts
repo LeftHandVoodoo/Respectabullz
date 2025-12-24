@@ -1024,6 +1024,7 @@ export type PredefinedContactCategory =
 export interface Contact {
   id: string;
   name: string;
+  companyName?: string | null;
   phonePrimary?: string | null;
   phoneSecondary?: string | null;
   email?: string | null;

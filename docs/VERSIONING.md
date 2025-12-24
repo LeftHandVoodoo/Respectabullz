@@ -88,18 +88,33 @@ For testing releases:
 
 ## Current Version
 
-**1.8.0** (2025-12-24) - Current Release
+**1.9.0** (2025-12-24) - Current Release
 
-Minor release - Contacts Management System:
-- New Contacts page for managing business contacts (vets, breeders, shippers, etc.)
-- Full CRUD operations with search, filter by category, and detail panel
-- Multi-category support with 5 predefined categories and custom category creation
-- Social media fields: Facebook, Instagram, TikTok, Twitter/X, Website
-- Database migration v4 with 3 new tables (contact_categories, contacts, contact_category_links)
+Minor release - Contact Company Name:
+- Added company name field to contacts for storing business/company names
+- Displayed in contact list, detail panel, and form
+- Included in contact search functionality
+- Database migration v5 adds `company_name` column to contacts table
 
 ---
 
 ## Release History
+
+**1.9.0** (2025-12-24)
+
+Minor release - Contact Company Name:
+- **Contact Company Name**: Added company name field to contacts
+  - New optional field to capture company/business name for contacts
+  - Displayed in contact list, detail panel, and form
+  - Included in search functionality
+  - Database migration v5 adds `company_name` column to contacts table
+
+**1.8.1** (2025-12-24)
+
+Patch release - Bundle size optimization:
+- Reduced initial bundle from 4,291 kB to 320 kB (93% reduction)
+- Implemented code splitting with React.lazy() for all pages
+- Configured Vite manual chunks for vendor libraries
 
 **1.8.0** (2025-12-24)
 

@@ -707,6 +707,7 @@ Business contacts (veterinarians, breeders, shippers, graphic designers, etc.).
 |-------|------|-------------|
 | id | String (CUID) | Primary key |
 | name | String | Contact's name (required) |
+| companyName | String? | Company or business name |
 | phonePrimary | String? | Primary phone number |
 | phoneSecondary | String? | Secondary phone number |
 | email | String? | Email address |

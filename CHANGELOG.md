@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2025-12-24
+
+### Added
+- **Contact Company Name**: Added company name field to contacts
+  - New optional field to capture company/business name for contacts
+  - Displayed in contact list, detail panel, and form
+  - Included in search functionality
+  - Database migration v5 adds `company_name` column to contacts table
+
 ## [1.8.1] - 2025-12-24
 
 ### Changed

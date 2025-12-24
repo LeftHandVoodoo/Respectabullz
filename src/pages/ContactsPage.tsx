@@ -69,6 +69,7 @@ export function ContactsPage() {
         const matchesSearch =
           !search ||
           contact.name.toLowerCase().includes(search.toLowerCase()) ||
+          contact.companyName?.toLowerCase().includes(search.toLowerCase()) ||
           contact.email?.toLowerCase().includes(search.toLowerCase()) ||
           contact.phonePrimary?.includes(search) ||
           contact.phoneSecondary?.includes(search) ||
@@ -110,7 +111,14 @@ export function ContactsPage() {
                   .substring(0, 2)}
               </AvatarFallback>
             </Avatar>
-            <span className="font-medium">{contact.name}</span>
+            <div className="min-w-0">
+              <span className="font-medium">{contact.name}</span>
+              {contact.companyName && (
+                <div className="text-xs text-muted-foreground truncate">
+                  {contact.companyName}
+                </div>
+              )}
+            </div>
           </div>
         ),
       },
@@ -346,6 +354,11 @@ export function ContactsPage() {
                         <h3 className="font-semibold text-lg">
                           {selectedContactData.name}
                         </h3>
+                        {selectedContactData.companyName && (
+                          <p className="text-sm text-muted-foreground">
+                            {selectedContactData.companyName}
+                          </p>
+                        )}
                         <div className="flex flex-wrap gap-1 mt-1">
                           {selectedContactData.categories?.map((cat) => (
                             <Badge

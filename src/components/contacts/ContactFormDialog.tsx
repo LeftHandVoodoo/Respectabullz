@@ -26,6 +26,7 @@ import { Facebook, Instagram, Globe, Twitter } from 'lucide-react';
 
 const contactSchema = z.object({
   name: z.string().min(1, 'Name is required'),
+  companyName: z.string().optional(),
   phonePrimary: z.string().optional(),
   phoneSecondary: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
@@ -92,6 +93,7 @@ export function ContactFormDialog({
     if (contact && open) {
       reset({
         name: contact.name,
+        companyName: contact.companyName || '',
         phonePrimary: contact.phonePrimary || '',
         phoneSecondary: contact.phoneSecondary || '',
         email: contact.email || '',
@@ -111,6 +113,7 @@ export function ContactFormDialog({
     } else if (!contact && open) {
       reset({
         name: '',
+        companyName: '',
         phonePrimary: '',
         phoneSecondary: '',
         email: '',
@@ -144,6 +147,7 @@ export function ContactFormDialog({
   const onSubmit = async (data: ContactFormData) => {
     const contactData = {
       name: data.name,
+      companyName: data.companyName || null,
       phonePrimary: data.phonePrimary || null,
       phoneSecondary: data.phoneSecondary || null,
       email: data.email || null,
@@ -180,16 +184,26 @@ export function ContactFormDialog({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Basic Info Section */}
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                {...register('name')}
-                placeholder="Contact name"
-              />
-              {errors.name && (
-                <p className="text-sm text-destructive">{errors.name.message}</p>
-              )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input
+                  id="name"
+                  {...register('name')}
+                  placeholder="Contact name"
+                />
+                {errors.name && (
+                  <p className="text-sm text-destructive">{errors.name.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Company Name</Label>
+                <Input
+                  id="companyName"
+                  {...register('companyName')}
+                  placeholder="Company or business name"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

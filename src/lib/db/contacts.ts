@@ -144,6 +144,7 @@ export async function deleteContactCategory(id: string): Promise<boolean> {
 interface ContactRow {
   id: string;
   name: string;
+  company_name: string | null;
   phone_primary: string | null;
   phone_secondary: string | null;
   email: string | null;
@@ -167,6 +168,7 @@ function rowToContact(row: ContactRow): Contact {
   return {
     id: row.id,
     name: row.name,
+    companyName: row.company_name,
     phonePrimary: row.phone_primary,
     phoneSecondary: row.phone_secondary,
     email: row.email,
@@ -256,14 +258,15 @@ export async function createContact(input: CreateContactInput): Promise<ContactW
 
   await execute(
     `INSERT INTO contacts (
-      id, name, phone_primary, phone_secondary, email,
+      id, name, company_name, phone_primary, phone_secondary, email,
       address_line1, address_line2, city, state, postal_code,
       facebook, instagram, tiktok, twitter, website,
       notes, business_card_document_id, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.name,
+      input.companyName ?? null,
       input.phonePrimary ?? null,
       input.phoneSecondary ?? null,
       input.email ?? null,
@@ -310,6 +313,10 @@ export async function updateContact(
   if (input.name !== undefined) {
     updates.push('name = ?');
     values.push(input.name);
+  }
+  if (input.companyName !== undefined) {
+    updates.push('company_name = ?');
+    values.push(input.companyName);
   }
   if (input.phonePrimary !== undefined) {
     updates.push('phone_primary = ?');
@@ -470,9 +477,9 @@ export async function searchContacts(searchTerm: string): Promise<ContactWithRel
   const term = `%${searchTerm}%`;
   const rows = await query<ContactRow>(
     `SELECT * FROM contacts
-     WHERE name LIKE ? OR email LIKE ? OR phone_primary LIKE ? OR phone_secondary LIKE ?
+     WHERE name LIKE ? OR company_name LIKE ? OR email LIKE ? OR phone_primary LIKE ? OR phone_secondary LIKE ?
      ORDER BY name`,
-    [term, term, term, term]
+    [term, term, term, term, term]
   );
 
   const contacts: ContactWithRelations[] = [];

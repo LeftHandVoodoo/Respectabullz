@@ -432,6 +432,7 @@ createContact(input: CreateContactInput): Promise<ContactWithRelations>
 
 **Parameters:**
 - `input.name`: Contact name (required)
+- `input.companyName`: Company or business name
 - `input.phonePrimary`: Primary phone number
 - `input.phoneSecondary`: Secondary phone number
 - `input.email`: Email address

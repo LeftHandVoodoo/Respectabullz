@@ -12,7 +12,7 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
 ### Added
 - **Contacts Management System**: New dedicated section for managing business contacts
   - Full CRUD operations for contacts (create, read, update, delete)
-  - Contact fields: name, primary/secondary phone, email, full address, notes
+  - Contact fields: name, company name, primary/secondary phone, email, full address, notes
   - Social media integration: Facebook, Instagram, TikTok, Twitter/X, Website
   - Business card support via existing document management system
   - Multi-category tagging with many-to-many relationships
@@ -562,6 +562,7 @@ The Contacts section helps you manage business contacts such as veterinarians, b
 1. Click **"Add Contact"** on the Contacts page
 2. Fill in contact information:
    - **Name**: Contact's name (required)
+   - **Company Name**: Company or business name
    - **Primary Phone**: Main contact number
    - **Secondary Phone**: Alternate phone number
    - **Email**: Email address
@@ -577,7 +578,7 @@ The Contacts section helps you manage business contacts such as veterinarians, b
 #### Managing Contacts
 
 **Searching and Filtering:**
-- Use the search box to find contacts by name, email, phone, or city
+- Use the search box to find contacts by name, company, email, phone, or city
 - Filter by category using the category dropdown (supports multiple selection)
 - Categories are displayed as colored badges on contact cards
 

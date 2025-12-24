@@ -5,7 +5,7 @@ import { query, execute } from './connection';
 import { SCHEMA_SQL } from './schema';
 
 // Current schema version - increment when schema changes
-const CURRENT_VERSION = 4;
+const CURRENT_VERSION = 5;
 
 /**
  * Initialize the database schema
@@ -468,6 +468,18 @@ async function applyMigration(version: number): Promise<void> {
       }
 
       console.log('[DB] Contacts management tables and categories created successfully');
+      break;
+    }
+
+    case 5: {
+      // Migration 5: Add company_name column to contacts table
+      console.log('[DB] Adding company_name column to contacts table...');
+
+      await execute(`
+        ALTER TABLE contacts ADD COLUMN company_name TEXT
+      `);
+
+      console.log('[DB] Company name column added to contacts table successfully');
       break;
     }
 
