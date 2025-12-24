@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { useCreateGeneticTest, useUpdateGeneticTest } from '@/hooks/useGeneticTests';
 import { COMMON_GENETIC_TESTS } from '@/lib/db';
+import { parseLocalDate } from '@/lib/utils';
 import type { GeneticTest, GeneticTestStatus, CommonGeneticTest } from '@/types';
 
 const geneticTestSchema = z.object({
@@ -121,7 +122,7 @@ export function GeneticTestFormDialog({
         testType: data.testType as CommonGeneticTest,
         result: data.result as GeneticTestStatus,
         labName: data.labName || null,
-        testDate: data.testDate ? new Date(data.testDate) : null,
+        testDate: parseLocalDate(data.testDate),
         certificateNumber: data.certificateNumber || null,
         certificatePath: test?.certificatePath || null,
         notes: data.notes || null,

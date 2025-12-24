@@ -26,6 +26,7 @@ import { useCreateSale, useUpdateSale, useClients } from '@/hooks/useClients';
 import { useConvertInterestToSale } from '@/hooks/useClientInterests';
 import { useDogs } from '@/hooks/useDogs';
 import { useTransports } from '@/hooks/useTransport';
+import { parseLocalDate } from '@/lib/utils';
 import type { Sale, PaymentStatus } from '@/types';
 import { format } from 'date-fns';
 
@@ -187,19 +188,17 @@ export function SaleFormDialog({
     try {
       const saleData = {
         clientId: data.clientId,
-        saleDate: new Date(data.saleDate),
+        saleDate: parseLocalDate(data.saleDate) || new Date(),
         price: data.price,
         depositAmount: data.depositAmount || null,
-        depositDate: data.depositDate ? new Date(data.depositDate) : null,
+        depositDate: parseLocalDate(data.depositDate),
         paymentStatus: data.paymentStatus as PaymentStatus,
-        shippedDate: data.shippedDate ? new Date(data.shippedDate) : null,
-        receivedDate: data.receivedDate ? new Date(data.receivedDate) : null,
+        shippedDate: parseLocalDate(data.shippedDate),
+        receivedDate: parseLocalDate(data.receivedDate),
         isLocalPickup: data.isLocalPickup,
         transportId: data.isLocalPickup ? null : (data.transportId || null),
         warrantyInfo: data.warrantyInfo || null,
-        registrationTransferDate: data.registrationTransferDate 
-          ? new Date(data.registrationTransferDate) 
-          : null,
+        registrationTransferDate: parseLocalDate(data.registrationTransferDate),
         contractPath: data.contractPath || null,
         notes: data.notes || null,
         puppies: data.puppies.filter(p => p.dogId && p.price >= 0), // Filter out invalid puppies

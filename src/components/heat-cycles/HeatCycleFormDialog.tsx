@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCreateHeatCycle, useUpdateHeatCycle } from '@/hooks/useHeatCycles';
+import { parseLocalDate } from '@/lib/utils';
 import type { Dog, HeatCycle } from '@/types';
 import { Calendar, Info } from 'lucide-react';
 
@@ -113,14 +114,10 @@ export function HeatCycleFormDialog({
   const onSubmit = async (data: HeatCycleFormData) => {
     const payload = {
       bitchId: data.bitchId,
-      startDate: new Date(data.startDate),
-      standingHeatStart: data.standingHeatStart
-        ? new Date(data.standingHeatStart)
-        : null,
-      standingHeatEnd: data.standingHeatEnd
-        ? new Date(data.standingHeatEnd)
-        : null,
-      endDate: data.endDate ? new Date(data.endDate) : null,
+      startDate: parseLocalDate(data.startDate) || new Date(),
+      standingHeatStart: parseLocalDate(data.standingHeatStart),
+      standingHeatEnd: parseLocalDate(data.standingHeatEnd),
+      endDate: parseLocalDate(data.endDate),
       notes: data.notes || null,
       // Set initial phase
       currentPhase: data.endDate ? 'anestrus' as const : 'proestrus' as const,

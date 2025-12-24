@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCreateMedicalRecord, useUpdateMedicalRecord } from '@/hooks/useHealth';
+import { parseLocalDate } from '@/lib/utils';
 import type { MedicalRecord, MedicalRecordType } from '@/types';
 
 const recordTypes: { value: MedicalRecordType; label: string }[] = [
@@ -93,7 +94,7 @@ export function MedicalRecordFormDialog({
   const onSubmit = async (data: MedicalFormData) => {
     const recordData = {
       dogId,
-      date: new Date(data.date),
+      date: parseLocalDate(data.date) || new Date(),
       type: data.type as MedicalRecordType,
       description: data.description,
       vetClinic: data.vetClinic || null,

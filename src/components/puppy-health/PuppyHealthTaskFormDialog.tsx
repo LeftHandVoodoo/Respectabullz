@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCreatePuppyHealthTask, useUpdatePuppyHealthTask } from '@/hooks/usePuppyHealthTasks';
+import { parseLocalDate } from '@/lib/utils';
 import type { PuppyHealthTask, PuppyHealthTaskType, Dog } from '@/types';
 
 const taskTypes: { value: PuppyHealthTaskType; label: string }[] = [
@@ -123,7 +124,7 @@ export function PuppyHealthTaskFormDialog({
       puppyId: data.puppyId || null,
       taskType: data.taskType as PuppyHealthTaskType,
       taskName: data.taskName,
-      dueDate: new Date(data.dueDate),
+      dueDate: parseLocalDate(data.dueDate) || new Date(),
       notes: data.notes || null,
     };
 

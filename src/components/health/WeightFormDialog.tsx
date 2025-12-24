@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useCreateWeightEntry, useUpdateWeightEntry } from '@/hooks/useHealth';
+import { parseLocalDate } from '@/lib/utils';
 import type { WeightEntry } from '@/types';
 
 const weightSchema = z.object({
@@ -73,7 +74,7 @@ export function WeightFormDialog({
   const onSubmit = async (data: WeightFormData) => {
     const weightData = {
       dogId,
-      date: new Date(data.date),
+      date: parseLocalDate(data.date) || new Date(),
       weightLbs: parseFloat(data.weightLbs),
       notes: data.notes || null,
     };

@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { useCreateTransport, useUpdateTransport } from '@/hooks/useTransport';
 import { useDogs } from '@/hooks/useDogs';
+import { parseLocalDate } from '@/lib/utils';
 import type { Transport, TransportMode } from '@/types';
 
 const transportSchema = z.object({
@@ -106,7 +107,7 @@ export function TransportFormDialog({
   const onSubmit = async (data: TransportFormData) => {
     const transportData = {
       dogId: data.dogId,
-      date: new Date(data.date),
+      date: parseLocalDate(data.date) || new Date(),
       mode: data.mode as TransportMode,
       shipperBusinessName: data.shipperBusinessName || null,
       contactName: data.contactName || null,

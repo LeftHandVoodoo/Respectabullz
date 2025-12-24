@@ -22,6 +22,7 @@ import {
 import { useCreateClientInterest, useUpdateClientInterest } from '@/hooks/useClientInterests';
 import { useClients } from '@/hooks/useClients';
 import { useDogs } from '@/hooks/useDogs';
+import { parseLocalDate } from '@/lib/utils';
 import type { ClientInterest, ContactMethod, InterestStatus } from '@/types';
 import { format } from 'date-fns';
 
@@ -121,7 +122,7 @@ export function ClientInterestFormDialog({
     const interestData = {
       clientId: data.clientId,
       dogId: data.dogId,
-      interestDate: new Date(data.interestDate),
+      interestDate: parseLocalDate(data.interestDate) || new Date(),
       contactMethod: data.contactMethod as ContactMethod,
       status: data.status as InterestStatus,
       notes: data.notes || null,

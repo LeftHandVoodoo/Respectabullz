@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { useCreateCommunicationLog, useUpdateCommunicationLog } from '@/hooks/useCommunicationLogs';
 import { useLitters } from '@/hooks/useLitters';
+import { parseLocalDate } from '@/lib/utils';
 import type { CommunicationLog, CommunicationType, CommunicationDirection } from '@/types';
 
 const communicationTypes: { value: CommunicationType; label: string }[] = [
@@ -124,12 +125,12 @@ export function CommunicationFormDialog({
   const onSubmit = async (data: CommunicationFormData) => {
     const payload = {
       clientId,
-      date: new Date(data.date),
+      date: parseLocalDate(data.date) || new Date(),
       type: data.type as CommunicationType,
       direction: data.direction as CommunicationDirection,
       summary: data.summary,
       followUpNeeded: data.followUpNeeded || false,
-      followUpDate: data.followUpDate ? new Date(data.followUpDate) : null,
+      followUpDate: parseLocalDate(data.followUpDate),
       relatedLitterId: data.relatedLitterId || null,
       notes: data.notes || null,
     };

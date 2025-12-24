@@ -24,6 +24,7 @@ import {
 import { useCreateHeatEvent } from '@/hooks/useHeatEvents';
 import { useDogs } from '@/hooks/useDogs';
 import { getBreedingRecommendation } from '@/lib/db';
+import { parseLocalDate } from '@/lib/utils';
 import type { HeatEventType } from '@/types';
 import { CheckCircle2, Clock, Calendar } from 'lucide-react';
 
@@ -129,7 +130,7 @@ export function HeatEventFormDialog({
   const onSubmit = async (data: HeatEventFormData) => {
     await createHeatEvent.mutateAsync({
       heatCycleId,
-      date: new Date(data.date),
+      date: parseLocalDate(data.date) || new Date(),
       time: data.time || null,
       type: data.type as HeatEventType,
       value: data.value || null,

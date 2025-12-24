@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCreateVaccination, useUpdateVaccination } from '@/hooks/useHealth';
+import { parseLocalDate } from '@/lib/utils';
 import type { VaccinationRecord } from '@/types';
 
 const vaccineTypes = [
@@ -269,12 +270,12 @@ export function VaccinationFormDialog({
 
     const vaccinationData = {
       dogId,
-      date: new Date(data.date),
+      date: parseLocalDate(data.date) || new Date(),
       vaccineType,
       dose: data.dose || null,
       lotNumber: data.lotNumber || null,
       vetClinic: data.vetClinic || null,
-      nextDueDate: data.nextDueDate ? new Date(data.nextDueDate) : null,
+      nextDueDate: parseLocalDate(data.nextDueDate),
       notes: data.notes || null,
     };
 

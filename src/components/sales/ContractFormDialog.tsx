@@ -36,6 +36,7 @@ import { Separator } from '@/components/ui/separator';
 import { useBreederSettings } from '@/hooks/useBreederSettings';
 import { useGenerateContract } from '@/hooks/useContract';
 import { buildContractData, formatPriceWords, formatPrice } from '@/lib/contractUtils';
+import { parseLocalDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { Client, Dog as DogType, ContractData, RegistrationType } from '@/types';
 
@@ -194,14 +195,14 @@ export function ContractFormDialog({
         breed: data.puppyBreed,
         sex: data.puppySex === 'male' ? 'M' : 'F',
         color: data.puppyColor || null,
-        dateOfBirth: data.puppyDOB ? new Date(data.puppyDOB) : null,
+        dateOfBirth: parseLocalDate(data.puppyDOB),
         microchipNumber: data.puppyMicrochip || null,
         registrationNumber: data.puppyRegistrationNumber || null,
       },
       {
         salePrice: data.salePrice,
         registrationType: data.registrationType as RegistrationType,
-        agreementDate: new Date(data.agreementDate),
+        agreementDate: parseLocalDate(data.agreementDate) || new Date(),
         maleCount: data.maleCount,
         femaleCount: data.femaleCount,
         coBuyerName: data.coBuyerName,

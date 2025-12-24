@@ -17,6 +17,34 @@ export function formatDate(date: Date | string | null | undefined): string {
   });
 }
 
+/**
+ * Parses a date string from an HTML date input (YYYY-MM-DD) as local time.
+ * This avoids timezone issues where new Date("2025-11-09") is parsed as UTC midnight,
+ * which can shift to the previous day when displayed in local time.
+ * @param dateString - Date string in YYYY-MM-DD format (from HTML date input)
+ * @returns Date object set to midnight local time, or null if invalid
+ */
+export function parseLocalDate(dateString: string | null | undefined): Date | null {
+  if (!dateString) return null;
+
+  // Parse YYYY-MM-DD format manually to avoid UTC interpretation
+  const parts = dateString.split('-');
+  if (parts.length !== 3) return null;
+
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1; // JS months are 0-indexed
+  const day = parseInt(parts[2], 10);
+
+  if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+
+  const date = new Date(year, month, day);
+
+  // Validate the date is valid (handles edge cases like Feb 30)
+  if (isNaN(date.getTime())) return null;
+
+  return date;
+}
+
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',

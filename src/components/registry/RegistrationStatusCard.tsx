@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useUpdateDog } from '@/hooks/useDogs';
-import { formatDate } from '@/lib/utils';
+import { formatDate, parseLocalDate } from '@/lib/utils';
 import type { Dog } from '@/types';
 
 interface RegistrationStatusCardProps {
@@ -120,9 +120,7 @@ export function RegistrationStatusCard({ dog }: RegistrationStatusCardProps) {
           registrationStatus: data.registrationStatus,
           registrationType: data.registrationType || null,
           registryName: data.registryName || null,
-          registrationDeadline: data.registrationDeadline
-            ? new Date(data.registrationDeadline)
-            : null,
+          registrationDeadline: parseLocalDate(data.registrationDeadline),
         },
       });
       setIsEditing(false);

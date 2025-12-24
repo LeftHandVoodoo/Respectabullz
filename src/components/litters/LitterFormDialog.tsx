@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { useCreateLitter, useUpdateLitter } from '@/hooks/useLitters';
 import { useDogs } from '@/hooks/useDogs';
-import { generateLitterCode } from '@/lib/utils';
+import { generateLitterCode, parseLocalDate } from '@/lib/utils';
 import type { Litter, LitterStatus } from '@/types';
 
 const litterStatuses: { value: LitterStatus; label: string }[] = [
@@ -140,16 +140,16 @@ export function LitterFormDialog({
       sireId: data.sireId || null,
       damId: data.damId || null,
       status: (data.status as LitterStatus) || null,
-      breedingDate: data.breedingDate ? new Date(data.breedingDate) : null,
-      dueDate: data.dueDate ? new Date(data.dueDate) : null,
-      whelpDate: data.whelpDate ? new Date(data.whelpDate) : null,
+      breedingDate: parseLocalDate(data.breedingDate),
+      dueDate: parseLocalDate(data.dueDate),
+      whelpDate: parseLocalDate(data.whelpDate),
       totalBorn: data.totalBorn ? parseInt(data.totalBorn) : null,
       totalAlive: data.totalAlive ? parseInt(data.totalAlive) : null,
       // Pregnancy tracking
-      ultrasoundDate: data.ultrasoundDate ? new Date(data.ultrasoundDate) : null,
+      ultrasoundDate: parseLocalDate(data.ultrasoundDate),
       ultrasoundResult: (data.ultrasoundResult as 'pregnant' | 'not_pregnant' | 'inconclusive') || null,
       ultrasoundPuppyCount: data.ultrasoundPuppyCount ? parseInt(data.ultrasoundPuppyCount) : null,
-      xrayDate: data.xrayDate ? new Date(data.xrayDate) : null,
+      xrayDate: parseLocalDate(data.xrayDate),
       xrayPuppyCount: data.xrayPuppyCount ? parseInt(data.xrayPuppyCount) : null,
       notes: data.notes || null,
     };

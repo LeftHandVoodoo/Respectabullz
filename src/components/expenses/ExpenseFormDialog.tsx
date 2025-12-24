@@ -26,6 +26,7 @@ import { useCreateExpense, useUpdateExpense } from '@/hooks/useExpenses';
 import { useDogs } from '@/hooks/useDogs';
 import { useLitters } from '@/hooks/useLitters';
 import { useExpenseCategories, useCreateExpenseCategory } from '@/hooks/useExpenseCategories';
+import { parseLocalDate } from '@/lib/utils';
 import type { Expense, ExpenseCategory } from '@/types';
 
 const expenseSchema = z.object({
@@ -124,7 +125,7 @@ export function ExpenseFormDialog({
 
   const onSubmit = async (data: ExpenseFormData) => {
     const expenseData = {
-      date: new Date(data.date),
+      date: parseLocalDate(data.date) || new Date(),
       amount: parseFloat(data.amount),
       category: data.category as ExpenseCategory,
       vendorName: data.vendorName || null,

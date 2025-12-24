@@ -495,23 +495,18 @@ describe('Transport-Expense Relationship', () => {
         cost: 350.00,
       });
 
-      // Should have called execute 3 times:
-      // 1. createExpense inserts expense
-      // 2. createExpense sees category='transport' with relatedDogId, inserts linked transport
-      // 3. createTransport inserts its transport
-      expect(execute).toHaveBeenCalledTimes(3);
+      // Should have called execute 2 times:
+      // 1. createExpense inserts expense (with skipTransportCreation flag, no auto-transport)
+      // 2. createTransport inserts its transport
+      expect(execute).toHaveBeenCalledTimes(2);
 
       // First call should be expense insert
       const firstCall = vi.mocked(execute).mock.calls[0];
       expect(firstCall[0]).toContain('INSERT INTO expenses');
 
-      // Second call is the auto-created transport from createExpense
+      // Second call is the transport insert from createTransport
       const secondCall = vi.mocked(execute).mock.calls[1];
       expect(secondCall[0]).toContain('INSERT INTO transports');
-
-      // Third call is the main transport insert from createTransport
-      const thirdCall = vi.mocked(execute).mock.calls[2];
-      expect(thirdCall[0]).toContain('INSERT INTO transports');
 
       expect(result.cost).toBe(350.00);
       expect(result.expenseId).toBe('test-id-1');

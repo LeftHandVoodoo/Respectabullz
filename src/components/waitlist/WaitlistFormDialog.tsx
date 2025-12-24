@@ -23,6 +23,7 @@ import {
 import { useCreateWaitlistEntry, useUpdateWaitlistEntry } from '@/hooks/useWaitlist';
 import { useClients } from '@/hooks/useClients';
 import { useLitters } from '@/hooks/useLitters';
+import { parseLocalDate } from '@/lib/utils';
 import type { WaitlistEntry, SexPreference, DepositStatus } from '@/types';
 
 const sexPreferences: { value: SexPreference; label: string }[] = [
@@ -121,7 +122,7 @@ export function WaitlistFormDialog({
       preference: data.preference as SexPreference,
       colorPreference: data.colorPreference || null,
       depositAmount: data.depositAmount ? parseFloat(data.depositAmount) : null,
-      depositDate: data.depositDate ? new Date(data.depositDate) : null,
+      depositDate: parseLocalDate(data.depositDate),
       depositStatus: (data.depositStatus as DepositStatus) || 'pending',
       status: 'waiting' as const,
       position: 0, // Will be set by the create function

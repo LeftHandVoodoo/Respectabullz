@@ -26,6 +26,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useCreateDog, useUpdateDog, useDogs } from '@/hooks/useDogs';
 import { useLitters } from '@/hooks/useLitters';
 import { selectAndCopyImage, getPhotoUrlAsync, initPhotoBasePath } from '@/lib/photoUtils';
+import { parseLocalDate } from '@/lib/utils';
 import type { Dog, DogStatus, DogSex } from '@/types';
 
 // Standard dog breeds
@@ -256,7 +257,7 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
     const payload = {
       ...data,
       breed,
-      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+      dateOfBirth: parseLocalDate(data.dateOfBirth),
       registrationNumber: data.registrationNumber || null,
       color,
       microchipNumber: data.microchipNumber || null,
