@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.2] - 2025-12-24
+
 ### Fixed
+- **Heat Cycle Dog Association**: Fixed heat cycles not displaying associated dog after creation
+  - `getHeatCycles()` and `getHeatCycle()` now populate the `bitch` relation with full dog data
+  - Heat cycle list and detail views now correctly show the female dog's name
 - **ESLint Warnings**: Resolved all 25 ESLint warnings to pass `--max-warnings 0`
   - Fixed unused `defaultCountry` parameter in `phone-input.tsx` (renamed to `_defaultCountry`)
   - Fixed unused `actionTypes` const in `use-toast.ts` (converted to inline type definition)
@@ -16,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated ESLint config to allow standard shadcn/ui exports (`badgeVariants`, `buttonVariants`, etc.)
   - Disabled `react-refresh/only-export-components` for test files
 - **Version Sync**: Fixed `src/lib/version.ts` showing `1.7.0` instead of `1.7.1`
+
+### Added
+- **Tests**: Added comprehensive tests for `parseLocalDate()` utility function
 
 ## [1.7.1] - 2025-12-24
 
