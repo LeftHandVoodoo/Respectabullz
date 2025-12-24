@@ -13,7 +13,7 @@ export interface PhoneInputProps extends Omit<InputProps, 'type'> {
  * Compatible with react-hook-form's register() pattern
  */
 export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
-  ({ className, value, onChange, onBlur, name, defaultCountry = 'United States', ...props }, ref) => {
+  ({ className, value, onChange, onBlur, name, defaultCountry: _defaultCountry = 'United States', ...props }, ref) => {
     const inputRef = React.useRef<HTMLInputElement>(null);
     
     // Combine refs

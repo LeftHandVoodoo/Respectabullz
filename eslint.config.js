@@ -19,11 +19,23 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // Disable incompatible-library warning - informational only, React Compiler will skip memoization
+      'react-hooks/incompatible-library': 'off',
       'react-refresh/only-export-components': [
         'warn',
-        { allowConstantExport: true },
+        {
+          allowConstantExport: true,
+          allowExportNames: ['useTheme', 'badgeVariants', 'buttonVariants', 'useVirtualTableColumns']
+        },
       ],
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    },
+  },
+  // Disable react-refresh for test files
+  {
+    files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
     },
   },
 );

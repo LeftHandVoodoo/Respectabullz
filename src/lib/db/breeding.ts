@@ -3,6 +3,7 @@
 
 import { query, execute } from './connection';
 import { generateId, dateToSql, sqlToDate, nowIso } from './utils';
+import { getDog } from './dogs';
 import type {
   HeatCycle,
   HeatEvent,
@@ -57,24 +58,26 @@ export async function getHeatCycles(bitchId?: string): Promise<HeatCycle[]> {
     ? 'SELECT * FROM heat_cycles WHERE bitch_id = ? ORDER BY start_date DESC'
     : 'SELECT * FROM heat_cycles ORDER BY start_date DESC';
   const rows = await query<HeatCycleRow>(sql, bitchId ? [bitchId] : []);
-  
+
   const cycles = rows.map(rowToHeatCycle);
-  
-  // Populate events for each cycle
+
+  // Populate bitch and events for each cycle
   for (const cycle of cycles) {
+    cycle.bitch = await getDog(cycle.bitchId) || undefined;
     cycle.events = await getHeatEvents(cycle.id);
   }
-  
+
   return cycles;
 }
 
 export async function getHeatCycle(id: string): Promise<HeatCycle | null> {
   const rows = await query<HeatCycleRow>('SELECT * FROM heat_cycles WHERE id = ?', [id]);
   if (rows.length === 0) return null;
-  
+
   const cycle = rowToHeatCycle(rows[0]);
+  cycle.bitch = await getDog(cycle.bitchId) || undefined;
   cycle.events = await getHeatEvents(id);
-  
+
   return cycle;
 }
 

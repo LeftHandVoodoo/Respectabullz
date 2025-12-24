@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **ESLint Warnings**: Resolved all 25 ESLint warnings to pass `--max-warnings 0`
+  - Fixed unused `defaultCountry` parameter in `phone-input.tsx` (renamed to `_defaultCountry`)
+  - Fixed unused `actionTypes` const in `use-toast.ts` (converted to inline type definition)
+  - Fixed unused `error` catch variables in `notifications.ts` and `photoUtils.ts`
+  - Updated ESLint config to disable `react-hooks/incompatible-library` (informational warning)
+  - Updated ESLint config to allow standard shadcn/ui exports (`badgeVariants`, `buttonVariants`, etc.)
+  - Disabled `react-refresh/only-export-components` for test files
+- **Version Sync**: Fixed `src/lib/version.ts` showing `1.7.0` instead of `1.7.1`
+
 ## [1.7.1] - 2025-12-24
 
 ### Removed
@@ -28,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - In US timezones, this caused dates to display as the previous day
   - Added `parseLocalDate()` utility function that parses date strings as local time
   - Fixed all form dialogs: Transport, Expense, Dog, Litter, Sale, Contract, Health Records, Vaccinations, Weights, Heat Cycles, Genetic Tests, Client Interests, Waitlist, Puppy Health Tasks, and Registration
+- **Heat Cycle Dog Association**: Fixed heat cycles not displaying associated dog after creation
+  - `getHeatCycles()` and `getHeatCycle()` now populate the `bitch` relation with full dog data
+  - Heat cycle list and detail views now correctly show the female dog's name
 
 ## [1.7.0] - 2025-12-23
 

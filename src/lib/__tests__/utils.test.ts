@@ -1,6 +1,6 @@
 // Unit tests for utility functions
 import { describe, it, expect } from 'vitest';
-import { cn, formatDate, formatCurrency, formatWeight, calculateAge, generateLitterCode } from '../utils';
+import { cn, formatDate, parseLocalDate, formatCurrency, formatWeight, calculateAge, generateLitterCode } from '../utils';
 
 describe('cn (class name utility)', () => {
   it('merges class names correctly', () => {
@@ -49,6 +49,83 @@ describe('formatDate', () => {
 
   it('returns empty string for invalid date', () => {
     expect(formatDate('invalid-date')).toBe('');
+  });
+});
+
+describe('parseLocalDate', () => {
+  it('parses YYYY-MM-DD format correctly', () => {
+    const date = parseLocalDate('2025-11-09');
+    expect(date).not.toBeNull();
+    expect(date?.getFullYear()).toBe(2025);
+    expect(date?.getMonth()).toBe(10); // November (0-indexed)
+    expect(date?.getDate()).toBe(9);
+  });
+
+  it('returns midnight local time, not UTC', () => {
+    const date = parseLocalDate('2025-11-09');
+    expect(date).not.toBeNull();
+    // Should be midnight in local time
+    expect(date?.getHours()).toBe(0);
+    expect(date?.getMinutes()).toBe(0);
+    expect(date?.getSeconds()).toBe(0);
+  });
+
+  it('preserves the exact date without timezone shift', () => {
+    // This is the key test - the bug was that "2025-11-09" parsed as UTC
+    // would display as "2025-11-08" in US timezones
+    const date = parseLocalDate('2025-11-09');
+    expect(date).not.toBeNull();
+    // Format the date and verify it shows the 9th, not the 8th
+    const formatted = date?.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    expect(formatted).toBe('11/09/2025');
+  });
+
+  it('returns null for null input', () => {
+    expect(parseLocalDate(null)).toBeNull();
+  });
+
+  it('returns null for undefined input', () => {
+    expect(parseLocalDate(undefined)).toBeNull();
+  });
+
+  it('returns null for empty string', () => {
+    expect(parseLocalDate('')).toBeNull();
+  });
+
+  it('returns null for invalid format', () => {
+    expect(parseLocalDate('invalid')).toBeNull();
+    expect(parseLocalDate('2025/11/09')).toBeNull(); // Wrong separator
+    expect(parseLocalDate('not-a-date')).toBeNull(); // Non-numeric parts
+  });
+
+  it('returns null for incomplete date', () => {
+    expect(parseLocalDate('2025-11')).toBeNull();
+    expect(parseLocalDate('2025')).toBeNull();
+  });
+
+  it('handles edge cases like leap years', () => {
+    const leapDay = parseLocalDate('2024-02-29');
+    expect(leapDay).not.toBeNull();
+    expect(leapDay?.getMonth()).toBe(1); // February
+    expect(leapDay?.getDate()).toBe(29);
+  });
+
+  it('handles year boundaries', () => {
+    const newYearsEve = parseLocalDate('2024-12-31');
+    expect(newYearsEve).not.toBeNull();
+    expect(newYearsEve?.getFullYear()).toBe(2024);
+    expect(newYearsEve?.getMonth()).toBe(11); // December
+    expect(newYearsEve?.getDate()).toBe(31);
+
+    const newYearsDay = parseLocalDate('2025-01-01');
+    expect(newYearsDay).not.toBeNull();
+    expect(newYearsDay?.getFullYear()).toBe(2025);
+    expect(newYearsDay?.getMonth()).toBe(0); // January
+    expect(newYearsDay?.getDate()).toBe(1);
   });
 });
 

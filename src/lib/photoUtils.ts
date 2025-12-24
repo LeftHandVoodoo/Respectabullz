@@ -375,7 +375,7 @@ export async function photoExists(filename: string): Promise<boolean> {
   try {
     const photoPath = getPhotoPath(filename);
     return exists(photoPath, { baseDir: BaseDirectory.AppData });
-  } catch (error) {
+  } catch {
     return false;
   }
 }
