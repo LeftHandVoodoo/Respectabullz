@@ -31,7 +31,6 @@ export function FirstLaunchDialog() {
       await new Promise(resolve => setTimeout(resolve, 100));
       
       try {
-        console.log('[FirstLaunch] Starting database initialization...');
         const result = await initializeAppDatabase((stage, current, total) => {
           setMigrationProgress(`Migrating ${stage}: ${current} of ${total}...`);
         });
@@ -69,8 +68,7 @@ export function FirstLaunchDialog() {
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         const errorStack = error instanceof Error ? error.stack : undefined;
-        console.error('[FirstLaunch] Database initialization error:', errorMsg);
-        console.error('[FirstLaunch] Error stack:', errorStack);
+        console.error('[FirstLaunch] Database initialization error:', errorMsg, errorStack);
         toast({
           title: 'Initialization error',
           description: `${errorMsg}. Please check the console for details and restart the application.`,

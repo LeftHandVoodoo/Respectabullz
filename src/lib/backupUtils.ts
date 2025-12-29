@@ -68,7 +68,6 @@ export async function exportBackupWithPhotos(databaseJson: string): Promise<bool
     
     // Get list of photos
     const photoFiles = await getPhotoFiles();
-    console.log(`Found ${photoFiles.length} photos to include in backup`);
     
     // Create metadata
     const metadata: BackupMetadata = {
@@ -91,7 +90,6 @@ export async function exportBackupWithPhotos(databaseJson: string): Promise<bool
         const photoData = await readPhotoFile(filename);
         if (photoData) {
           photosFolder.file(filename, photoData);
-          console.log(`Added photo to backup: ${filename}`);
         }
       }
     }
@@ -117,13 +115,11 @@ export async function exportBackupWithPhotos(databaseJson: string): Promise<bool
     });
     
     if (!savePath) {
-      console.log('User cancelled save dialog');
       return false;
     }
-    
+
     // Write the ZIP file
     await writeFile(savePath, zipData);
-    console.log(`Backup saved to: ${savePath}`);
     
     return true;
   } catch (error) {
@@ -150,8 +146,6 @@ export async function importBackupWithPhotos(): Promise<{ success: boolean; data
       return { success: false, error: 'cancelled' };
     }
     
-    console.log('Loading backup from:', selectedPath);
-    
     // Read the ZIP file
     const zipData = await readFile(selectedPath);
     
@@ -163,8 +157,7 @@ export async function importBackupWithPhotos(): Promise<{ success: boolean; data
     if (metadataFile) {
       const metadataText = await metadataFile.async('string');
       try {
-        const metadata = JSON.parse(metadataText) as BackupMetadata;
-        console.log('Backup metadata:', metadata);
+        JSON.parse(metadataText) as BackupMetadata;
       } catch (e) {
         console.error('Failed to parse backup metadata:', e);
         // Continue with restore even if metadata is corrupted
@@ -204,14 +197,11 @@ export async function importBackupWithPhotos(): Promise<{ success: boolean; data
           const photoPath = `${PHOTOS_DIR}/${name}`;
           await writeFile(photoPath, photoData, { baseDir: BaseDirectory.AppData });
           photoCount++;
-          console.log(`Restored photo: ${name}`);
         } catch (error) {
           console.error(`Failed to restore photo ${name}:`, error);
         }
       }
     }
-    
-    console.log(`Restored ${photoCount} photos from backup`);
     
     return { 
       success: true, 

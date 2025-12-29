@@ -26,12 +26,12 @@ async function ensurePhotosDirectory(): Promise<string> {
   try {
     // Use BaseDirectory.AppData for consistent path handling
     const photosPath = 'photos';
-    
+
     const dirExists = await exists(photosPath, { baseDir: BaseDirectory.AppData });
     if (!dirExists) {
       await mkdir(photosPath, { recursive: true, baseDir: BaseDirectory.AppData });
     }
-    
+
     // Return the relative path - we'll use BaseDirectory.AppData when accessing
     return photosPath;
   } catch (error) {
@@ -53,48 +53,38 @@ export async function selectImageFile(): Promise<string | null> {
         extensions: SUPPORTED_EXTENSIONS,
       }],
     });
-    
-    console.log('Dialog result:', selected, 'Type:', typeof selected);
-    
+
     if (!selected) {
-      console.log('No file selected (null/undefined)');
       return null;
     }
-    
+
     // Handle different return types from Tauri v2 dialog
     if (typeof selected === 'string') {
-      console.log('Selected file (string):', selected);
       return selected;
     }
-    
+
     // Tauri v2 might return an object with path property
     if (typeof selected === 'object' && selected !== null) {
       // Could be { path: string } or array
       const obj = selected as Record<string, unknown>;
-      
+
       // Check if it's an array first (shouldn't happen with multiple: false, but handle it)
       if (Array.isArray(obj)) {
         const arr = obj as unknown[];
         if (arr.length > 0) {
           const first = arr[0];
           if (typeof first === 'string') {
-            console.log('Selected file (array[0] string):', first);
             return first;
           }
           if (typeof first === 'object' && first !== null && 'path' in (first as Record<string, unknown>)) {
-            console.log('Selected file (array[0].path):', (first as Record<string, unknown>).path);
             return (first as Record<string, unknown>).path as string;
           }
         }
       } else if ('path' in obj && typeof obj.path === 'string') {
-        console.log('Selected file (object.path):', obj.path);
         return obj.path;
       }
-      
-      console.log('Unknown object structure:', JSON.stringify(selected));
     }
-    
-    console.log('Could not extract file path from selection');
+
     return null;
   } catch (error) {
     console.error('Failed to open file dialog:', error);
@@ -130,15 +120,13 @@ export async function selectMultipleImages(): Promise<string[]> {
         extensions: SUPPORTED_EXTENSIONS,
       }],
     });
-    
-    console.log('Multiple dialog result:', selected);
-    
+
     if (!selected) {
       return [];
     }
-    
+
     const results: string[] = [];
-    
+
     if (Array.isArray(selected)) {
       for (const item of selected) {
         const path = extractPath(item);
@@ -152,8 +140,7 @@ export async function selectMultipleImages(): Promise<string[]> {
         results.push(path);
       }
     }
-    
-    console.log('Extracted paths:', results);
+
     return results;
   } catch (error) {
     console.error('Failed to open file dialog:', error);
@@ -167,42 +154,26 @@ export async function selectMultipleImages(): Promise<string[]> {
  */
 export async function copyImageToPhotosDir(sourcePath: string): Promise<string | null> {
   try {
-    console.log('Ensuring photos directory exists...');
     const photosDir = await ensurePhotosDirectory();
-    console.log('Photos directory:', photosDir);
-    
     const newFilename = generateUniqueFilename(sourcePath);
-    console.log('Generated filename:', newFilename);
-    
     const destPath = `${photosDir}/${newFilename}`;
-    console.log('Destination path:', destPath);
-    console.log('Source path:', sourcePath);
-    
-    console.log('Reading source file...');
+
     // Read the source file (it's a user-selected file, so read it directly)
     // The sourcePath is an absolute path from the file dialog
     const sourceData = await readFile(sourcePath);
-    console.log('Source file read, size:', sourceData.length, 'type:', typeof sourceData);
-    
+
     // Ensure we have a Uint8Array
-    const dataToWrite = sourceData instanceof Uint8Array 
-      ? sourceData 
+    const dataToWrite = sourceData instanceof Uint8Array
+      ? sourceData
       : new Uint8Array(sourceData);
-    
-    console.log('Writing to destination...');
+
     // Write to destination using BaseDirectory.AppData
     await writeFile(destPath, dataToWrite, { baseDir: BaseDirectory.AppData });
-    console.log('File written successfully');
-    
-    // Verify file exists
-    const fileExists = await exists(destPath, { baseDir: BaseDirectory.AppData });
-    console.log('File exists after write:', fileExists);
-    
+
     // Return just the filename - we'll reconstruct the full path when needed
     return newFilename;
   } catch (error) {
     console.error('Failed to copy image to photos directory:', error);
-    console.error('Error details:', error);
     return null;
   }
 }
@@ -221,14 +192,12 @@ export function getPhotoPath(filename: string): string {
  */
 export async function getPhotoUrl(filename: string | null | undefined): Promise<string | null> {
   if (!filename) return null;
-  
+
   try {
     // Get the full app data directory path
     const appData = await appDataDir();
     const fullPath = await join(appData, 'photos', filename);
-    console.log('Converting file src for path:', fullPath);
     const url = convertFileSrc(fullPath);
-    console.log('Converted URL:', url);
     return url;
   } catch (error) {
     console.error('Failed to get photo URL:', error);
@@ -249,9 +218,6 @@ export async function initPhotoBasePath(): Promise<void> {
     const appData = await appDataDir();
     const photosPath = await join(appData, 'photos');
     cachedPhotosBasePath = photosPath;
-    
-    // Pre-populate cache for any existing photos
-    console.log('Photo base path initialized:', photosPath);
   } catch (error) {
     console.error('Failed to init photo base path:', error);
   }
@@ -292,40 +258,32 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
  */
 export async function getPhotoUrlAsync(filename: string | null | undefined): Promise<string | null> {
   if (!filename) return null;
-  
+
   // Check cache first
   if (photoUrlCache.has(filename)) {
-    const cached = photoUrlCache.get(filename) || null;
-    console.log('Using cached URL for:', filename);
-    return cached;
+    return photoUrlCache.get(filename) || null;
   }
-  
+
   try {
     // Read the file from app data directory
     const photoPath = getPhotoPath(filename);
-    console.log('Reading photo from path:', photoPath);
-    
     const fileData = await readFile(photoPath, { baseDir: BaseDirectory.AppData });
-    console.log('Photo file read, size:', fileData.length);
-    
+
     // Convert to base64 data URL
     const mimeType = getMimeType(filename);
     const base64 = uint8ArrayToBase64(fileData);
     const dataUrl = `data:${mimeType};base64,${base64}`;
-    
-    console.log('Created data URL for:', filename, 'MIME:', mimeType);
+
     photoUrlCache.set(filename, dataUrl);
     return dataUrl;
   } catch (error) {
     console.error('Failed to get photo URL async:', error);
-    
+
     // Fallback: try convertFileSrc
     try {
       const appData = await appDataDir();
       const fullPath = await join(appData, 'photos', filename);
-      console.log('Fallback: trying convertFileSrc for:', fullPath);
       const assetUrl = convertFileSrc(fullPath);
-      console.log('Fallback asset URL:', assetUrl);
       photoUrlCache.set(filename, assetUrl);
       return assetUrl;
     } catch (fallbackError) {
@@ -341,12 +299,12 @@ export async function getPhotoUrlAsync(filename: string | null | undefined): Pro
  */
 export function getPhotoUrlSync(filename: string | null | undefined): string | null {
   if (!filename) return null;
-  
+
   // Check cache first
   if (photoUrlCache.has(filename)) {
     return photoUrlCache.get(filename) || null;
   }
-  
+
   // If base path is initialized, construct URL
   if (cachedPhotosBasePath) {
     try {
@@ -363,7 +321,7 @@ export function getPhotoUrlSync(filename: string | null | undefined): string | n
       return null;
     }
   }
-  
+
   return null;
 }
 
@@ -394,17 +352,12 @@ export function isValidImageFile(filename: string): boolean {
  */
 export async function selectAndCopyImage(): Promise<string | null> {
   try {
-    console.log('Opening file dialog...');
     const selected = await selectImageFile();
-    console.log('File selected:', selected);
     if (!selected) {
-      console.log('No file selected');
       return null;
     }
-    
-    console.log('Copying image to photos directory...');
+
     const filename = await copyImageToPhotosDir(selected);
-    console.log('Image copied, filename:', filename);
     return filename;
   } catch (error) {
     console.error('Error in selectAndCopyImage:', error);
@@ -419,7 +372,7 @@ export async function selectAndCopyImage(): Promise<string | null> {
 export async function selectAndCopyMultipleImages(): Promise<string[]> {
   const selected = await selectMultipleImages();
   if (selected.length === 0) return [];
-  
+
   const results: string[] = [];
   for (const path of selected) {
     const newFilename = await copyImageToPhotosDir(path);
@@ -427,7 +380,6 @@ export async function selectAndCopyMultipleImages(): Promise<string[]> {
       results.push(newFilename);
     }
   }
-  
+
   return results;
 }
-

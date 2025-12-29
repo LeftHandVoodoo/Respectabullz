@@ -227,26 +227,19 @@ export async function selectMultipleDocuments(): Promise<string[]> {
  */
 export async function copyDocumentToDocsDir(sourcePath: string): Promise<{ filename: string; fileSize: number } | null> {
   try {
-    console.log('Ensuring documents directory exists...');
     const docsDir = await ensureDocumentsDirectory();
-    
+
     const newFilename = generateUniqueFilename(sourcePath);
     const destPath = `${docsDir}/${newFilename}`;
-    
-    console.log('Reading source file:', sourcePath);
+
     const sourceData = await readFile(sourcePath);
-    
-    const dataToWrite = sourceData instanceof Uint8Array 
-      ? sourceData 
+
+    const dataToWrite = sourceData instanceof Uint8Array
+      ? sourceData
       : new Uint8Array(sourceData);
-    
-    console.log('Writing to destination:', destPath);
+
     await writeFile(destPath, dataToWrite, { baseDir: BaseDirectory.AppData });
-    
-    // Verify file exists
-    const fileExists = await exists(destPath, { baseDir: BaseDirectory.AppData });
-    console.log('File exists after write:', fileExists);
-    
+
     return {
       filename: newFilename,
       fileSize: dataToWrite.length,

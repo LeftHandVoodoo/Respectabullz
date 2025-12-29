@@ -139,24 +139,16 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
   const handlePhotoUpload = async () => {
     setIsUploadingPhoto(true);
     try {
-      console.log('Starting photo upload...');
       const filename = await selectAndCopyImage();
-      console.log('Photo upload result:', filename);
       if (filename) {
-        console.log('Setting profile photo path to:', filename);
         setProfilePhotoPath(filename);
         // Force reload photo URL after setting path
         const url = await getPhotoUrlAsync(filename);
-        console.log('Photo URL generated:', url);
         setPhotoUrl(url);
         toast({
           title: 'Photo uploaded',
           description: 'Profile photo has been uploaded successfully.',
         });
-      } else {
-        console.log('No filename returned from photo upload (user cancelled or error)');
-        // Only show error if user didn't just cancel the dialog
-        // We can't easily tell the difference, so just log it
       }
     } catch (error) {
       console.error('Failed to upload photo:', error);
@@ -293,17 +285,10 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
             <div className="relative">
               <Avatar className="h-20 w-20 border-2 border-dashed border-muted-foreground/50">
                 {photoUrl ? (
-                  <AvatarImage 
-                    src={photoUrl} 
-                    alt="Profile photo" 
+                  <AvatarImage
+                    src={photoUrl}
+                    alt="Profile photo"
                     className="object-cover"
-                    onError={(e) => {
-                      console.error('Image failed to load:', photoUrl);
-                      console.error('Error event:', e);
-                    }}
-                    onLoad={() => {
-                      console.log('Image loaded successfully:', photoUrl);
-                    }}
                   />
                 ) : null}
                 <AvatarFallback className="bg-muted text-muted-foreground">

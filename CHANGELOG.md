@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Dependencies**: Removed 4 unused packages (`@prisma/client`, `@radix-ui/react-icons`, `@tanstack/react-table`, `react-big-calendar`) reducing bundle size
+- **Code Quality**: Removed ~40 debug `console.log` statements from production code; kept error logging
+- **Legacy Functions**: Implemented SQLite versions of previously stubbed functions in `legacy.ts`:
+  - `getPacketData`: Now includes dog photos from database
+  - `getHeatCyclePrediction`: Calculates predictions based on historical heat cycle data
+  - `getFemalesExpectingHeatSoon`: Filters females by predicted next heat date
+  - `checkMatingCompatibility`: Performs genetic test compatibility analysis
+  - `generatePuppyHealthTasksForLitter`: Creates health tasks based on templates or defaults
+  - `exportDatabase`: Exports full database to JSON format
+
 ### Fixed
+
+- **Version Sync**: Fixed `.env` file version mismatch (was `0.1.0`, now matches `1.9.1`)
 - **Expense Categories**: Ensured consistent capitalization of category names across the app
   - All built-in categories (e.g., "show_fees" → "Show Fees", "vet" → "Vet") display properly capitalized
   - Custom categories automatically capitalize first letter of each word

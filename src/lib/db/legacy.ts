@@ -8,13 +8,15 @@ import type {
   MatingCompatibilityResult,
   CommonGeneticTest,
 } from '@/types';
-import { getDogs } from './dogs';
-import { getVaccinations, getMedicalRecords, getWeightEntries, getGeneticTests } from './health';
+import { getDogs, getDogPhotos } from './dogs';
+import { getVaccinations, getMedicalRecords, getWeightEntries, getGeneticTests, getHealthScheduleTemplate, createPuppyHealthTask } from './health';
 import { getSale, getClient } from './sales';
 import { getExpenses } from './operations';
 import { getBreederSettings } from './settings';
 import { query } from './connection';
-import type { Client } from '@/types';
+import { getHeatCycles } from './breeding';
+import { getLitters, getLitter } from './litters';
+import type { Client, PuppyHealthTaskType } from '@/types';
 
 // Common genetic tests list
 export const COMMON_GENETIC_TESTS: Array<{
@@ -40,7 +42,6 @@ export const COMMON_GENETIC_TESTS: Array<{
 
 /**
  * Get packet data for a dog (for PDF export)
- * TODO: Implement full SQLite version
  */
 export async function getPacketData(dogId: string): Promise<PacketData | null> {
   const dogs = await getDogs();
@@ -52,13 +53,13 @@ export async function getPacketData(dogId: string): Promise<PacketData | null> {
 
   // Build pedigree ancestors (simplified - up to 4 generations)
   const pedigreeAncestors: PacketData['pedigreeAncestors'] = [];
-  
+
   const addAncestors = (parent: Dog | null, generation: number, positionPrefix: string) => {
     if (!parent || generation > 4) return;
-    
+
     const parentSire = parent.sireId ? dogs.find(d => d.id === parent.sireId) || null : null;
     const parentDam = parent.damId ? dogs.find(d => d.id === parent.damId) || null : null;
-    
+
     if (parentSire) {
       pedigreeAncestors.push({
         generation,
@@ -70,7 +71,7 @@ export async function getPacketData(dogId: string): Promise<PacketData | null> {
       });
       addAncestors(parentSire, generation + 1, positionPrefix + 'S');
     }
-    
+
     if (parentDam) {
       pedigreeAncestors.push({
         generation,
@@ -92,6 +93,9 @@ export async function getPacketData(dogId: string): Promise<PacketData | null> {
   const medicalRecords = await getMedicalRecords(dogId);
   const weightEntries = await getWeightEntries(dogId);
   const geneticTests = await getGeneticTests(dogId);
+
+  // Get dog photos
+  const dogPhotos = await getDogPhotos(dogId);
 
   // Get sale and client info
   type SaleRow = { id: string; dog_id: string };
@@ -115,7 +119,7 @@ export async function getPacketData(dogId: string): Promise<PacketData | null> {
     medicalRecords,
     weightEntries,
     geneticTests,
-    dogPhotos: [], // TODO: Implement dog photos
+    dogPhotos,
     sirePhoto: sire?.profilePhotoPath || null,
     damPhoto: dam?.profilePhotoPath || null,
     sale,
@@ -127,25 +131,100 @@ export async function getPacketData(dogId: string): Promise<PacketData | null> {
 
 /**
  * Get heat cycle prediction for a dog
- * TODO: Implement full SQLite version
+ * Calculates based on historical heat cycle data
  */
-export async function getHeatCyclePrediction(_dogId: string): Promise<HeatCyclePrediction | null> {
-  // Stub implementation
-  return null;
+export async function getHeatCyclePrediction(dogId: string): Promise<HeatCyclePrediction | null> {
+  const cycles = await getHeatCycles(dogId);
+
+  if (cycles.length === 0) {
+    return {
+      dogId,
+      averageCycleLength: null,
+      averageIntervalDays: null,
+      predictedNextHeat: null,
+      confidence: 'low',
+      dataPointCount: 0,
+    };
+  }
+
+  // Calculate average cycle length (from start to end)
+  const cycleLengths = cycles
+    .filter(c => c.startDate && c.endDate)
+    .map(c => {
+      const start = new Date(c.startDate);
+      const end = new Date(c.endDate!);
+      return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    });
+
+  const averageCycleLength = cycleLengths.length > 0
+    ? Math.round(cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length)
+    : null;
+
+  // Calculate average interval between cycles (start to next start)
+  const intervals: number[] = [];
+  const sortedCycles = [...cycles].sort((a, b) =>
+    new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+  );
+
+  for (let i = 1; i < sortedCycles.length; i++) {
+    const prev = new Date(sortedCycles[i - 1].startDate);
+    const curr = new Date(sortedCycles[i].startDate);
+    intervals.push(Math.round((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24)));
+  }
+
+  const averageIntervalDays = intervals.length > 0
+    ? Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length)
+    : 180; // Default to 6 months if no interval data
+
+  // Predict next heat based on last cycle + average interval
+  const lastCycle = sortedCycles[sortedCycles.length - 1];
+  const lastStart = new Date(lastCycle.startDate);
+  const predictedNextHeat = new Date(lastStart.getTime() + averageIntervalDays * 24 * 60 * 60 * 1000);
+
+  // Determine confidence based on data points
+  let confidence: 'low' | 'medium' | 'high' = 'low';
+  if (cycles.length >= 4) {
+    confidence = 'high';
+  } else if (cycles.length >= 2) {
+    confidence = 'medium';
+  }
+
+  return {
+    dogId,
+    averageCycleLength,
+    averageIntervalDays,
+    predictedNextHeat,
+    confidence,
+    dataPointCount: cycles.length,
+  };
 }
 
 /**
- * Get females expecting heat soon
- * TODO: Implement full SQLite version
+ * Get females expecting heat soon based on heat cycle predictions
  */
-export async function getFemalesExpectingHeatSoon(_days: number = 30): Promise<Dog[]> {
+export async function getFemalesExpectingHeatSoon(days: number = 30): Promise<Dog[]> {
   const dogs = await getDogs();
-  return dogs.filter(d => d.sex === 'F' && d.status === 'active');
+  const females = dogs.filter(d => d.sex === 'F' && d.status === 'active');
+  const now = new Date();
+  const cutoffDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+  const results: Dog[] = [];
+
+  for (const dog of females) {
+    const prediction = await getHeatCyclePrediction(dog.id);
+    if (prediction?.predictedNextHeat) {
+      const predictedDate = new Date(prediction.predictedNextHeat);
+      if (predictedDate >= now && predictedDate <= cutoffDate) {
+        results.push(dog);
+      }
+    }
+  }
+
+  return results;
 }
 
 /**
  * Get genetic test summary for a dog
- * TODO: Implement full SQLite version
  */
 export async function getDogGeneticTestSummary(dogId: string): Promise<{
   clearCount: number;
@@ -163,48 +242,223 @@ export async function getDogGeneticTestSummary(dogId: string): Promise<{
 }
 
 /**
- * Check mating compatibility between two dogs
- * TODO: Implement full SQLite version
+ * Check mating compatibility between two dogs based on genetic tests
  */
-export async function checkMatingCompatibility(_damId: string, _sireId: string): Promise<MatingCompatibilityResult> {
-  // Stub implementation
+export async function checkMatingCompatibility(damId: string, sireId: string): Promise<MatingCompatibilityResult> {
+  const damTests = await getGeneticTests(damId);
+  const sireTests = await getGeneticTests(sireId);
+
+  const warnings: MatingCompatibilityResult['warnings'] = [];
+  let isCompatible = true;
+
+  // Group tests by type for comparison
+  const damTestMap = new Map(damTests.map(t => [t.testType, t]));
+  const sireTestMap = new Map(sireTests.map(t => [t.testType, t]));
+
+  // Check each test type for compatibility issues
+  const allTestTypes = new Set([...damTestMap.keys(), ...sireTestMap.keys()]);
+
+  for (const testType of allTestTypes) {
+    const damTest = damTestMap.get(testType);
+    const sireTest = sireTestMap.get(testType);
+
+    // If both are carriers, there's a 25% chance of affected puppies
+    if (damTest?.result === 'carrier' && sireTest?.result === 'carrier') {
+      warnings.push({
+        testName: testType,
+        severity: 'high',
+        message: `Both parents are carriers for ${testType}. 25% of puppies may be affected.`,
+        damStatus: 'carrier',
+        sireStatus: 'carrier',
+      });
+    }
+
+    // If one is affected and other is carrier, all puppies will be at least carriers
+    if ((damTest?.result === 'affected' && sireTest?.result === 'carrier') ||
+        (damTest?.result === 'carrier' && sireTest?.result === 'affected')) {
+      warnings.push({
+        testName: testType,
+        severity: 'high',
+        message: `One parent is affected and one is a carrier for ${testType}. 50% of puppies will be affected.`,
+        damStatus: damTest?.result || null,
+        sireStatus: sireTest?.result || null,
+      });
+      isCompatible = false;
+    }
+
+    // If both are affected, all puppies will be affected
+    if (damTest?.result === 'affected' && sireTest?.result === 'affected') {
+      warnings.push({
+        testName: testType,
+        severity: 'high',
+        message: `Both parents are affected for ${testType}. All puppies will be affected.`,
+        damStatus: 'affected',
+        sireStatus: 'affected',
+      });
+      isCompatible = false;
+    }
+
+    // If one is affected and other is clear, all puppies will be carriers
+    if ((damTest?.result === 'affected' && sireTest?.result === 'clear') ||
+        (damTest?.result === 'clear' && sireTest?.result === 'affected')) {
+      warnings.push({
+        testName: testType,
+        severity: 'medium',
+        message: `One parent is affected for ${testType}. All puppies will be carriers.`,
+        damStatus: damTest?.result || null,
+        sireStatus: sireTest?.result || null,
+      });
+    }
+  }
+
+  const summary = warnings.length === 0
+    ? 'No genetic compatibility issues detected.'
+    : `Found ${warnings.length} potential genetic concern(s).`;
+
   return {
-    isCompatible: true,
-    warnings: [],
-    summary: 'Compatibility check not yet implemented',
+    isCompatible,
+    warnings,
+    summary,
   };
 }
 
 /**
- * Generate puppy health tasks for a litter
- * TODO: Implement full SQLite version
+ * Generate puppy health tasks for a litter based on a health schedule template
  */
 export async function generatePuppyHealthTasksForLitter(
   litterId: string,
   whelpDate: Date,
-  _templateId?: string
+  templateId?: string
 ): Promise<void> {
-  // Stub implementation - tasks should be generated based on template
-  console.log(`Generating tasks for litter ${litterId} with whelp date ${whelpDate}`);
+  // Get litter with puppies
+  const litter = await getLitter(litterId);
+  const puppies = litter?.puppies || [];
+  if (puppies.length === 0) return;
+
+  // Get template if specified, otherwise use default tasks
+  interface TaskItem {
+    taskType: PuppyHealthTaskType;
+    taskName: string;
+    daysFromBirth: number;
+    isPerPuppy: boolean;
+    notes?: string;
+  }
+
+  let taskItems: TaskItem[] = [];
+
+  if (templateId) {
+    const template = await getHealthScheduleTemplate(templateId);
+    if (template?.items) {
+      taskItems = template.items;
+    }
+  }
+
+  // Default health schedule if no template
+  if (taskItems.length === 0) {
+    taskItems = [
+      { taskType: 'dewclaw_removal', taskName: 'Dewclaw removal', daysFromBirth: 3, isPerPuppy: true, notes: 'If needed' },
+      { taskType: 'deworming', taskName: 'First deworming', daysFromBirth: 14, isPerPuppy: true, notes: 'Pyrantel' },
+      { taskType: 'deworming', taskName: 'Second deworming', daysFromBirth: 28, isPerPuppy: true, notes: 'Pyrantel' },
+      { taskType: 'vaccination', taskName: 'First vaccination', daysFromBirth: 42, isPerPuppy: true, notes: 'DHPP' },
+      { taskType: 'deworming', taskName: 'Third deworming', daysFromBirth: 42, isPerPuppy: true, notes: 'Pyrantel' },
+      { taskType: 'vaccination', taskName: 'Second vaccination', daysFromBirth: 56, isPerPuppy: true, notes: 'DHPP' },
+      { taskType: 'microchipping', taskName: 'Microchip implant', daysFromBirth: 56, isPerPuppy: true, notes: 'Register with registry' },
+    ];
+  }
+
+  // Create tasks for each puppy or for the litter
+  const whelpDateMs = whelpDate.getTime();
+
+  for (const task of taskItems) {
+    const dueDate = new Date(whelpDateMs + task.daysFromBirth * 24 * 60 * 60 * 1000);
+
+    if (task.isPerPuppy) {
+      // Create a task for each puppy
+      for (const puppy of puppies) {
+        await createPuppyHealthTask({
+          puppyId: puppy.id,
+          litterId,
+          taskType: task.taskType,
+          taskName: task.taskName,
+          dueDate,
+          notes: task.notes,
+        });
+      }
+    } else {
+      // Create a single task for the whole litter
+      await createPuppyHealthTask({
+        litterId,
+        taskType: task.taskType,
+        taskName: task.taskName,
+        dueDate,
+        notes: task.notes,
+      });
+    }
+  }
 }
 
 /**
- * Export database to JSON
- * TODO: Implement full SQLite version
+ * Export database to JSON for backup
  */
 export async function exportDatabase(): Promise<string> {
-  // Stub implementation
-  return JSON.stringify({ message: 'Database export not yet implemented for SQLite' });
+  const dogs = await getDogs();
+  const litters = await getLitters();
+  const expenses = await getExpenses({});
+  const breederSettings = await getBreederSettings();
+
+  // Get all related data
+  const allVaccinations: Record<string, unknown[]> = {};
+  const allMedicalRecords: Record<string, unknown[]> = {};
+  const allWeightEntries: Record<string, unknown[]> = {};
+  const allGeneticTests: Record<string, unknown[]> = {};
+
+  for (const dog of dogs) {
+    allVaccinations[dog.id] = await getVaccinations(dog.id);
+    allMedicalRecords[dog.id] = await getMedicalRecords(dog.id);
+    allWeightEntries[dog.id] = await getWeightEntries(dog.id);
+    allGeneticTests[dog.id] = await getGeneticTests(dog.id);
+  }
+
+  const exportData = {
+    version: '1.0',
+    exportedAt: new Date().toISOString(),
+    data: {
+      dogs,
+      litters,
+      expenses,
+      breederSettings,
+      vaccinations: allVaccinations,
+      medicalRecords: allMedicalRecords,
+      weightEntries: allWeightEntries,
+      geneticTests: allGeneticTests,
+    },
+  };
+
+  return JSON.stringify(exportData, null, 2);
 }
 
 /**
- * Import database from JSON
- * TODO: Implement full SQLite version
+ * Import database from JSON backup
+ * Note: This is a simplified implementation - full implementation would need
+ * to handle merging/replacing data carefully
  */
-export async function importDatabase(_data: string): Promise<boolean> {
-  // Stub implementation
-  console.log('Database import not yet implemented for SQLite');
-  return false;
+export async function importDatabase(data: string): Promise<boolean> {
+  try {
+    const parsed = JSON.parse(data);
+
+    if (!parsed.version || !parsed.data) {
+      console.error('Invalid backup format: missing version or data');
+      return false;
+    }
+
+    // For now, just validate the format
+    // Full implementation would import each entity type
+    console.error('Full database import not yet implemented - use backup restore instead');
+    return false;
+  } catch (error) {
+    console.error('Failed to parse import data:', error);
+    return false;
+  }
 }
 
 /**

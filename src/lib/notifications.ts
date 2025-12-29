@@ -21,7 +21,6 @@ export async function initNotifications(): Promise<boolean> {
     return permissionGranted;
   } catch {
     // Running in browser, not Tauri
-    console.log('Notifications not available (browser mode)');
     return false;
   }
 }

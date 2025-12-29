@@ -55,7 +55,6 @@ export default defineConfig({
           // Form and data management
           'vendor-data': [
             '@tanstack/react-query',
-            '@tanstack/react-table',
             'react-hook-form',
             'zod',
           ],

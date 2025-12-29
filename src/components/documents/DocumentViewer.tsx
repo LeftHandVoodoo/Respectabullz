@@ -64,7 +64,6 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
         getDocumentBase64(document.filename)
           .then((base64Url) => {
             if (base64Url) {
-              console.log('PDF loaded as base64, length:', base64Url.length);
               setPdfUrl(base64Url);
             } else {
               setError('Failed to load PDF - file may be missing');
@@ -98,7 +97,6 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
 
   const onDocumentLoadError = (error: Error) => {
     console.error('PDF load error:', error);
-    console.error('PDF URL type:', typeof pdfUrl, 'length:', pdfUrl?.length);
     setError(`Failed to load PDF: ${error.message || 'Unknown error'}`);
     setIsLoading(false);
   };
