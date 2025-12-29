@@ -5,6 +5,7 @@ import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -73,6 +74,7 @@ export function TransportFormDialog({
   } = useForm<TransportFormData>({
     resolver: zodResolver(transportSchema),
     defaultValues: {
+      dogId: defaultDogId || '',
       date: new Date().toISOString().split('T')[0],
       mode: 'ground',
     },
@@ -137,6 +139,9 @@ export function TransportFormDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Transport Record' : 'Add Transport Record'}</DialogTitle>
+          <DialogDescription>
+            {isEditing ? 'Update the transport details below.' : 'Enter the transport details for this shipment.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

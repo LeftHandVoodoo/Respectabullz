@@ -761,7 +761,7 @@ describe('Contact Search Operations', () => {
 
       expect(query).toHaveBeenCalledWith(
         expect.stringContaining('WHERE name LIKE ?'),
-        ['%john%', '%john%', '%john%', '%john%']
+        ['%john%', '%john%', '%john%', '%john%', '%john%']
       );
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('John Doe');

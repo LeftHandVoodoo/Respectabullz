@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All built-in categories (e.g., "show_fees" → "Show Fees", "vet" → "Vet") display properly capitalized
   - Custom categories automatically capitalize first letter of each word
   - Fix applied to: Expenses table, Dog expenses list, Reports page, Financial section in PDF exports
+- **Test Suite**: Fixed failing `searchContacts` test after `company_name` field was added to search
+- **React Router**: Added v7 future flags (`v7_startTransition`, `v7_relativeSplatPath`) to eliminate deprecation warnings
+- **Dialog Accessibility**: Added `DialogDescription` to `TransportFormDialog` for screen reader support
+- **Form State**: Fixed uncontrolled-to-controlled warning in transport form Select component
 
 ## [1.9.1] - 2025-12-29
 
