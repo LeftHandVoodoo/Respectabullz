@@ -1,6 +1,6 @@
 {
   "name": "respectabullz",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "Breeder management application for dog breeding operations",
   "private": true,
   "type": "module",
@@ -57,6 +57,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "docx": "^9.5.1",
+    "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
     "jszip": "^3.10.1",
     "lucide-react": "^0.454.0",

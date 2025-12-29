@@ -1086,3 +1086,38 @@ export interface ContactWithRelations extends Contact {
   businessCardDocument?: Document | null;
 }
 
+// ============================================
+// BUG REPORTING SYSTEM
+// ============================================
+
+export const bugReportSeverity = ['low', 'medium', 'high', 'critical'] as const;
+export type BugReportSeverity = (typeof bugReportSeverity)[number];
+
+export interface BugReportFormData {
+  title: string;
+  description: string;
+  stepsToReproduce?: string;
+  expectedBehavior?: string;
+  actualBehavior?: string;
+  severity: BugReportSeverity;
+}
+
+export interface SystemInfo {
+  appVersion: string;
+  platform: string;
+  userAgent: string;
+  timestamp: string;
+}
+
+export interface BugReportPayload extends BugReportFormData {
+  systemInfo: SystemInfo;
+}
+
+export interface GitHubIssueResponse {
+  id: number;
+  number: number;
+  html_url: string;
+  title: string;
+  state: string;
+}
+

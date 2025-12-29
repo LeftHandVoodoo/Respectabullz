@@ -41,6 +41,7 @@ import { toast } from '@/components/ui/use-toast';
 import { isTauriEnvironment } from '@/lib/backupUtils';
 import { save } from '@tauri-apps/plugin-dialog';
 import { writeFile } from '@tauri-apps/plugin-fs';
+import ExcelJS from 'exceljs';
 import type { Expense } from '@/types';
 
 // Built-in category colors
@@ -637,10 +638,10 @@ export function ExpensesPage() {
     }));
   }, [expensesForChart, customCategories]);
 
-  const handleExportCSV = async () => {
+  const handleExportExcel = async () => {
     // Export only included expenses (not excluded ones)
     const expensesToExport = includedExpenses;
-    
+
     if (!expensesToExport || expensesToExport.length === 0) {
       toast({
         title: 'No expenses to export',
@@ -650,22 +651,63 @@ export function ExpensesPage() {
       return;
     }
 
-    const headers = ['Date', 'Category', 'Dog', 'Vendor', 'Description', 'Amount', 'Tax Deductible'];
-    const rows = expensesToExport.map((e) => {
+    // Helper to capitalize first letter of each word
+    const capitalizeCategory = (category: string): string => {
+      return category
+        .split(/[_\s]+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    };
+
+    // Helper to extract call name from full registered name
+    // e.g., "Respectabullz Luna" -> "Luna", "CH Respectabullz Thunder" -> "Thunder"
+    const getCallName = (fullName: string): string => {
+      if (!fullName) return '';
+      const words = fullName.trim().split(/\s+/);
+      // Return the last word as the call name
+      return words[words.length - 1];
+    };
+
+    // Create workbook and worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Expenses');
+
+    // Define columns with headers and widths
+    worksheet.columns = [
+      { header: 'Date', key: 'date', width: 14 },
+      { header: 'Category', key: 'category', width: 14 },
+      { header: 'Dog', key: 'dog', width: 12 },
+      { header: 'Vendor', key: 'vendor', width: 20 },
+      { header: 'Description', key: 'description', width: 30 },
+      { header: 'Amount', key: 'amount', width: 12 },
+      { header: 'Tax Deductible', key: 'taxDeductible', width: 14 },
+    ];
+
+    // Style header row (row 1) - bold and underlined
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, underline: true };
+    headerRow.commit();
+
+    // Add data rows
+    expensesToExport.forEach((e) => {
       const dog = dogs?.find(d => d.id === e.relatedDogId);
-      return [
-        formatDate(e.date),
-        e.category,
-        dog?.name || '',
-        e.vendorName || '',
-        e.description || '',
-        e.amount.toFixed(2),
-        e.isTaxDeductible ? 'Yes' : 'No',
-      ];
+      worksheet.addRow({
+        date: formatDate(e.date),
+        category: capitalizeCategory(e.category),
+        dog: getCallName(dog?.name || ''),
+        vendor: e.vendorName || '',
+        description: e.description || '',
+        amount: e.amount,
+        taxDeductible: e.isTaxDeductible ? 'Yes' : 'No',
+      });
     });
 
-    const csv = [headers, ...rows].map((row) => row.join(',')).join('\n');
-    const filename = `expenses-${new Date().toISOString().split('T')[0]}.csv`;
+    // Apply accounting format to Amount column (column F)
+    worksheet.getColumn('amount').numFmt = '"$"#,##0.00';
+
+    // Generate Excel file as array buffer
+    const excelBuffer = await workbook.xlsx.writeBuffer();
+    const filename = `expenses-${new Date().toISOString().split('T')[0]}.xlsx`;
 
     // Check if running in Tauri environment
     if (isTauriEnvironment()) {
@@ -674,8 +716,8 @@ export function ExpensesPage() {
         const savePath = await save({
           defaultPath: filename,
           filters: [{
-            name: 'CSV Files',
-            extensions: ['csv']
+            name: 'Excel Files',
+            extensions: ['xlsx']
           }]
         });
 
@@ -684,12 +726,8 @@ export function ExpensesPage() {
           return;
         }
 
-        // Convert CSV string to Uint8Array
-        const encoder = new TextEncoder();
-        const csvData = encoder.encode(csv);
-
         // Write the file
-        await writeFile(savePath, csvData);
+        await writeFile(savePath, new Uint8Array(excelBuffer));
 
         // Show success confirmation
         toast({
@@ -697,7 +735,7 @@ export function ExpensesPage() {
           description: `Expenses exported to ${savePath}`,
         });
       } catch (error) {
-        console.error('Failed to export CSV:', error);
+        console.error('Failed to export Excel:', error);
         toast({
           title: 'Export failed',
           description: error instanceof Error ? error.message : 'Failed to export expenses. Please try again.',
@@ -706,14 +744,14 @@ export function ExpensesPage() {
       }
     } else {
       // Fallback to browser download for non-Tauri environments
-      const blob = new Blob([csv], { type: 'text/csv' });
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
-      
+
       toast({
         title: 'Export started',
         description: 'Your expenses file is downloading.',
@@ -734,9 +772,9 @@ export function ExpensesPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportCSV}>
+          <Button variant="outline" onClick={handleExportExcel}>
             <Download className="mr-2 h-4 w-4" />
-            Export CSV
+            Export Excel
           </Button>
           <Button onClick={() => setShowAddDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />

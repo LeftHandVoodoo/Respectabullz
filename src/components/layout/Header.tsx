@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Moon, Sun, Bell, Syringe, Baby, AlertCircle } from 'lucide-react';
+import { Moon, Sun, Bell, Bug, Syringe, Baby, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/theme-provider';
 import { VERSION } from '@/lib/version';
+import { isGitHubConfigured } from '@/lib/github';
+import { BugReportDialog } from '@/components/bug-report/BugReportDialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +38,8 @@ export function Header() {
   const navigate = useNavigate();
   const { setTheme } = useTheme();
   const { notifications, count } = useNotifications();
+  const [bugReportOpen, setBugReportOpen] = useState(false);
+  const showBugReport = isGitHubConfigured();
 
   const getTitle = () => {
     // Check for exact match first
@@ -60,6 +65,24 @@ export function Header() {
         <span className="text-xs text-muted-foreground font-mono">
           v{VERSION}
         </span>
+
+        {/* Bug Report */}
+        {showBugReport && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setBugReportOpen(true)}
+              title="Report a Bug"
+            >
+              <Bug className="h-5 w-5" />
+            </Button>
+            <BugReportDialog
+              open={bugReportOpen}
+              onOpenChange={setBugReportOpen}
+            />
+          </>
+        )}
 
         {/* Notifications */}
         <Popover>

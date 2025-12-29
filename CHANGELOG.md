@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.1] - 2025-12-29
+
+### Added
+- **Bug Reporting**: In-app bug reporting that creates GitHub issues
+  - Bug report button in header (visible when GitHub is configured)
+  - Standard bug report form: title, description, steps to reproduce, expected/actual behavior, severity
+  - Auto-collects system info: app version, platform, timestamp
+  - Submits directly to GitHub Issues API with appropriate labels
+  - New environment variables: `VITE_GITHUB_TOKEN`, `VITE_GITHUB_REPO`
+
+### Changed
+- **Expense Export**: Upgraded from CSV to native Excel (.xlsx) format using ExcelJS
+  - Header row is now bold and underlined
+  - Amount column uses accounting number format ($#,##0.00)
+  - Categories are properly capitalized (e.g., "show_fees" → "Show Fees")
+  - Dog names show call name only, not full registered name (e.g., "Respectabullz Luna" → "Luna")
+  - Button renamed from "Export CSV" to "Export Excel"
+
+### Fixed
+- **Expense Export**: Fixed column misalignment issue
+  - Date values containing commas were splitting into multiple columns in CSV
+  - Now exports as proper .xlsx file with correct column structure
+
 ## [1.9.0] - 2025-12-24
 
 ### Added
