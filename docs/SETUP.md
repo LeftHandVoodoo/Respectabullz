@@ -1,6 +1,6 @@
 # Respectabullz Setup Guide
 
-**Version 1.7.0**
+**Version 1.9.1**
 
 ## System Requirements
 
@@ -93,16 +93,26 @@ npm run tauri:dev
 
 ### Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root (see `.env.example`):
 
 ```env
-# Database location
+# Database (used by Prisma for schema reference only - not used at runtime)
 DATABASE_URL="file:./data/respectabullz.db"
 
 # App info
 VITE_APP_NAME="Respectabullz"
-VITE_APP_VERSION="1.0.1"
+VITE_APP_VERSION="1.9.1"
+
+# GitHub Bug Reporting (optional)
+# Create a PAT at https://github.com/settings/tokens with repo:issues scope
+VITE_GITHUB_TOKEN=""
+VITE_GITHUB_REPO="owner/repo"
 ```
+
+**Bug Reporting Setup (optional):**
+- `VITE_GITHUB_TOKEN`: Personal access token with `repo:issues` scope
+- `VITE_GITHUB_REPO`: Repository in `owner/repo` format
+- When configured, a bug report button appears in the app header
 
 ### Database Location
 
@@ -114,9 +124,11 @@ By default, the database is stored in:
 
 The app creates these directories automatically in `%APPDATA%/com.respectabullz.app/`:
 - `photos/` - Dog profile photos and litter photo galleries
-- `attachments/` - Documents and files
-- `contracts/` - Generated contract documents
-- `data/` - SQLite database (if using Prisma)
+- `documents/` - Uploaded documents (PDFs, Word, Excel, images)
+- `attachments/` - Legacy attachments directory
+- `contracts/` - Generated contract documents (or custom directory via Settings)
+- `backups/` - Backup files
+- `data/` - SQLite database
 
 **Photo Storage:**
 - Photos are stored with unique filenames (timestamp + random)
