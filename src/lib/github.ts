@@ -2,6 +2,8 @@ import { VERSION } from './version';
 import type { BugReportPayload, SystemInfo, GitHubIssueResponse } from '@/types';
 
 const GITHUB_API_BASE = 'https://api.github.com';
+const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN || '';
+const GITHUB_REPO = import.meta.env.VITE_GITHUB_REPO || '';
 
 interface GitHubErrorResponse {
   message: string;
@@ -56,20 +58,7 @@ function getSeverityLabel(severity: string): string {
 export async function createGitHubIssue(
   payload: BugReportPayload
 ): Promise<GitHubIssueResponse> {
-  const token = import.meta.env.VITE_GITHUB_TOKEN;
-  const repo = import.meta.env.VITE_GITHUB_REPO;
-
-  if (!token || !repo) {
-    throw new Error(
-      'GitHub configuration missing. Please check environment variables.'
-    );
-  }
-
-  const [owner, repoName] = repo.split('/');
-  if (!owner || !repoName) {
-    throw new Error('Invalid VITE_GITHUB_REPO format. Expected "owner/repo".');
-  }
-
+  const [owner, repoName] = GITHUB_REPO.split('/');
   const url = `${GITHUB_API_BASE}/repos/${owner}/${repoName}/issues`;
 
   const issueBody = formatIssueBody(payload);
@@ -79,7 +68,7 @@ export async function createGitHubIssue(
     method: 'POST',
     headers: {
       Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${GITHUB_TOKEN}`,
       'X-GitHub-Api-Version': '2022-11-28',
       'Content-Type': 'application/json',
     },
@@ -116,7 +105,5 @@ export function collectSystemInfo(): SystemInfo {
  * Checks if GitHub bug reporting is properly configured
  */
 export function isGitHubConfigured(): boolean {
-  const token = import.meta.env.VITE_GITHUB_TOKEN;
-  const repo = import.meta.env.VITE_GITHUB_REPO;
-  return !!(token && repo && repo.includes('/'));
+  return !!(GITHUB_TOKEN && GITHUB_REPO);
 }
