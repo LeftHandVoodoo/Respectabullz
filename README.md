@@ -108,6 +108,12 @@ npm run tauri:dev
 
 > **Note:** The app uses SQLite via `tauri-plugin-sql` at runtime. The Prisma schema exists for type reference but Prisma commands (`db:generate`, `db:push`) are not required for development. The database is created automatically on first launch.
 
+**Optional Configuration:**
+
+To enable in-app bug reporting to GitHub Issues, copy `.env.example` to `.env` and configure:
+- `VITE_GITHUB_TOKEN` - Personal access token with `repo:issues` scope
+- `VITE_GITHUB_REPO` - Repository in `owner/repo` format (e.g., `LeftHandVoodoo/Respectabullz`)
+
 **Build for Production:**
 
 ```bash
