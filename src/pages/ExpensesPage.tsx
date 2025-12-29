@@ -86,13 +86,13 @@ function getCategoryColor(category: string, customCategories?: Array<{ name: str
   if (BUILT_IN_CATEGORY_COLORS[category]) {
     return BUILT_IN_CATEGORY_COLORS[category];
   }
-  
+
   // Check if it's a custom category with a color
   const customCat = customCategories?.find(c => c.name === category);
   if (customCat?.color) {
     return customCat.color;
   }
-  
+
   // Generate a deterministic color from the category name
   let hash = 0;
   for (let i = 0; i < category.length; i++) {
@@ -100,6 +100,20 @@ function getCategoryColor(category: string, customCategories?: Array<{ name: str
   }
   const hue = Math.abs(hash) % 360;
   return `hsl(${hue}, 65%, 50%)`;
+}
+
+// Get display name for a category (properly capitalized)
+function getCategoryDisplayName(category: string): string {
+  // Check if it's a built-in category with a display name
+  if (BUILT_IN_CATEGORIES[category]) {
+    return BUILT_IN_CATEGORIES[category];
+  }
+
+  // For custom/unknown categories, capitalize first letter of each word
+  return category
+    .split(/[_\s]+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
 }
 
 type SortColumn = 'date' | 'category' | 'dog' | 'vendor' | 'description' | 'amount' | 'taxDeductible' | null;
@@ -213,7 +227,7 @@ export function ExpensesPage() {
         if (!categoryMap.has(key)) {
           categoryMap.set(key, {
             value: expense.category,
-            label: expense.category,
+            label: getCategoryDisplayName(expense.category),
             color: getCategoryColor(expense.category, customCategories),
           });
         }
@@ -488,7 +502,7 @@ export function ExpensesPage() {
               opacity: excludedExpenseIds.has(expense.id) ? 0.5 : 1,
             }}
           >
-            {expense.category}
+            {getCategoryDisplayName(expense.category)}
           </Badge>
         );
       },

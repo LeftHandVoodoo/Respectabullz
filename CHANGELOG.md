@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Expense Categories**: Ensured consistent capitalization of category names across the app
+  - All built-in categories (e.g., "show_fees" → "Show Fees", "vet" → "Vet") display properly capitalized
+  - Custom categories automatically capitalize first letter of each word
+  - Fix applied to: Expenses table, Dog expenses list, Reports page, Financial section in PDF exports
+
 ## [1.9.1] - 2025-12-29
 
 ### Added

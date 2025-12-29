@@ -29,14 +29,38 @@ import type { Expense } from '@/types';
 
 // Built-in category colors
 const BUILT_IN_CATEGORY_COLORS: Record<string, string> = {
-  transport: '#3b82f6',
-  vet: '#ef4444',
+  breeding: '#a855f7',
+  equipment: '#0ea5e9',
   food: '#22c55e',
-  supplies: '#f59e0b',
-  registration: '#8b5cf6',
+  grooming: '#f472b6',
+  insurance: '#14b8a6',
   marketing: '#ec4899',
-  utilities: '#6b7280',
   misc: '#64748b',
+  registration: '#8b5cf6',
+  show_fees: '#f97316',
+  supplies: '#f59e0b',
+  training: '#6366f1',
+  transport: '#3b82f6',
+  utilities: '#6b7280',
+  vet: '#ef4444',
+};
+
+// Built-in categories with their display names
+const BUILT_IN_CATEGORIES: Record<string, string> = {
+  breeding: 'Breeding',
+  equipment: 'Equipment',
+  food: 'Food',
+  grooming: 'Grooming',
+  insurance: 'Insurance',
+  marketing: 'Marketing',
+  misc: 'Misc',
+  registration: 'Registration',
+  show_fees: 'Show Fees',
+  supplies: 'Supplies',
+  training: 'Training',
+  transport: 'Transport',
+  utilities: 'Utilities',
+  vet: 'Vet',
 };
 
 // Generate a color from category name (deterministic)
@@ -45,13 +69,13 @@ function getCategoryColor(category: string, customCategories?: Array<{ name: str
   if (BUILT_IN_CATEGORY_COLORS[category]) {
     return BUILT_IN_CATEGORY_COLORS[category];
   }
-  
+
   // Check if it's a custom category with a color
   const customCat = customCategories?.find(c => c.name === category);
   if (customCat?.color) {
     return customCat.color;
   }
-  
+
   // Generate a deterministic color from the category name
   let hash = 0;
   for (let i = 0; i < category.length; i++) {
@@ -59,6 +83,20 @@ function getCategoryColor(category: string, customCategories?: Array<{ name: str
   }
   const hue = Math.abs(hash) % 360;
   return `hsl(${hue}, 65%, 50%)`;
+}
+
+// Get display name for a category (properly capitalized)
+function getCategoryDisplayName(category: string): string {
+  // Check if it's a built-in category with a display name
+  if (BUILT_IN_CATEGORIES[category]) {
+    return BUILT_IN_CATEGORIES[category];
+  }
+
+  // For custom/unknown categories, capitalize first letter of each word
+  return category
+    .split(/[_\s]+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
 }
 
 interface DogExpensesListProps {
@@ -161,7 +199,7 @@ export function DogExpensesList({ dogId }: DogExpensesListProps) {
                           color: getCategoryColor(expense.category, customCategories),
                         }}
                       >
-                        {expense.category}
+                        {getCategoryDisplayName(expense.category)}
                       </Badge>
                     </TableCell>
                     <TableCell>{expense.vendorName || '-'}</TableCell>

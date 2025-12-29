@@ -37,7 +37,7 @@ import { useDogs } from '@/hooks/useDogs';
 import { useLitters } from '@/hooks/useLitters';
 import { useVaccinations } from '@/hooks/useHealth';
 import { useSales } from '@/hooks/useClients';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, getCategoryDisplayName } from '@/lib/utils';
 import type { VaccinationRecord, Sale } from '@/types';
 
 const COLORS = ['#303845', '#6e5e44', '#fbf1e5', '#3b82f6', '#22c55e', '#f59e0b'];
@@ -539,7 +539,7 @@ export function ReportsPage() {
                             <TableRow key={expense.id}>
                               <TableCell className="whitespace-nowrap">{formatDate(expense.date)}</TableCell>
                               <TableCell>{expense.vendorName || '—'}</TableCell>
-                              <TableCell>{expense.description || expense.category}</TableCell>
+                              <TableCell>{expense.description || getCategoryDisplayName(expense.category)}</TableCell>
                               <TableCell className="text-right font-medium">{formatCurrency(expense.amount)}</TableCell>
                             </TableRow>
                           ))}

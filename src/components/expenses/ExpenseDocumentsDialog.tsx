@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import { DocumentList } from '@/components/documents';
 import { useDocumentsForExpense } from '@/hooks/useDocuments';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, getCategoryDisplayName } from '@/lib/utils';
 import type { Expense } from '@/types';
 
 interface ExpenseDocumentsDialogProps {
@@ -33,7 +33,7 @@ export function ExpenseDocumentsDialog({
           </DialogTitle>
           <div className="text-sm text-muted-foreground">
             <p>
-              {formatDate(expense.date)} • {expense.category} • {formatCurrency(expense.amount)}
+              {formatDate(expense.date)} • {getCategoryDisplayName(expense.category)} • {formatCurrency(expense.amount)}
             </p>
             {expense.vendorName && <p>Vendor: {expense.vendorName}</p>}
             {expense.description && <p>{expense.description}</p>}

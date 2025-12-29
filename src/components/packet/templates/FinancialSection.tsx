@@ -4,6 +4,7 @@
  */
 import { View, Text } from '@react-pdf/renderer';
 import { sharedStyles, BRAND_COLORS, formatDate, formatCurrency, formatPaymentStatus } from '@/lib/pdfExport';
+import { getCategoryDisplayName } from '@/lib/utils';
 import type { PacketData } from '@/types';
 
 interface FinancialSectionProps {
@@ -387,7 +388,7 @@ export function FinancialSection({ data }: FinancialSectionProps) {
                   {formatDate(expense.date)}
                 </Text>
                 <Text style={{ ...sharedStyles.tableCell, width: '25%' }}>
-                  {expense.category.charAt(0).toUpperCase() + expense.category.slice(1)}
+                  {getCategoryDisplayName(expense.category)}
                 </Text>
                 <Text style={{ ...sharedStyles.tableCell, width: '30%' }}>
                   {expense.description || expense.vendorName || '-'}

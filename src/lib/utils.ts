@@ -149,3 +149,39 @@ export function handlePhoneNumberChange(
   onChange(formatted);
 }
 
+// Built-in expense categories with their display names
+const BUILT_IN_EXPENSE_CATEGORIES: Record<string, string> = {
+  breeding: 'Breeding',
+  equipment: 'Equipment',
+  food: 'Food',
+  grooming: 'Grooming',
+  insurance: 'Insurance',
+  marketing: 'Marketing',
+  misc: 'Misc',
+  registration: 'Registration',
+  show_fees: 'Show Fees',
+  supplies: 'Supplies',
+  training: 'Training',
+  transport: 'Transport',
+  utilities: 'Utilities',
+  vet: 'Vet',
+};
+
+/**
+ * Get display name for an expense category (properly capitalized)
+ * @param category - The category key (e.g., 'show_fees', 'misc')
+ * @returns Display name with first letter of each word capitalized
+ */
+export function getCategoryDisplayName(category: string): string {
+  // Check if it's a built-in category with a display name
+  if (BUILT_IN_EXPENSE_CATEGORIES[category]) {
+    return BUILT_IN_EXPENSE_CATEGORIES[category];
+  }
+
+  // For custom/unknown categories, capitalize first letter of each word
+  return category
+    .split(/[_\s]+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
