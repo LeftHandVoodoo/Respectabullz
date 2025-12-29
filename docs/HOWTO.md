@@ -1,7 +1,7 @@
 # Respectabullz How-To Guide
 
-**Version 1.7.0**
-**Last Updated: December 23, 2025**
+**Version 1.9.1**
+**Last Updated: December 29, 2025**
 
 This guide provides step-by-step instructions for common breeding operation workflows. For detailed feature documentation, see [USER_MANUAL.md](USER_MANUAL.md).
 
@@ -899,8 +899,8 @@ This guide provides step-by-step instructions for common breeding operation work
 
 ---
 
-**Respectabullz How-To Guide v1.4.0**  
-*Last Updated: December 4, 2025*
+**Respectabullz How-To Guide v1.9.1**
+*Last Updated: December 29, 2025*
 
 For detailed feature documentation, see [USER_MANUAL.md](USER_MANUAL.md).  
 For technical documentation, see [ARCHITECTURE.md](ARCHITECTURE.md) and [API.md](API.md).

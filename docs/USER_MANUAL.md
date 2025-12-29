@@ -1,9 +1,57 @@
 # Respectabullz User Manual
 
-**Version 1.8.0**
-**Last Updated: December 24, 2025**
+**Version 1.9.1**
+**Last Updated: December 29, 2025**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
+
+---
+
+## What's New in Version 1.9.1
+
+### Added
+- **Bug Reporting**: In-app bug reporting that creates GitHub issues
+  - Bug report button in header (visible when GitHub is configured)
+  - Standard bug report form: title, description, steps to reproduce, expected/actual behavior, severity
+  - Auto-collects system info: app version, platform, timestamp
+  - Submits directly to GitHub Issues API with appropriate labels
+  - New environment variables: `VITE_GITHUB_TOKEN`, `VITE_GITHUB_REPO`
+
+### Changed
+- **Expense Export**: Upgraded from CSV to native Excel (.xlsx) format using ExcelJS
+  - Header row is now bold and underlined
+  - Amount column uses accounting number format ($#,##0.00)
+  - Categories are properly capitalized (e.g., "show_fees" → "Show Fees")
+  - Dog names show call name only, not full registered name
+  - Button renamed from "Export CSV" to "Export Excel"
+
+### Fixed
+- **Expense Export**: Fixed column misalignment issue - now exports as proper .xlsx file with correct column structure
+
+---
+
+## What's New in Version 1.9.0
+
+### Added
+- **Contact Company Name**: Added company name field to contacts
+  - New optional field to capture company/business name for contacts
+  - Displayed in contact list, detail panel, and form
+  - Included in search functionality
+  - Database migration v5 adds `company_name` column to contacts table
+- **Contacts Column Sorting**: Added sortable columns to contacts table
+  - Click column headers to sort by Name, Categories, or Location
+  - Toggle between ascending (A-Z) and descending (Z-A) order
+  - Sort indicator icons show current sort state
+
+---
+
+## What's New in Version 1.8.1
+
+### Changed
+- **Bundle Size Optimization**: Reduced initial bundle from 4,291 kB to 320 kB (93% reduction)
+  - Implemented React.lazy() for all pages except Dashboard for code splitting
+  - Added Suspense boundary with skeleton loading fallback
+  - Heavy libraries (recharts, PDF, document generation) now load on-demand
 
 ---
 
@@ -1097,6 +1145,9 @@ For issues or questions:
 
 ## Version History
 
+- **v1.9.1**: Bug reporting to GitHub, Excel expense export
+- **v1.9.0**: Contact company name field, sortable contacts columns
+- **v1.8.1**: Bundle size optimization (93% reduction)
 - **v1.8.0**: Contacts Management System for business contacts with multi-category tagging
 - **v1.7.x**: Heat cycle and expense category bug fixes, N+1 query performance fix
 - **v1.6.x**: Fillable contract template support, contract generation fixes
@@ -1111,6 +1162,6 @@ See [CHANGELOG.md](../CHANGELOG.md) for complete version history.
 
 ---
 
-**Respectabullz User Manual v1.8.0**
-*Last Updated: December 24, 2025*
+**Respectabullz User Manual v1.9.1**
+*Last Updated: December 29, 2025*
 
