@@ -14,6 +14,53 @@ import type {
 } from '@/types';
 
 // ============================================
+// COLOR GENERATION FOR CATEGORIES
+// ============================================
+
+// Color palette for auto-assigning to new categories
+// Excludes colors already used by predefined categories (Blue, Orange, Purple, Green, Red)
+const CATEGORY_COLOR_PALETTE = [
+  '#EC4899', // Pink
+  '#14B8A6', // Teal
+  '#F59E0B', // Amber
+  '#6366F1', // Indigo
+  '#84CC16', // Lime
+  '#06B6D4', // Cyan
+  '#A855F7', // Violet
+  '#F43F5E', // Rose
+  '#22C55E', // Emerald
+  '#0EA5E9', // Sky
+  '#D946EF', // Fuchsia
+  '#EAB308', // Yellow
+];
+
+/**
+ * Generate a random color for a new category
+ * Tries to pick a color not already in use by existing categories
+ */
+async function generateCategoryColor(): Promise<string> {
+  const existingCategories = await getContactCategories();
+  const usedColors = new Set(
+    existingCategories
+      .map(c => c.color?.toUpperCase())
+      .filter(Boolean)
+  );
+
+  // Find colors not yet used
+  const availableColors = CATEGORY_COLOR_PALETTE.filter(
+    color => !usedColors.has(color.toUpperCase())
+  );
+
+  // If we have available colors, pick one randomly
+  if (availableColors.length > 0) {
+    return availableColors[Math.floor(Math.random() * availableColors.length)];
+  }
+
+  // If all colors are used, pick a random one from the palette
+  return CATEGORY_COLOR_PALETTE[Math.floor(Math.random() * CATEGORY_COLOR_PALETTE.length)];
+}
+
+// ============================================
 // CONTACT CATEGORIES
 // ============================================
 
@@ -73,21 +120,25 @@ export async function getContactCategoryByName(name: string): Promise<ContactCat
 
 /**
  * Create a contact category
+ * Auto-generates a color if none is provided
  */
 export async function createContactCategory(input: CreateContactCategoryInput): Promise<ContactCategory> {
   const id = generateId();
   const now = nowIso();
 
+  // Auto-generate a color if none provided
+  const color = input.color ?? await generateCategoryColor();
+
   await execute(
     `INSERT INTO contact_categories (id, name, color, is_predefined, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
-    [id, input.name, input.color ?? null, boolToSql(input.isPredefined ?? false), now, now]
+    [id, input.name, color, boolToSql(input.isPredefined ?? false), now, now]
   );
 
   return {
     id,
     name: input.name,
-    color: input.color ?? null,
+    color,
     isPredefined: input.isPredefined ?? false,
     createdAt: new Date(now),
     updatedAt: new Date(now),

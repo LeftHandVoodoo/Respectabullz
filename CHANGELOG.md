@@ -46,6 +46,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created `createBarShapeRenderer` helper to handle Recharts' `unknown` typing safely
   - Removed 2 eslint-disable-next-line comments for `@typescript-eslint/no-explicit-any`
 
+### Fixed
+
+- **Contact Category Colors**: New custom categories now auto-assign a unique color (fixes #3)
+  - Added 12-color palette for auto-assignment
+  - Colors are selected to avoid duplicates with existing categories
+  - Predefined category colors unchanged
+
 ## [1.9.3] - 2025-12-29
 
 ### Changed

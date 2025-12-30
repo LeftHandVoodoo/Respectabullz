@@ -167,7 +167,9 @@ describe('Contact Categories Database Operations', () => {
       expect(result.id).toBeDefined();
     });
 
-    it('handles optional fields with defaults', async () => {
+    it('handles optional fields with defaults and auto-generates color', async () => {
+      // Mock query for getContactCategories (called by generateCategoryColor)
+      vi.mocked(query).mockResolvedValue([]);
       vi.mocked(execute).mockResolvedValue({ lastInsertId: 0, rowsAffected: 1 });
 
       const input = { name: 'Basic' };
@@ -175,7 +177,9 @@ describe('Contact Categories Database Operations', () => {
       const result = await createContactCategory(input);
 
       expect(result.name).toBe('Basic');
-      expect(result.color).toBeNull();
+      // Color should be auto-generated (not null)
+      expect(result.color).not.toBeNull();
+      expect(result.color).toMatch(/^#[0-9A-F]{6}$/i);
       expect(result.isPredefined).toBe(false);
     });
   });
