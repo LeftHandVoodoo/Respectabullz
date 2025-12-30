@@ -1,9 +1,24 @@
 # Respectabullz User Manual
 
-**Version 1.9.1**
+**Version 1.9.2**
 **Last Updated: December 29, 2025**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
+
+---
+
+## What's New in Version 1.9.2
+
+### Changed
+- **Dependencies**: Removed 4 unused packages reducing bundle size
+- **Code Quality**: Removed ~40 debug console.log statements from production code
+- **Legacy Functions**: Implemented SQLite versions of previously stubbed functions
+
+### Fixed
+- **Expense Categories**: Consistent capitalization across the app
+- **Test Suite**: Fixed failing test after company_name field addition
+- **React Router**: Added v7 future flags to eliminate deprecation warnings
+- **Dialog Accessibility**: Added DialogDescription to TransportFormDialog
 
 ---
 
@@ -1145,6 +1160,7 @@ For issues or questions:
 
 ## Version History
 
+- **v1.9.2**: Code quality improvements, dependency cleanup, legacy function implementation
 - **v1.9.1**: Bug reporting to GitHub, Excel expense export
 - **v1.9.0**: Contact company name field, sortable contacts columns
 - **v1.8.1**: Bundle size optimization (93% reduction)
@@ -1162,6 +1178,6 @@ See [CHANGELOG.md](../CHANGELOG.md) for complete version history.
 
 ---
 
-**Respectabullz User Manual v1.9.1**
+**Respectabullz User Manual v1.9.2**
 *Last Updated: December 29, 2025*
 

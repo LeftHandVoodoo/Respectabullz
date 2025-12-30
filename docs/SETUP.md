@@ -1,6 +1,6 @@
 # Respectabullz Setup Guide
 
-**Version 1.9.1**
+**Version 1.9.2**
 
 ## System Requirements
 
@@ -101,7 +101,7 @@ DATABASE_URL="file:./data/respectabullz.db"
 
 # App info
 VITE_APP_NAME="Respectabullz"
-VITE_APP_VERSION="1.9.1"
+VITE_APP_VERSION="1.9.2"
 
 # GitHub Bug Reporting (optional)
 # Create a PAT at https://github.com/settings/tokens with repo:issues scope

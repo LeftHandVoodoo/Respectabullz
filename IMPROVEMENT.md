@@ -1,7 +1,7 @@
 # Improvement Scan Report
 
 **Generated:** 2025-12-29
-**Version:** 1.9.1
+**Version:** 1.9.2
 **Status:** All quality gates passing
 
 ---

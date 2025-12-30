@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.2] - 2025-12-29
+
 ### Changed
 
 - **Dependencies**: Removed 4 unused packages (`@prisma/client`, `@radix-ui/react-icons`, `@tanstack/react-table`, `react-big-calendar`) reducing bundle size
