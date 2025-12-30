@@ -128,7 +128,7 @@ export function formatContractDate(date: Date | string | undefined, formatType: 
 /**
  * Get ordinal suffix for a day number (1st, 2nd, 3rd, etc.)
  */
-function getOrdinalSuffix(day: number): string {
+export function getOrdinalSuffix(day: number): string {
   if (day >= 11 && day <= 13) return 'th';
   switch (day % 10) {
     case 1: return 'st';

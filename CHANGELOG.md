@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Code Deduplication**: Refactored `contractUtils.ts` to import from `contractFormatting.ts` (IMP-009 follow-up)
+  - Eliminated ~180 lines of duplicate code
+  - Functions now have single source of truth in `contractFormatting.ts`
+  - Backward-compatible re-exports maintain existing import paths
+- **Performance**: Lazy-load PDF renderer to improve initial load time (IMP-011)
+  - PDF generation module (~1.5MB) now loads on-demand when user clicks "Export PDF"
+  - DogDetailPage reduced from 141KB to 85KB (40% reduction)
+  - Created `generatePacketPdf.tsx` as separate chunk for code-splitting
 - **Build Warnings**: Cleaned up mixed static/dynamic import warnings
   - Converted all dynamic imports to static imports in `src/lib/db/legacy.ts` and `src/lib/db/migrations.ts`
   - Removed `await import()` calls for `connection.ts` and `utils.ts` modules
