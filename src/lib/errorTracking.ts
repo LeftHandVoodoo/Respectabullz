@@ -346,21 +346,3 @@ export function setupGlobalErrorHandlers(): void {
     isTauri: isTauriEnvironment(),
   });
 }
-
-/**
- * Helper to wrap async functions with error logging
- */
-export function withErrorLogging<T extends (...args: never[]) => Promise<unknown>>(
-  fn: T,
-  context: string
-): T {
-  return (async (...args: Parameters<T>) => {
-    try {
-      return await fn(...args);
-    } catch (error) {
-      logger.error(`Error in ${context}`, error as Error);
-      throw error;
-    }
-  }) as T;
-}
-

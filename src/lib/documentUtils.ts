@@ -416,14 +416,4 @@ export function getFileTypeDisplayName(filename: string): string {
   return 'Document';
 }
 
-/**
- * Get icon name for file type (Lucide icon names)
- */
-export function getFileTypeIcon(filename: string): string {
-  if (isImageFile(filename)) return 'Image';
-  if (isPdfFile(filename)) return 'FileText';
-  if (isWordFile(filename)) return 'FileType';
-  if (isExcelFile(filename)) return 'Table';
-  return 'File';
-}
 

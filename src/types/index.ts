@@ -214,10 +214,8 @@ export interface HeatEvent {
 
 // Input types for heat cycle operations
 export type CreateHeatCycleInput = Omit<HeatCycle, 'id' | 'createdAt' | 'updatedAt' | 'bitch' | 'events'>;
-export type UpdateHeatCycleInput = Partial<CreateHeatCycleInput>;
 
 export type CreateHeatEventInput = Omit<HeatEvent, 'id' | 'createdAt' | 'heatCycle' | 'sire'>;
-export type UpdateHeatEventInput = Partial<CreateHeatEventInput>;
 
 export interface VaccinationRecord {
   id: string;
@@ -409,16 +407,6 @@ export interface LitterPhoto {
   uploadedAt: Date;
   // Relations
   litter?: Litter;
-}
-
-export interface Attachment {
-  id: string;
-  entityType: string;
-  entityId: string;
-  filePath: string;
-  fileName: string;
-  fileType?: string | null;
-  uploadedAt: Date;
 }
 
 export interface Setting {
@@ -674,13 +662,6 @@ export type UpdateSaleInput = Partial<Omit<CreateSaleInput, 'puppies'>> & {
 // ClientInterest input types
 export type CreateClientInterestInput = Omit<ClientInterest, 'id' | 'createdAt' | 'updatedAt' | 'client' | 'dog' | 'convertedToSale'>;
 export type UpdateClientInterestInput = Partial<CreateClientInterestInput>;
-
-// SalePuppy input types
-export interface AddPuppyToSaleInput {
-  saleId: string;
-  dogId: string;
-  price: number;
-}
 
 // Dashboard stats type
 export interface DashboardStats {

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **ESLint Config**: Added `coverage/` to ignores list to prevent lint errors on generated coverage files
+- **Code Cleanup**: Removed unused exports to reduce dead code:
+  - `withErrorLogging` from `src/lib/errorTracking.ts`
+  - `getFileTypeIcon` from `src/lib/documentUtils.ts`
+  - `UpdateHeatCycleInput`, `UpdateHeatEventInput`, `Attachment`, `AddPuppyToSaleInput` from `src/types/index.ts`
+
 ## [1.9.2] - 2025-12-29
 
 ### Changed
