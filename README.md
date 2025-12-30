@@ -240,6 +240,7 @@ npm run test:coverage
 - [Data Model](docs/DATA_MODEL.md) - Database schema documentation
 - [API Reference](docs/API.md) - Internal API documentation
 - [Setup Guide](docs/SETUP.md) - Installation and configuration
+- [Versioning](docs/VERSIONING.md) - Version management and release process
 - [Contributing](CONTRIBUTING.md) - Development guidelines
 - [Changelog](CHANGELOG.md) - Version history
 
