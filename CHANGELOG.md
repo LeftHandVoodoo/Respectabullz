@@ -35,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Converted all dynamic imports to static imports in `src/lib/db/legacy.ts` and `src/lib/db/migrations.ts`
   - Removed `await import()` calls for `connection.ts` and `utils.ts` modules
   - Improves bundling consistency and eliminates build warnings
+- **Type Safety**: Replaced `any` types with proper TypeScript interfaces in ReportsPage.tsx (IMP-006)
+  - Added typed interfaces for Recharts bar shape props (`DogStatusPayload`, `VaccinationStatusPayload`, `BarShapeProps`)
+  - Created `createBarShapeRenderer` helper to handle Recharts' `unknown` typing safely
+  - Removed 2 eslint-disable-next-line comments for `@typescript-eslint/no-explicit-any`
 
 ## [1.9.3] - 2025-12-29
 

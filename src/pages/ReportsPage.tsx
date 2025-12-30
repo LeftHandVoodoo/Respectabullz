@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -44,6 +44,33 @@ const COLORS = ['#303845', '#6e5e44', '#fbf1e5', '#3b82f6', '#22c55e', '#f59e0b'
 
 type VaccinationCategory = 'Up to Date' | 'Due Soon' | 'Overdue';
 type DogStatusCategory = 'active' | 'sold' | 'retired' | 'deceased';
+
+// Recharts bar shape prop types (IMP-006: replacing any with proper types)
+interface DogStatusPayload {
+  name: string;
+  status: string;
+  value: number;
+}
+
+interface VaccinationStatusPayload {
+  name: VaccinationCategory;
+  value: number;
+}
+
+interface BarShapeProps<T> {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  payload: T;
+}
+
+// Type-safe wrapper for Recharts shape prop (handles Recharts' unknown typing)
+function createBarShapeRenderer<T>(
+  render: (props: BarShapeProps<T>) => React.ReactElement
+): (props: unknown) => React.ReactElement {
+  return (props: unknown) => render(props as BarShapeProps<T>);
+}
 
 const DOG_STATUS_COLORS: Record<string, string> = {
   active: '#22c55e',
@@ -775,8 +802,7 @@ export function ReportsPage() {
                     />
                     <Bar
                       dataKey="value"
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      shape={(props: any) => {
+                      shape={createBarShapeRenderer<DogStatusPayload>((props) => {
                         const { payload, x, y, width, height } = props;
                         const fillColor = DOG_STATUS_COLORS[payload.status] || '#6b7280';
                         return (
@@ -790,7 +816,7 @@ export function ReportsPage() {
                             onDoubleClick={() => handleDogStatusBarDoubleClick(payload.status as DogStatusCategory)}
                           />
                         );
-                      }}
+                      })}
                     />
                   </BarChart>
                 </ResponsiveContainer>
@@ -870,8 +896,7 @@ export function ReportsPage() {
                     />
                     <Bar
                       dataKey="value"
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      shape={(props: any) => {
+                      shape={createBarShapeRenderer<VaccinationStatusPayload>((props) => {
                         const { payload, x, y, width, height } = props;
                         const fillColor =
                           payload.name === 'Up to Date'
@@ -887,10 +912,10 @@ export function ReportsPage() {
                             height={height}
                             fill={fillColor}
                             style={{ cursor: 'pointer' }}
-                            onDoubleClick={() => handleBarDoubleClick(payload.name as VaccinationCategory)}
+                            onDoubleClick={() => handleBarDoubleClick(payload.name)}
                           />
                         );
-                      }}
+                      })}
                     />
                   </BarChart>
                 </ResponsiveContainer>

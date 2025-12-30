@@ -8,7 +8,7 @@
 
 ## Summary
 
-The codebase is in **good health** with all quality gates passing. Most actionable improvements have been completed: **unused dependencies removed** (IMP-001), **console.log statements cleaned up** (IMP-003), **legacy SQLite migration completed** (IMP-007), **version mismatch fixed** (IMP-002), **build warnings resolved** (IMP-008), **large files split** (IMP-009), **code-split for performance** (IMP-011), and **test coverage improved** (IMP-010). Remaining improvement focuses on structured logging (IMP-005).
+The codebase is in **good health** with all quality gates passing. Most actionable improvements have been completed: **unused dependencies removed** (IMP-001), **console.log statements cleaned up** (IMP-003), **legacy SQLite migration completed** (IMP-007), **version mismatch fixed** (IMP-002), **build warnings resolved** (IMP-008), **large files split** (IMP-009), **code-split for performance** (IMP-011), **test coverage improved** (IMP-010), and **type escapes addressed** (IMP-006). Remaining improvement focuses on structured logging (IMP-005).
 
 ---
 
@@ -113,9 +113,9 @@ The codebase is in **good health** with all quality gates passing. Most actionab
 
 ---
 
-### IMP-006 | Maintainability | Low | Low Impact | Low Risk | S | High Confidence
+### ~~IMP-006 | Maintainability | Low | Low Impact | Low Risk | S | High Confidence~~ DONE
 
-**Address type escapes (any usage)**
+**Address type escapes (any usage)** - Completed 2025-12-30
 
 - **Evidence:** `src/pages/ReportsPage.tsx:779,874` uses `(props: any)`, `src/lib/db/migrate-from-localstorage.ts:38-61` bulk `any` interfaces
 - **Why it matters:** `any` bypasses type safety; increases bug risk
@@ -124,6 +124,11 @@ The codebase is in **good health** with all quality gates passing. Most actionab
   - For migrate-from-localstorage: Keep as-is (legacy migration code, low priority)
 - **Tests/docs:** None
 - **Blast radius:** 2 files
+- **Completed:**
+  - ✅ Added typed interfaces: `DogStatusPayload`, `VaccinationStatusPayload`, `BarShapeProps<T>`
+  - ✅ Created `createBarShapeRenderer<T>` helper to safely wrap Recharts' `unknown` typing
+  - ✅ Removed 2 `eslint-disable-next-line @typescript-eslint/no-explicit-any` comments
+  - ✅ migrate-from-localstorage.ts kept as-is (legacy migration code)
 
 ---
 
@@ -228,7 +233,7 @@ The codebase is in **good health** with all quality gates passing. Most actionab
 ### Quick Wins (Size S, ~30 min each)
 - ~~**IMP-001:** Remove 4 unused dependencies~~ DONE
 - ~~**IMP-002:** Fix version mismatch in .env~~ DONE
-- **IMP-006:** Type the Recharts shape props
+- ~~**IMP-006:** Type the Recharts shape props~~ DONE
 - ~~**IMP-008:** Clean up build warnings~~ DONE
 
 ### Medium Effort (Size M, ~half-day each)
