@@ -140,6 +140,7 @@ respectabullz/
 │   │   ├── registry/      # Registration tracking components
 │   │   ├── packet/        # Customer packet PDF export components
 │   │   │   ├── PacketExportDialog.tsx  # Export dialog with section selection
+│   │   │   ├── generatePacketPdf.tsx   # Lazy-loaded PDF generation (code-split)
 │   │   │   └── templates/              # PDF template components
 │   │   │       ├── PacketDocument.tsx  # Main document orchestrator
 │   │   │       ├── CoverPage.tsx       # Cover page template
@@ -153,6 +154,11 @@ respectabullz/
 │   │   ├── heat-cycles/     # Heat cycle components
 │   │   ├── transport/       # Transport components
 │   │   ├── expenses/        # Expense components
+│   │   │   ├── ExpenseFormDialog.tsx   # Expense create/edit form
+│   │   │   ├── ExpensesChart.tsx       # Expenses over time chart
+│   │   │   ├── ExpensesFilters.tsx     # Search and filter controls
+│   │   │   ├── ExpensesTable.tsx       # Expense list with sorting
+│   │   │   └── DogExpensesList.tsx     # Dog-specific expense view
 │   │   ├── inquiries/       # Client interest/inquiry components
 │   │   ├── sales/           # Sale form and contract components
 │   │   ├── clients/         # Client components
@@ -182,6 +188,7 @@ respectabullz/
 │   │   ├── utils.ts         # Helper functions
 │   │   ├── version.ts       # Version constant
 │   │   ├── contractUtils.ts # Contract generation utilities
+│   │   ├── contractFormatting.ts # Shared contract formatting helpers
 │   │   ├── photoUtils.ts    # Photo upload and display utilities
 │   │   ├── backupUtils.ts   # Full backup with photos (ZIP)
 │   │   ├── pdfExport.ts     # PDF generation utilities and styles

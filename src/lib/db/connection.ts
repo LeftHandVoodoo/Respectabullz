@@ -2,6 +2,7 @@
 // Singleton connection to SQLite via tauri-plugin-sql
 
 import Database from '@tauri-apps/plugin-sql';
+import { logger } from '../errorTracking';
 
 // Database singleton instance
 let db: Database | null = null;
@@ -20,30 +21,27 @@ export async function getDatabase(): Promise<Database> {
   }
   
   try {
-    console.log('[DB] Attempting to load database:', DB_NAME);
+    logger.debug('Attempting to load database', { name: DB_NAME });
     db = await Database.load(DB_NAME);
-    console.log('[DB] Successfully connected to SQLite database');
-    
+    logger.info('Successfully connected to SQLite database');
+
     // Test the connection with a simple query
     try {
       await db.select('SELECT 1 as test');
-      console.log('[DB] Database connection verified');
+      logger.debug('Database connection verified');
     } catch (testError) {
-      console.warn('[DB] Connection test failed:', testError);
+      logger.warn('Connection test failed', { error: testError });
     }
-    
+
     return db;
   } catch (error) {
-    console.error('[DB] Failed to connect to database');
-    console.error('[DB] Error type:', typeof error);
-    console.error('[DB] Error:', error);
-    
+    logger.error('Failed to connect to database', error as Error);
+
     // Extract error message with better handling for Tauri plugin errors
     let errorMessage = 'Unknown database error';
     if (error instanceof Error) {
       errorMessage = error.message || error.toString();
-      console.error('[DB] Error name:', error.name);
-      console.error('[DB] Error stack:', error.stack);
+      logger.debug('Error details', { name: error.name, stack: error.stack });
     } else if (typeof error === 'string') {
       errorMessage = error;
     } else if (error && typeof error === 'object') {
@@ -60,7 +58,7 @@ export async function getDatabase(): Promise<Database> {
         }
       }
     }
-    console.error('[DB] Extracted error message:', errorMessage);
+    logger.debug('Extracted error message', { errorMessage });
     
     // Reset db so we can retry
     db = null;
@@ -77,7 +75,7 @@ export async function closeDatabase(): Promise<void> {
   if (db) {
     await db.close();
     db = null;
-    console.log('[DB] Database connection closed');
+    logger.info('Database connection closed');
   }
 }
 
@@ -169,7 +167,7 @@ export async function isDatabaseInitialized(): Promise<boolean> {
     return result.length > 0;
   } catch (error) {
     // If database doesn't exist or connection fails, it's not initialized
-    console.log('[DB] Database not initialized (expected on first run):', error instanceof Error ? error.message : String(error));
+    logger.debug('Database not initialized (expected on first run)', { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }
@@ -186,7 +184,7 @@ export async function isDatabaseEmpty(): Promise<boolean> {
     return (result[0]?.count ?? 0) === 0;
   } catch (error) {
     // If query fails, assume database is empty
-    console.log('[DB] Could not check if database is empty:', error instanceof Error ? error.message : String(error));
+    logger.debug('Could not check if database is empty', { error: error instanceof Error ? error.message : String(error) });
     return true;
   }
 }

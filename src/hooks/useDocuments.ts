@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db/documents';
 import type { CreateDocumentInput, UpdateDocumentInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 // ============================================
 // DOCUMENT QUERIES
@@ -141,7 +142,7 @@ export function useCreateDocument() {
         description: 'Failed to upload document. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create document:', error);
+      logger.error('Failed to create document', error as Error);
     },
   });
 }
@@ -169,7 +170,7 @@ export function useUpdateDocument() {
         description: 'Failed to update document. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update document:', error);
+      logger.error('Failed to update document', error as Error);
     },
   });
 }
@@ -195,7 +196,7 @@ export function useDeleteDocument() {
         description: 'Failed to delete document. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete document:', error);
+      logger.error('Failed to delete document', error as Error);
     },
   });
 }
@@ -224,7 +225,7 @@ export function useLinkDocumentToDog() {
         description: 'Failed to link document. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to link document to dog:', error);
+      logger.error('Failed to link document to dog', error as Error);
     },
   });
 }
@@ -249,7 +250,7 @@ export function useUnlinkDocumentFromDog() {
         description: 'Failed to unlink document. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to unlink document from dog:', error);
+      logger.error('Failed to unlink document from dog', error as Error);
     },
   });
 }
@@ -274,7 +275,7 @@ export function useLinkDocumentToLitter() {
         description: 'Failed to link document. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to link document to litter:', error);
+      logger.error('Failed to link document to litter', error as Error);
     },
   });
 }
@@ -299,7 +300,7 @@ export function useUnlinkDocumentFromLitter() {
         description: 'Failed to unlink document. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to unlink document from litter:', error);
+      logger.error('Failed to unlink document from litter', error as Error);
     },
   });
 }
@@ -324,7 +325,7 @@ export function useLinkDocumentToExpense() {
         description: 'Failed to link document. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to link document to expense:', error);
+      logger.error('Failed to link document to expense', error as Error);
     },
   });
 }
@@ -349,7 +350,7 @@ export function useUnlinkDocumentFromExpense() {
         description: 'Failed to unlink document. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to unlink document from expense:', error);
+      logger.error('Failed to unlink document from expense', error as Error);
     },
   });
 }

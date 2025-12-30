@@ -111,6 +111,53 @@ docs: update API documentation
 - Group related files in directories
 - Keep imports organized
 
+## Logging
+
+Use the centralized logging service for all application logging:
+
+```typescript
+import { logger } from '@/lib/errorTracking';
+
+// Log levels (in order of severity)
+logger.debug('Detailed debugging information', { context: value });
+logger.info('General operational information');
+logger.warn('Warning about potential issues');
+logger.error('Error occurred', error, { additionalContext: data });
+```
+
+### Log Level Configuration
+
+Log levels are controlled via environment variable:
+
+- **Development**: Defaults to `debug` (shows all logs)
+- **Production**: Defaults to `info` (hides debug logs)
+- Override with `VITE_LOG_LEVEL` in `.env`:
+  ```
+  VITE_LOG_LEVEL=debug  # or info, warn, error
+  ```
+
+### Guidelines
+
+- **Do NOT** use raw `console.log/error/warn` in production code
+- **DO** use `logger.*` methods from `@/lib/errorTracking`
+- Use `logger.debug()` for development/debugging information
+- Use `logger.info()` for significant operational events
+- Use `logger.warn()` for potential issues that don't stop operation
+- Use `logger.error()` for errors, always pass the Error object when available
+- Include contextual data using the optional context parameter
+
+### Example
+
+```typescript
+// Bad
+console.log('User logged in');
+console.error('Failed to save:', error);
+
+// Good
+logger.info('User logged in', { userId: user.id });
+logger.error('Failed to save', error, { entityType: 'dog', id });
+```
+
 ## Testing
 
 Currently, the project uses manual testing. When adding automated tests:

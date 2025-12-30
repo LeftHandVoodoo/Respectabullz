@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Utility tests for `formatPhoneNumber` and `getCategoryDisplayName` functions
   - Test count increased from 212 → 302 (90 new tests)
   - Expense components coverage: 46-100% (up from 0%)
+- **Structured Logging**: Implemented environment-based log level configuration (IMP-005)
+  - Added `VITE_LOG_LEVEL` environment variable support (debug, info, warn, error)
+  - Development defaults to `debug`, production defaults to `info`
+  - Added `shouldLog()` check to filter messages by log level
+  - Replaced 77+ console.* statements with logger.* calls in core database modules
+  - Updated `CONTRIBUTING.md` with logging guidelines and best practices
 
 ### Changed
 

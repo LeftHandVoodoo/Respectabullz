@@ -7,7 +7,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { ReportsPage } from '../ReportsPage';
-import type { Expense, Dog } from '@/types';
+import type { Expense, Dog, Litter, VaccinationRecord, Sale } from '@/types';
 
 // Mock Recharts components
 vi.mock('recharts', () => ({

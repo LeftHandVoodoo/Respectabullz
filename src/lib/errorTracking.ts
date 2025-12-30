@@ -7,8 +7,16 @@
 
 import { writeFile, readFile, exists, mkdir, BaseDirectory } from '@tauri-apps/plugin-fs';
 
-// Log levels
+// Log levels (ordered by severity)
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+// Numeric values for level comparison
+const LOG_LEVEL_VALUES: Record<LogLevel, number> = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3,
+};
 
 // Log entry structure
 export interface LogEntry {
@@ -28,6 +36,30 @@ const LOG_DIR = 'logs';
 const LOG_FILENAME = 'respectabullz.log';
 const MAX_LOG_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 const MAX_ENTRIES_IN_MEMORY = 1000;
+
+/**
+ * Get the minimum log level from environment
+ * - Development: 'debug' (show everything)
+ * - Production: 'info' (hide debug messages)
+ */
+function getMinLogLevel(): LogLevel {
+  // Check Vite environment variable
+  const envLevel = import.meta.env?.VITE_LOG_LEVEL as LogLevel | undefined;
+  if (envLevel && LOG_LEVEL_VALUES[envLevel] !== undefined) {
+    return envLevel;
+  }
+
+  // Default: debug in development, info in production
+  return import.meta.env?.DEV ? 'debug' : 'info';
+}
+
+/**
+ * Check if a log level should be output based on current configuration
+ */
+function shouldLog(level: LogLevel): boolean {
+  const minLevel = getMinLogLevel();
+  return LOG_LEVEL_VALUES[level] >= LOG_LEVEL_VALUES[minLevel];
+}
 
 // In-memory log buffer for quick access
 let logBuffer: LogEntry[] = [];
@@ -151,6 +183,11 @@ async function flushWriteQueue(): Promise<void> {
  * Add a log entry
  */
 function log(level: LogLevel, message: string, error?: Error, context?: Record<string, unknown>): void {
+  // Check if this log level should be output based on environment configuration
+  if (!shouldLog(level)) {
+    return;
+  }
+
   const entry: LogEntry = {
     timestamp: new Date().toISOString(),
     level,
@@ -171,7 +208,7 @@ function log(level: LogLevel, message: string, error?: Error, context?: Record<s
     logBuffer = logBuffer.slice(-MAX_ENTRIES_IN_MEMORY);
   }
 
-  // Console output (always)
+  // Console output
   const consoleArgs = [formatLogEntry(entry)];
   switch (level) {
     case 'debug':

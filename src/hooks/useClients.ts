@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import type { CreateClientInput, UpdateClientInput, CreateSaleInput, UpdateSaleInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 export function useClients() {
   return useQuery({
@@ -36,7 +37,7 @@ export function useCreateClient() {
         description: 'Failed to create client. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create client:', error);
+      logger.error('Failed to create client', error as Error);
     },
   });
 }
@@ -61,7 +62,7 @@ export function useUpdateClient() {
         description: 'Failed to update client. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update client:', error);
+      logger.error('Failed to update client', error as Error);
     },
   });
 }
@@ -84,7 +85,7 @@ export function useDeleteClient() {
         description: 'Failed to delete client. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete client:', error);
+      logger.error('Failed to delete client', error as Error);
     },
   });
 }
@@ -126,7 +127,7 @@ export function useCreateSale() {
         description: 'Failed to record sale. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create sale:', error);
+      logger.error('Failed to create sale', error as Error);
     },
   });
 }
@@ -153,7 +154,7 @@ export function useUpdateSale() {
         description: 'Failed to update sale. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update sale:', error);
+      logger.error('Failed to update sale', error as Error);
     },
   });
 }
@@ -179,7 +180,7 @@ export function useDeleteSale() {
         description: 'Failed to delete sale. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete sale:', error);
+      logger.error('Failed to delete sale', error as Error);
     },
   });
 }
@@ -205,7 +206,7 @@ export function useAddPuppyToSale() {
         description: 'Failed to add puppy to sale. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to add puppy to sale:', error);
+      logger.error('Failed to add puppy to sale', error as Error);
     },
   });
 }
@@ -230,7 +231,7 @@ export function useRemovePuppyFromSale() {
         description: 'Failed to remove puppy from sale. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to remove puppy from sale:', error);
+      logger.error('Failed to remove puppy from sale', error as Error);
     },
   });
 }
@@ -254,7 +255,7 @@ export function useUpdatePuppyPrice() {
         description: 'Failed to update price. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update puppy price:', error);
+      logger.error('Failed to update puppy price', error as Error);
     },
   });
 }

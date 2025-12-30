@@ -3,6 +3,7 @@
 
 import { query, execute, getDatabase } from './connection';
 import { SCHEMA_SQL } from './schema';
+import { logger } from '../errorTracking';
 
 // Current schema version - increment when schema changes
 const CURRENT_VERSION = 5;
@@ -12,12 +13,12 @@ const CURRENT_VERSION = 5;
  * Creates all tables if they don't exist
  */
 export async function initializeDatabase(): Promise<void> {
-  console.log('[DB] Initializing database schema...');
-  
+  logger.info('Initializing database schema');
+
   try {
     // Get database connection
     const database = await getDatabase();
-    
+
     // Execute the schema SQL (creates tables if not exist)
     // Split by semicolon and process each statement
     const statements = SCHEMA_SQL.split(';')
@@ -33,29 +34,26 @@ export async function initializeDatabase(): Promise<void> {
         return lines.join('\n').trim();
       })
       .filter(s => s.length > 0);
-    
-    console.log(`[DB] Executing ${statements.length} schema statements...`);
-    
+
+    logger.debug(`Executing ${statements.length} schema statements`);
+
     for (let i = 0; i < statements.length; i++) {
       const statement = statements[i];
       try {
         await database.execute(statement);
         if ((i + 1) % 10 === 0) {
-          console.log(`[DB] Progress: ${i + 1}/${statements.length} statements executed`);
+          logger.debug(`Progress: ${i + 1}/${statements.length} statements executed`);
         }
       } catch (error) {
-        console.error(`[DB] Failed to execute statement ${i + 1}:`, statement.substring(0, 100));
-        console.error(`[DB] Error:`, error);
+        logger.error(`Failed to execute statement ${i + 1}`, error as Error, { statement: statement.substring(0, 100) });
         throw error;
       }
     }
-    
-    console.log('[DB] Database schema initialized successfully');
+
+    logger.info('Database schema initialized successfully');
   } catch (error) {
-    console.error('[DB] Failed to initialize database:', error);
+    logger.error('Failed to initialize database', error as Error);
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    console.error('[DB] Error stack:', errorStack);
     throw new Error(`Database initialization failed: ${errorMessage}`);
   }
 }
@@ -92,23 +90,23 @@ async function setSchemaVersion(version: number): Promise<void> {
 export async function runMigrations(): Promise<void> {
   try {
     const currentVersion = await getSchemaVersion();
-    
+
     if (currentVersion >= CURRENT_VERSION) {
-      console.log(`[DB] Schema is up to date (version ${currentVersion})`);
+      logger.info(`Schema is up to date`, { version: currentVersion });
       return;
     }
-    
-    console.log(`[DB] Migrating from version ${currentVersion} to ${CURRENT_VERSION}...`);
-    
+
+    logger.info(`Migrating schema`, { from: currentVersion, to: CURRENT_VERSION });
+
     // Run migrations sequentially (each statement auto-commits in SQLite)
     for (let v = currentVersion + 1; v <= CURRENT_VERSION; v++) {
       await applyMigration(v);
     }
-    
+
     await setSchemaVersion(CURRENT_VERSION);
-    console.log(`[DB] Migration complete (version ${CURRENT_VERSION})`);
+    logger.info(`Migration complete`, { version: CURRENT_VERSION });
   } catch (error) {
-    console.error('[DB] Migration failed:', error);
+    logger.error('Migration failed', error as Error);
     throw error;
   }
 }
@@ -118,7 +116,7 @@ export async function runMigrations(): Promise<void> {
  * Each statement auto-commits in SQLite when not in explicit transaction
  */
 async function applyMigration(version: number): Promise<void> {
-  console.log(`[DB] Applying migration v${version}...`);
+  logger.info(`Applying migration`, { version });
   
   switch (version) {
     case 1:
@@ -155,11 +153,11 @@ async function applyMigration(version: number): Promise<void> {
         
         if (expensesNewExists.length > 0 && expensesExists.length === 0) {
           // Previous migration dropped expenses but didn't rename expenses_new
-          console.log('[DB] Recovering from incomplete migration - renaming expenses_new to expenses...');
+          logger.info('Recovering from incomplete migration - renaming expenses_new to expenses');
           await execute(`ALTER TABLE expenses_new RENAME TO expenses`);
         } else if (expensesExists.length === 0 && expensesNewExists.length === 0) {
           // Neither table exists - create fresh expenses table
-          console.log('[DB] Creating expenses table (was missing)...');
+          logger.info('Creating expenses table (was missing)');
           await execute(`
             CREATE TABLE IF NOT EXISTS expenses (
               id TEXT PRIMARY KEY,
@@ -187,7 +185,7 @@ async function applyMigration(version: number): Promise<void> {
           const hasCheckConstraint = tableInfo[0]?.sql?.includes('CHECK');
           
           if (hasCheckConstraint) {
-            console.log('[DB] Migrating expenses table to remove CHECK constraint...');
+            logger.info('Migrating expenses table to remove CHECK constraint');
             
             // Drop expenses_new if it exists from a previous failed attempt
             await execute(`DROP TABLE IF EXISTS expenses_new`);
@@ -223,10 +221,10 @@ async function applyMigration(version: number): Promise<void> {
             
             // Rename new table
             await execute(`ALTER TABLE expenses_new RENAME TO expenses`);
-            
-            console.log('[DB] Expenses table migrated successfully');
+
+            logger.info('Expenses table migrated successfully');
           } else {
-            console.log('[DB] Expenses table already migrated, skipping...');
+            logger.debug('Expenses table already migrated, skipping');
           }
         }
         
@@ -242,14 +240,14 @@ async function applyMigration(version: number): Promise<void> {
         `);
         
       } catch (error) {
-        console.error('[DB] Error checking/migrating expenses table:', error);
+        logger.error('Error checking/migrating expenses table', error as Error);
         throw error;
       }
       break;
-    
+
     case 3: {
       // Migration 3: Add document management system
-      console.log('[DB] Creating document management tables...');
+      logger.info('Creating document management tables');
       
       // Create document_tags table
       await execute(`
@@ -349,7 +347,7 @@ async function applyMigration(version: number): Promise<void> {
       `);
       
       // Seed predefined document tags
-      console.log('[DB] Seeding predefined document tags...');
+      logger.debug('Seeding predefined document tags');
       const predefinedTags = [
         { name: 'Invoice', color: '#3B82F6' },           // Blue
         { name: 'Receipt', color: '#10B981' },           // Green
@@ -374,14 +372,14 @@ async function applyMigration(version: number): Promise<void> {
           [tagId, tag.name, tag.color]
         );
       }
-      
-      console.log('[DB] Document management tables and tags created successfully');
+
+      logger.info('Document management tables and tags created successfully');
       break;
     }
 
     case 4: {
       // Migration 4: Add contacts management system
-      console.log('[DB] Creating contacts management tables...');
+      logger.info('Creating contacts management tables');
 
       // Create contact_categories table (predefined + custom categories)
       await execute(`
@@ -447,7 +445,7 @@ async function applyMigration(version: number): Promise<void> {
       `);
 
       // Seed predefined contact categories
-      console.log('[DB] Seeding predefined contact categories...');
+      logger.debug('Seeding predefined contact categories');
       const predefinedCategories = [
         { name: 'Client', color: '#3B82F6' },           // Blue
         { name: 'Shipping Company', color: '#F97316' }, // Orange
@@ -465,19 +463,19 @@ async function applyMigration(version: number): Promise<void> {
         );
       }
 
-      console.log('[DB] Contacts management tables and categories created successfully');
+      logger.info('Contacts management tables and categories created successfully');
       break;
     }
 
     case 5: {
       // Migration 5: Add company_name column to contacts table
-      console.log('[DB] Adding company_name column to contacts table...');
+      logger.info('Adding company_name column to contacts table');
 
       await execute(`
         ALTER TABLE contacts ADD COLUMN company_name TEXT
       `);
 
-      console.log('[DB] Company name column added to contacts table successfully');
+      logger.info('Company name column added to contacts table successfully');
       break;
     }
 

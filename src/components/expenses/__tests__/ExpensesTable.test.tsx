@@ -71,8 +71,8 @@ const mockExpenses: Expense[] = [
 ];
 
 const mockDogs: Dog[] = [
-  { id: 'dog-1', name: 'Bella', breed: 'French Bulldog', gender: 'female', status: 'active', createdAt: new Date(), updatedAt: new Date() },
-  { id: 'dog-2', name: 'Max', breed: 'French Bulldog', gender: 'male', status: 'active', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'dog-1', name: 'Bella', breed: 'French Bulldog', sex: 'F', status: 'active', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'dog-2', name: 'Max', breed: 'French Bulldog', sex: 'M', status: 'active', createdAt: new Date(), updatedAt: new Date() },
 ];
 
 const defaultProps = {
