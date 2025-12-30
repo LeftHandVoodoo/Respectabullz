@@ -88,9 +88,9 @@ For testing releases:
 
 ## Current Version
 
-**1.9.0** (2025-12-24) - Current Release
+**1.9.3** (2025-12-29) - Current Release
 
-Minor release - Contact Enhancements:
+Patch release - Build Optimization:
 - Added company name field to contacts for storing business/company names
 - Displayed in contact list, detail panel, and form
 - Included in contact search functionality

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Build Warnings**: Cleaned up mixed static/dynamic import warnings
+  - Converted all dynamic imports to static imports in `src/lib/db/legacy.ts` and `src/lib/db/migrations.ts`
+  - Removed `await import()` calls for `connection.ts` and `utils.ts` modules
+  - Improves bundling consistency and eliminates build warnings
+
 ## [1.9.3] - 2025-12-29
 
 ### Changed

@@ -13,7 +13,8 @@ import { getVaccinations, getMedicalRecords, getWeightEntries, getGeneticTests, 
 import { getSale, getClient } from './sales';
 import { getExpenses } from './operations';
 import { getBreederSettings } from './settings';
-import { query } from './connection';
+import { query, execute } from './connection';
+import { generateId, nowIso } from './utils';
 import { getHeatCycles } from './breeding';
 import { getLitters, getLitter } from './litters';
 import type { Client, PuppyHealthTaskType } from '@/types';
@@ -465,8 +466,6 @@ export async function importDatabase(data: string): Promise<boolean> {
  * Clear all database data
  */
 export async function clearDatabase(): Promise<void> {
-  const { execute } = await import('./connection');
-  
   // Delete in reverse dependency order
   await execute('DELETE FROM sale_puppies');
   await execute('DELETE FROM sales');
@@ -501,9 +500,6 @@ export async function clearDatabase(): Promise<void> {
  * Seed database with comprehensive sample data for testing all app functionality
  */
 export async function seedDatabase(): Promise<void> {
-  const { execute, query } = await import('./connection');
-  const { generateId, nowIso } = await import('./utils');
-  
   // Check if data already exists
   const existingDogs = await query<{ count: number }>('SELECT COUNT(*) as count FROM dogs');
   if (existingDogs[0]?.count > 0) {

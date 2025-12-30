@@ -1,7 +1,7 @@
 // Database migrations
 // Handles schema initialization and version upgrades
 
-import { query, execute } from './connection';
+import { query, execute, getDatabase } from './connection';
 import { SCHEMA_SQL } from './schema';
 
 // Current schema version - increment when schema changes
@@ -15,8 +15,7 @@ export async function initializeDatabase(): Promise<void> {
   console.log('[DB] Initializing database schema...');
   
   try {
-    // Import connection to ensure database is loaded
-    const { getDatabase } = await import('./connection');
+    // Get database connection
     const database = await getDatabase();
     
     // Execute the schema SQL (creates tables if not exist)
@@ -80,7 +79,6 @@ export async function getSchemaVersion(): Promise<number> {
  * Update the schema version in the database
  */
 async function setSchemaVersion(version: number): Promise<void> {
-  const { getDatabase } = await import('./connection');
   const database = await getDatabase();
   await database.execute(
     'UPDATE _schema_version SET version = ?, applied_at = datetime("now") WHERE id = 1',

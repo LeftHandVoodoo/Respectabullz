@@ -1,26 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Plus, Search, Download, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Dog, Eye, RotateCcw, FileText, Paperclip } from 'lucide-react';
-import {
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from 'recharts';
+import { Plus, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { VirtualTable, VirtualTableColumn } from '@/components/ui/virtual-table';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Dialog,
   DialogContent,
@@ -28,14 +9,18 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MultiSelect, MultiSelectOption } from '@/components/ui/multi-select';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { MultiSelectOption } from '@/components/ui/multi-select';
 import { useExpenses, useDeleteExpense } from '@/hooks/useExpenses';
 import { useExpenseCategories } from '@/hooks/useExpenseCategories';
 import { useDogs } from '@/hooks/useDogs';
 import { ExpenseFormDialog } from '@/components/expenses/ExpenseFormDialog';
 import { ExpenseDocumentsDialog } from '@/components/expenses/ExpenseDocumentsDialog';
-import { useDocumentCountForExpense } from '@/hooks/useDocuments';
+import { ExpensesChart } from '@/components/expenses/ExpensesChart';
+import { ExpensesFilters } from '@/components/expenses/ExpensesFilters';
+import { ExpensesTable } from '@/components/expenses/ExpensesTable';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
 import { isTauriEnvironment } from '@/lib/backupUtils';
@@ -44,7 +29,7 @@ import { writeFile } from '@tauri-apps/plugin-fs';
 import ExcelJS from 'exceljs';
 import type { Expense } from '@/types';
 
-// Built-in category colors
+// Built-in category colors and names (used for category options)
 const BUILT_IN_CATEGORY_COLORS: Record<string, string> = {
   breeding: '#a855f7',
   equipment: '#0ea5e9',
@@ -62,7 +47,6 @@ const BUILT_IN_CATEGORY_COLORS: Record<string, string> = {
   vet: '#ef4444',
 };
 
-// Built-in categories with their display names
 const BUILT_IN_CATEGORIES: Record<string, string> = {
   breeding: 'Breeding',
   equipment: 'Equipment',
@@ -80,20 +64,14 @@ const BUILT_IN_CATEGORIES: Record<string, string> = {
   vet: 'Vet',
 };
 
-// Generate a color from category name (deterministic)
 function getCategoryColor(category: string, customCategories?: Array<{ name: string; color?: string | null }>): string {
-  // Check if it's a built-in category
   if (BUILT_IN_CATEGORY_COLORS[category]) {
     return BUILT_IN_CATEGORY_COLORS[category];
   }
-
-  // Check if it's a custom category with a color
   const customCat = customCategories?.find(c => c.name === category);
   if (customCat?.color) {
     return customCat.color;
   }
-
-  // Generate a deterministic color from the category name
   let hash = 0;
   for (let i = 0; i < category.length; i++) {
     hash = category.charCodeAt(i) + ((hash << 5) - hash);
@@ -102,14 +80,10 @@ function getCategoryColor(category: string, customCategories?: Array<{ name: str
   return `hsl(${hue}, 65%, 50%)`;
 }
 
-// Get display name for a category (properly capitalized)
 function getCategoryDisplayName(category: string): string {
-  // Check if it's a built-in category with a display name
   if (BUILT_IN_CATEGORIES[category]) {
     return BUILT_IN_CATEGORIES[category];
   }
-
-  // For custom/unknown categories, capitalize first letter of each word
   return category
     .split(/[_\s]+/)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -119,49 +93,6 @@ function getCategoryDisplayName(category: string): string {
 type SortColumn = 'date' | 'category' | 'dog' | 'vendor' | 'description' | 'amount' | 'taxDeductible' | null;
 type SortDirection = 'asc' | 'desc';
 type Timeframe = '7days' | '30days' | '90days' | 'month' | 'custom';
-
-// Extracted SortIcon component to avoid recreation during render
-function SortIcon({ column, sortColumn, sortDirection }: {
-  column: SortColumn;
-  sortColumn: SortColumn;
-  sortDirection: SortDirection;
-}) {
-  if (sortColumn !== column) {
-    return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
-  }
-  return sortDirection === 'asc' ? (
-    <ArrowUp className="ml-2 h-4 w-4" />
-  ) : (
-    <ArrowDown className="ml-2 h-4 w-4" />
-  );
-}
-
-// Component to show document count for an expense
-function ExpenseDocumentCount({ expense, onClick }: { expense: Expense; onClick: (expense: Expense) => void }) {
-  const { data: count = 0 } = useDocumentCountForExpense(expense.id);
-  
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-8 gap-1 px-2"
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick(expense);
-      }}
-      title={count > 0 ? `${count} document${count !== 1 ? 's' : ''} attached` : 'Add documents'}
-    >
-      {count > 0 ? (
-        <>
-          <FileText className="h-4 w-4 text-primary" />
-          <span className="text-xs">{count}</span>
-        </>
-      ) : (
-        <Paperclip className="h-4 w-4 text-muted-foreground" />
-      )}
-    </Button>
-  );
-}
 
 export function ExpensesPage() {
   const { data: expenses, isLoading } = useExpenses();
@@ -194,12 +125,10 @@ export function ExpensesPage() {
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
 
   // Build category options for multi-select
-  // Include: built-in categories + custom categories + any categories used in existing expenses
   const categoryOptions: MultiSelectOption[] = useMemo(() => {
-    // Use lowercase keys for deduplication, but preserve original values
     const categoryMap = new Map<string, MultiSelectOption>();
 
-    // Add built-in categories first (these take priority)
+    // Add built-in categories first
     Object.entries(BUILT_IN_CATEGORIES).forEach(([value, label]) => {
       categoryMap.set(value.toLowerCase(), {
         value,
@@ -208,7 +137,7 @@ export function ExpensesPage() {
       });
     });
 
-    // Add custom categories from database (skip if matches built-in, case-insensitive)
+    // Add custom categories
     (customCategories || []).forEach((cat) => {
       const key = cat.name.toLowerCase();
       if (!categoryMap.has(key)) {
@@ -220,7 +149,7 @@ export function ExpensesPage() {
       }
     });
 
-    // Add categories from existing expenses (catches any orphaned categories)
+    // Add categories from existing expenses
     (expenses || []).forEach((expense) => {
       if (expense.category) {
         const key = expense.category.toLowerCase();
@@ -237,16 +166,14 @@ export function ExpensesPage() {
     return Array.from(categoryMap.values()).sort((a, b) => a.label.localeCompare(b.label));
   }, [customCategories, expenses]);
 
-  // Build dog options for multi-select (only dogs that have expenses)
+  // Build dog options for multi-select
   const dogOptions: MultiSelectOption[] = useMemo(() => {
     if (!expenses || !dogs) return [];
     
-    // Get unique dog IDs from expenses
     const dogIdsWithExpenses = new Set(
       expenses.filter(e => e.relatedDogId).map(e => e.relatedDogId!)
     );
     
-    // Filter dogs to only those with expenses
     return dogs
       .filter(dog => dogIdsWithExpenses.has(dog.id))
       .map(dog => ({
@@ -268,89 +195,23 @@ export function ExpensesPage() {
     }
   };
 
-  // Calculate date range based on timeframe
-  const getDateRange = useMemo(() => {
-    const now = new Date();
-    now.setHours(23, 59, 59, 999); // End of today
-    
-    let startDate: Date;
-    let endDate: Date = now;
-
-    switch (timeframe) {
-      case '7days':
-        startDate = new Date(now);
-        startDate.setDate(startDate.getDate() - 7);
-        startDate.setHours(0, 0, 0, 0);
-        break;
-      case '30days':
-        startDate = new Date(now);
-        startDate.setDate(startDate.getDate() - 30);
-        startDate.setHours(0, 0, 0, 0);
-        break;
-      case '90days':
-        startDate = new Date(now);
-        startDate.setDate(startDate.getDate() - 90);
-        startDate.setHours(0, 0, 0, 0);
-        break;
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        startDate.setHours(0, 0, 0, 0);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      case 'custom':
-        if (customStartDate && customEndDate) {
-          startDate = new Date(customStartDate);
-          startDate.setHours(0, 0, 0, 0);
-          endDate = new Date(customEndDate);
-          endDate.setHours(23, 59, 59, 999);
-        } else {
-          // Default to all time if custom dates not set
-          startDate = new Date(0);
-          endDate = now;
-        }
-        break;
-      default:
-        startDate = new Date(now);
-        startDate.setDate(startDate.getDate() - 30);
-        startDate.setHours(0, 0, 0, 0);
-    }
-
-    return { startDate, endDate };
-  }, [timeframe, customStartDate, customEndDate]);
-
-  // Filter expenses by date range for pie chart
-  const expensesForChart = useMemo(() => {
-    if (!expenses) return [];
-    const { startDate, endDate } = getDateRange;
-    return expenses.filter((expense) => {
-      const expenseDate = expense.date instanceof Date 
-        ? expense.date 
-        : new Date(expense.date);
-      return expenseDate >= startDate && expenseDate <= endDate;
-    });
-  }, [expenses, getDateRange]);
-
   // Filter expenses based on all criteria (search, categories, dogs)
   const filteredExpenses = useMemo(() => {
     if (!expenses) return [];
     
     let filtered = expenses.filter((expense) => {
-      // Search filter
       const matchesSearch =
         !search ||
         expense.vendorName?.toLowerCase().includes(search.toLowerCase()) ||
         expense.description?.toLowerCase().includes(search.toLowerCase());
 
-      // Category filter (if no categories selected, show all)
       const matchesCategory =
         selectedCategories.length === 0 || selectedCategories.includes(expense.category);
 
-      // Dog filter (if no dogs selected, show all; always show expenses without a dog)
       const matchesDog =
         selectedDogs.length === 0 || 
         (expense.relatedDogId && selectedDogs.includes(expense.relatedDogId)) ||
-        !expense.relatedDogId; // Always include expenses without a related dog
+        !expense.relatedDogId;
 
       return matchesSearch && matchesCategory && matchesDog;
     });
@@ -377,7 +238,6 @@ export function ExpensesPage() {
         } else if (sortColumn === 'description') {
           comparison = (a.description || '').localeCompare(b.description || '');
         } else if (sortColumn === 'taxDeductible') {
-          // Sort by tax deductible status (true first, then false)
           comparison = (a.isTaxDeductible ? 1 : 0) - (b.isTaxDeductible ? 1 : 0);
         }
         
@@ -401,7 +261,6 @@ export function ExpensesPage() {
     });
   };
 
-  // Include all / Exclude all handlers
   const includeAllExpenses = () => {
     setExcludedExpenseIds(new Set());
   };
@@ -410,7 +269,6 @@ export function ExpensesPage() {
     setExcludedExpenseIds(new Set(filteredExpenses.map(e => e.id)));
   }, [filteredExpenses]);
 
-  // Reset all filters and exclusions
   const resetFilters = () => {
     setSearch('');
     setSelectedCategories([]);
@@ -420,240 +278,22 @@ export function ExpensesPage() {
 
   const handleSort = useCallback((column: SortColumn) => {
     if (sortColumn === column) {
-      // Toggle direction if clicking the same column
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      // Set new column with default direction
       setSortColumn(column);
-      setSortDirection(column === 'date' ? 'desc' : 'desc'); // Default to desc for both
+      setSortDirection('desc');
     }
   }, [sortColumn, sortDirection]);
 
-  // Calculate totals - filtered total and included total (excluding excluded items)
+  // Calculate totals
   const filteredTotal = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
   const includedExpenses = filteredExpenses.filter(e => !excludedExpenseIds.has(e.id));
   const includedTotal = includedExpenses.reduce((sum, e) => sum + e.amount, 0);
   const excludedCount = excludedExpenseIds.size;
   const hasExclusions = excludedCount > 0 && filteredExpenses.some(e => excludedExpenseIds.has(e.id));
-
-  const expenseColumns: VirtualTableColumn<Expense>[] = useMemo(() => [
-    {
-      key: 'include',
-      header: (
-        <div className="flex items-center justify-center">
-          <Checkbox
-            checked={filteredExpenses.length > 0 && filteredExpenses.every(e => !excludedExpenseIds.has(e.id))}
-            onCheckedChange={(checked) => {
-              if (checked) {
-                includeAllExpenses();
-              } else {
-                excludeAllExpenses();
-              }
-            }}
-            aria-label="Toggle all"
-          />
-        </div>
-      ),
-      width: '50px',
-      cell: (expense) => (
-        <div className="flex items-center justify-center">
-          <Checkbox
-            checked={!excludedExpenseIds.has(expense.id)}
-            onCheckedChange={() => toggleExpenseExclusion(expense.id)}
-            aria-label={excludedExpenseIds.has(expense.id) ? 'Include in total' : 'Exclude from total'}
-          />
-        </div>
-      ),
-    },
-    {
-      key: 'date',
-      header: (
-        <>
-          Date
-          <SortIcon column="date" sortColumn={sortColumn} sortDirection={sortDirection} />
-        </>
-      ),
-      sortable: true,
-      onSort: () => handleSort('date'),
-      cell: (expense) => (
-        <span className={excludedExpenseIds.has(expense.id) ? 'text-muted-foreground line-through' : ''}>
-          {formatDate(expense.date)}
-        </span>
-      ),
-    },
-    {
-      key: 'category',
-      header: (
-        <>
-          Category
-          <SortIcon column="category" sortColumn={sortColumn} sortDirection={sortDirection} />
-        </>
-      ),
-      sortable: true,
-      onSort: () => handleSort('category'),
-      cell: (expense) => {
-        const color = getCategoryColor(expense.category, customCategories);
-        return (
-          <Badge
-            variant="outline"
-            style={{
-              borderColor: color,
-              color: color,
-              opacity: excludedExpenseIds.has(expense.id) ? 0.5 : 1,
-            }}
-          >
-            {getCategoryDisplayName(expense.category)}
-          </Badge>
-        );
-      },
-    },
-    {
-      key: 'dog',
-      header: (
-        <>
-          Dog
-          <SortIcon column="dog" sortColumn={sortColumn} sortDirection={sortDirection} />
-        </>
-      ),
-      sortable: true,
-      onSort: () => handleSort('dog'),
-      cell: (expense) => {
-        const dog = dogs?.find(d => d.id === expense.relatedDogId);
-        return (
-          <span className={excludedExpenseIds.has(expense.id) ? 'text-muted-foreground' : ''}>
-            {dog?.name || '-'}
-          </span>
-        );
-      },
-    },
-    {
-      key: 'vendor',
-      header: (
-        <>
-          Vendor
-          <SortIcon column="vendor" sortColumn={sortColumn} sortDirection={sortDirection} />
-        </>
-      ),
-      sortable: true,
-      onSort: () => handleSort('vendor'),
-      cell: (expense) => (
-        <span className={excludedExpenseIds.has(expense.id) ? 'text-muted-foreground line-through' : ''}>
-          {expense.vendorName || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'description',
-      header: (
-        <>
-          Description
-          <SortIcon column="description" sortColumn={sortColumn} sortDirection={sortDirection} />
-        </>
-      ),
-      cellClassName: 'max-w-[200px] truncate',
-      sortable: true,
-      onSort: () => handleSort('description'),
-      cell: (expense) => (
-        <span className={excludedExpenseIds.has(expense.id) ? 'text-muted-foreground' : ''}>
-          {expense.description || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'amount',
-      header: (
-        <>
-          Amount
-          <SortIcon column="amount" sortColumn={sortColumn} sortDirection={sortDirection} />
-        </>
-      ),
-      headerClassName: 'text-right',
-      cellClassName: 'text-right font-medium',
-      sortable: true,
-      onSort: () => handleSort('amount'),
-      cell: (expense) => (
-        <span className={excludedExpenseIds.has(expense.id) ? 'text-muted-foreground line-through' : ''}>
-          {formatCurrency(expense.amount)}
-        </span>
-      ),
-    },
-    {
-      key: 'taxDeductible',
-      header: (
-        <>
-          Tax Deductible
-          <SortIcon column="taxDeductible" sortColumn={sortColumn} sortDirection={sortDirection} />
-        </>
-      ),
-      sortable: true,
-      onSort: () => handleSort('taxDeductible'),
-      cell: (expense) =>
-        expense.isTaxDeductible ? (
-          <Badge variant="success" style={{ opacity: excludedExpenseIds.has(expense.id) ? 0.5 : 1 }}>
-            Yes
-          </Badge>
-        ) : (
-          <Badge variant="outline" style={{ opacity: excludedExpenseIds.has(expense.id) ? 0.5 : 1 }}>
-            No
-          </Badge>
-        ),
-    },
-    {
-      key: 'documents',
-      header: 'Docs',
-      width: '60px',
-      cell: (expense) => <ExpenseDocumentCount expense={expense} onClick={setExpenseForDocs} />,
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      width: '80px',
-      cell: (expense) => (
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEdit(expense);
-            }}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={(e) => {
-              e.stopPropagation();
-              setExpenseToDelete(expense);
-            }}
-          >
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
-        </div>
-      ),
-    },
-  ], [sortColumn, sortDirection, excludedExpenseIds, filteredExpenses, dogs, customCategories, handleSort, excludeAllExpenses]);
-
-  const categoryData = useMemo(() => {
-    if (!expensesForChart) return [];
-    const grouped = expensesForChart.reduce((acc, expense) => {
-      const category = expense.category;
-      acc[category] = (acc[category] || 0) + expense.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(grouped).map(([name, value]) => ({
-      name,
-      value,
-      color: getCategoryColor(name, customCategories),
-    }));
-  }, [expensesForChart, customCategories]);
+  const hasActiveFilters = selectedCategories.length > 0 || selectedDogs.length > 0 || search.length > 0;
 
   const handleExportExcel = async () => {
-    // Export only included expenses (not excluded ones)
     const expensesToExport = includedExpenses;
 
     if (!expensesToExport || expensesToExport.length === 0) {
@@ -665,7 +305,6 @@ export function ExpensesPage() {
       return;
     }
 
-    // Helper to capitalize first letter of each word
     const capitalizeCategory = (category: string): string => {
       return category
         .split(/[_\s]+/)
@@ -673,20 +312,15 @@ export function ExpensesPage() {
         .join(' ');
     };
 
-    // Helper to extract call name from full registered name
-    // e.g., "Respectabullz Luna" -> "Luna", "CH Respectabullz Thunder" -> "Thunder"
     const getCallName = (fullName: string): string => {
       if (!fullName) return '';
       const words = fullName.trim().split(/\s+/);
-      // Return the last word as the call name
       return words[words.length - 1];
     };
 
-    // Create workbook and worksheet
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Expenses');
 
-    // Define columns with headers and widths
     worksheet.columns = [
       { header: 'Date', key: 'date', width: 14 },
       { header: 'Category', key: 'category', width: 14 },
@@ -697,12 +331,10 @@ export function ExpensesPage() {
       { header: 'Tax Deductible', key: 'taxDeductible', width: 14 },
     ];
 
-    // Style header row (row 1) - bold and underlined
     const headerRow = worksheet.getRow(1);
     headerRow.font = { bold: true, underline: true };
     headerRow.commit();
 
-    // Add data rows
     expensesToExport.forEach((e) => {
       const dog = dogs?.find(d => d.id === e.relatedDogId);
       worksheet.addRow({
@@ -716,17 +348,13 @@ export function ExpensesPage() {
       });
     });
 
-    // Apply accounting format to Amount column (column F)
     worksheet.getColumn('amount').numFmt = '"$"#,##0.00';
 
-    // Generate Excel file as array buffer
     const excelBuffer = await workbook.xlsx.writeBuffer();
     const filename = `expenses-${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    // Check if running in Tauri environment
     if (isTauriEnvironment()) {
       try {
-        // Prompt user for save location
         const savePath = await save({
           defaultPath: filename,
           filters: [{
@@ -736,14 +364,11 @@ export function ExpensesPage() {
         });
 
         if (!savePath) {
-          // User cancelled the dialog
           return;
         }
 
-        // Write the file
         await writeFile(savePath, new Uint8Array(excelBuffer));
 
-        // Show success confirmation
         toast({
           title: 'Export successful',
           description: `Expenses exported to ${savePath}`,
@@ -757,7 +382,6 @@ export function ExpensesPage() {
         });
       }
     } else {
-      // Fallback to browser download for non-Tauri environments
       const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -772,8 +396,6 @@ export function ExpensesPage() {
       });
     }
   };
-
-  const hasActiveFilters = selectedCategories.length > 0 || selectedDogs.length > 0 || search.length > 0;
 
   return (
     <div className="space-y-6">
@@ -820,205 +442,50 @@ export function ExpensesPage() {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-sm font-medium">By Category</CardTitle>
-              <div className="flex items-center gap-2">
-                <Select value={timeframe} onValueChange={(value) => {
-                  const newTimeframe = value as Timeframe;
-                  if (newTimeframe === 'custom') {
-                    if (!customStartDate || !customEndDate) {
-                      setShowCustomDateDialog(true);
-                    } else {
-                      setTimeframe(newTimeframe);
-                    }
-                  } else {
-                    setTimeframe(newTimeframe);
-                  }
-                }}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs">
-                    <Calendar className="mr-2 h-3 w-3" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="7days">Last 7 Days</SelectItem>
-                    <SelectItem value="30days">Last 30 Days</SelectItem>
-                    <SelectItem value="90days">Last 90 Days</SelectItem>
-                    <SelectItem value="month">This Month</SelectItem>
-                    <SelectItem value="custom">Custom Range</SelectItem>
-                  </SelectContent>
-                </Select>
-                {timeframe === 'custom' && customStartDate && customEndDate && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-xs"
-                    onClick={() => setShowCustomDateDialog(true)}
-                    title="Edit date range"
-                  >
-                    <Calendar className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-            </div>
-            {timeframe === 'custom' && customStartDate && customEndDate && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {formatDate(customStartDate)} - {formatDate(customEndDate)}
-              </p>
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className="h-[150px]">
-              {categoryData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={categoryData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={40}
-                      outerRadius={60}
-                      dataKey="value"
-                    >
-                      {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: number) => formatCurrency(value)}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                  No expenses in selected timeframe
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <ExpensesChart
+          expenses={expenses || []}
+          customCategories={customCategories}
+          timeframe={timeframe}
+          customStartDate={customStartDate}
+          customEndDate={customEndDate}
+          onTimeframeChange={setTimeframe}
+          onCustomDateClick={() => setShowCustomDateDialog(true)}
+        />
       </div>
 
       {/* Filters */}
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search expenses..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          
-          <MultiSelect
-            options={categoryOptions}
-            selected={selectedCategories}
-            onChange={setSelectedCategories}
-            placeholder="All Categories"
-            className="w-[180px]"
-            searchable={false}
-          />
-          
-          {dogOptions.length > 0 && (
-            <MultiSelect
-              options={dogOptions}
-              selected={selectedDogs}
-              onChange={setSelectedDogs}
-              placeholder="All Dogs"
-              className="w-[180px]"
-            />
-          )}
-
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={resetFilters}
-              className="h-10"
-            >
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Reset Filters
-            </Button>
-          )}
-        </div>
-
-        {/* Active filter badges */}
-        {hasActiveFilters && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-muted-foreground">Active filters:</span>
-            {selectedCategories.map((cat) => {
-              const option = categoryOptions.find(o => o.value === cat);
-              return (
-                <Badge
-                  key={cat}
-                  variant="secondary"
-                  className="cursor-pointer"
-                  onClick={() => setSelectedCategories(selectedCategories.filter(c => c !== cat))}
-                >
-                  {option?.label || cat}
-                  <span className="ml-1">×</span>
-                </Badge>
-              );
-            })}
-            {selectedDogs.map((dogId) => {
-              const option = dogOptions.find(o => o.value === dogId);
-              return (
-                <Badge
-                  key={dogId}
-                  variant="secondary"
-                  className="cursor-pointer"
-                  onClick={() => setSelectedDogs(selectedDogs.filter(d => d !== dogId))}
-                >
-                  <Dog className="mr-1 h-3 w-3" />
-                  {option?.label || dogId}
-                  <span className="ml-1">×</span>
-                </Badge>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Exclusion controls */}
-        {filteredExpenses.length > 0 && (
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-muted-foreground">
-              Use checkboxes to include/exclude expenses from total
-            </span>
-            {hasExclusions && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={includeAllExpenses}
-                className="h-7 text-xs"
-              >
-                <Eye className="mr-1 h-3 w-3" />
-                Include All
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
+      <ExpensesFilters
+        search={search}
+        onSearchChange={setSearch}
+        categoryOptions={categoryOptions}
+        selectedCategories={selectedCategories}
+        onCategoriesChange={setSelectedCategories}
+        dogOptions={dogOptions}
+        selectedDogs={selectedDogs}
+        onDogsChange={setSelectedDogs}
+        excludedExpenseIds={excludedExpenseIds}
+        filteredExpenses={filteredExpenses}
+        onIncludeAll={includeAllExpenses}
+        onResetFilters={resetFilters}
+      />
 
       {/* Table */}
-      <VirtualTable<Expense>
-        data={filteredExpenses}
-        columns={expenseColumns}
-        getRowKey={(expense) => expense.id}
+      <ExpensesTable
+        expenses={filteredExpenses}
         isLoading={isLoading}
-        emptyState={
-          <div>
-            <p className="text-muted-foreground">No expenses found</p>
-            <Button
-              variant="link"
-              onClick={() => setShowAddDialog(true)}
-            >
-              Add first expense
-            </Button>
-          </div>
-        }
+        sortColumn={sortColumn}
+        sortDirection={sortDirection}
+        excludedExpenseIds={excludedExpenseIds}
+        customCategories={customCategories}
+        dogs={dogs}
+        onSort={handleSort}
+        onToggleExclusion={toggleExpenseExclusion}
+        onIncludeAll={includeAllExpenses}
+        onExcludeAll={excludeAllExpenses}
+        onEdit={handleEdit}
+        onDelete={setExpenseToDelete}
+        onViewDocuments={setExpenseForDocs}
+        onAddExpense={() => setShowAddDialog(true)}
       />
 
       <ExpenseFormDialog
@@ -1041,7 +508,6 @@ export function ExpensesPage() {
         }}
       />
 
-      {/* Expense Documents Dialog */}
       {expenseForDocs && (
         <ExpenseDocumentsDialog
           expense={expenseForDocs}
@@ -1054,7 +520,6 @@ export function ExpensesPage() {
       <Dialog open={showCustomDateDialog} onOpenChange={(open) => {
         setShowCustomDateDialog(open);
         if (!open && (!customStartDate || !customEndDate)) {
-          // Reset to default timeframe if dialog closed without setting dates
           setTimeframe('30days');
         }
       }}>
