@@ -1,6 +1,6 @@
 <p align="center">
 
-  <img src="assets/Logo_Vintage.png" alt="Project Logo" width="220">
+  <img src="public/assets/Logo_Vintage.png" alt="Project Logo" width="220">
 
 </p>
 
@@ -235,6 +235,7 @@ npm run test:coverage
 ## Documentation
 
 - [User Manual](docs/USER_MANUAL.md) - Complete user guide for all features
+- [How-To Guide](docs/HOWTO.md) - Step-by-step workflow instructions
 - [Architecture](docs/ARCHITECTURE.md) - System design and structure
 - [Data Model](docs/DATA_MODEL.md) - Database schema documentation
 - [API Reference](docs/API.md) - Internal API documentation
