@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import type { CreateLitterInput, UpdateLitterInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 export function useLitters() {
   return useQuery({
@@ -37,7 +38,7 @@ export function useCreateLitter() {
         description: 'Failed to create litter. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create litter:', error);
+      logger.error('Failed to create litter', error as Error);
     },
   });
 }
@@ -63,7 +64,7 @@ export function useUpdateLitter() {
         description: 'Failed to update litter. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update litter:', error);
+      logger.error('Failed to update litter', error as Error);
     },
   });
 }
@@ -87,7 +88,7 @@ export function useDeleteLitter() {
         description: 'Failed to delete litter. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete litter:', error);
+      logger.error('Failed to delete litter', error as Error);
     },
   });
 }

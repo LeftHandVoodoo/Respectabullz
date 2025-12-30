@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import type { CreateExpenseInput, UpdateExpenseInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 interface ExpenseFilters {
   dogId?: string;
@@ -40,7 +41,7 @@ export function useCreateExpense() {
         description: 'Failed to record expense. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create expense:', error);
+      logger.error('Failed to create expense', error as Error);
     },
   });
 }
@@ -65,7 +66,7 @@ export function useUpdateExpense() {
         description: 'Failed to update expense. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update expense:', error);
+      logger.error('Failed to update expense', error as Error);
     },
   });
 }
@@ -91,7 +92,7 @@ export function useDeleteExpense() {
         description: 'Failed to delete expense. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete expense:', error);
+      logger.error('Failed to delete expense', error as Error);
     },
   });
 }

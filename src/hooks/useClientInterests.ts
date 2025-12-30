@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import type { CreateClientInterestInput, UpdateClientInterestInput, CreateSaleInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 // Get all client interests
 export function useClientInterests() {
@@ -59,7 +60,7 @@ export function useCreateClientInterest() {
         description: 'Failed to record interest. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create client interest:', error);
+      logger.error('Failed to create client interest', error as Error);
     },
   });
 }
@@ -86,7 +87,7 @@ export function useUpdateClientInterest() {
         description: 'Failed to update interest. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update client interest:', error);
+      logger.error('Failed to update client interest', error as Error);
     },
   });
 }
@@ -111,7 +112,7 @@ export function useDeleteClientInterest() {
         description: 'Failed to delete interest. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete client interest:', error);
+      logger.error('Failed to delete client interest', error as Error);
     },
   });
 }
@@ -143,7 +144,7 @@ export function useConvertInterestToSale() {
         description: 'Failed to convert interest to sale. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to convert interest to sale:', error);
+      logger.error('Failed to convert interest to sale', error as Error);
     },
   });
 }

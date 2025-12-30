@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import type { CreateExpenseCategoryInput, UpdateExpenseCategoryInput } from '@/lib/db/expenseCategories';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 export function useExpenseCategories() {
   return useQuery({
@@ -24,7 +25,7 @@ export function useCreateExpenseCategory() {
     },
     onError: (error) => {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Failed to create expense category:', error);
+      logger.error('Failed to create expense category', error as Error);
       
       let description = 'Failed to create category. Please try again.';
       
@@ -65,7 +66,7 @@ export function useUpdateExpenseCategory() {
         description: 'Failed to update category. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update expense category:', error);
+      logger.error('Failed to update expense category', error as Error);
     },
   });
 }
@@ -88,7 +89,7 @@ export function useDeleteExpenseCategory() {
         description: 'Failed to delete category. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete expense category:', error);
+      logger.error('Failed to delete expense category', error as Error);
     },
   });
 }

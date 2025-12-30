@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import type { HeatCycle } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 export function useHeatCycles(bitchId?: string) {
   return useQuery({
@@ -31,7 +32,7 @@ export function useCreateHeatCycle() {
         description: 'Failed to record heat cycle. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create heat cycle:', error);
+      logger.error('Failed to create heat cycle', error as Error);
     },
   });
 }
@@ -57,7 +58,7 @@ export function useUpdateHeatCycle() {
         description: 'Failed to update heat cycle. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update heat cycle:', error);
+      logger.error('Failed to update heat cycle', error as Error);
     },
   });
 }
@@ -82,7 +83,7 @@ export function useDeleteHeatCycle() {
         description: 'Failed to delete heat cycle. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete heat cycle:', error);
+      logger.error('Failed to delete heat cycle', error as Error);
     },
   });
 }

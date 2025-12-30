@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import type { CreateWaitlistEntryInput, UpdateWaitlistEntryInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 export function useWaitlistEntries(litterId?: string) {
   return useQuery({
@@ -51,7 +52,7 @@ export function useCreateWaitlistEntry() {
         description: 'Failed to add to waitlist. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create waitlist entry:', error);
+      logger.error('Failed to create waitlist entry', error as Error);
     },
   });
 }
@@ -75,7 +76,7 @@ export function useUpdateWaitlistEntry() {
         description: 'Failed to update waitlist. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update waitlist entry:', error);
+      logger.error('Failed to update waitlist entry', error as Error);
     },
   });
 }
@@ -98,7 +99,7 @@ export function useDeleteWaitlistEntry() {
         description: 'Failed to remove from waitlist. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete waitlist entry:', error);
+      logger.error('Failed to delete waitlist entry', error as Error);
     },
   });
 }
@@ -118,7 +119,7 @@ export function useReorderWaitlist() {
         description: 'Failed to reorder waitlist. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to reorder waitlist:', error);
+      logger.error('Failed to reorder waitlist', error as Error);
     },
   });
 }
@@ -142,7 +143,7 @@ export function useMatchPuppyToWaitlist() {
         description: 'Failed to match puppy. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to match puppy to waitlist:', error);
+      logger.error('Failed to match puppy to waitlist', error as Error);
     },
   });
 }
@@ -167,7 +168,7 @@ export function useConvertWaitlistToSale() {
         description: 'Failed to convert to sale. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to convert waitlist to sale:', error);
+      logger.error('Failed to convert waitlist to sale', error as Error);
     },
   });
 }

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import type { CreateCommunicationLogInput, UpdateCommunicationLogInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 export function useCommunicationLogs(clientId?: string) {
   return useQuery({
@@ -50,7 +51,7 @@ export function useCreateCommunicationLog() {
         description: 'Failed to log communication. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create communication log:', error);
+      logger.error('Failed to create communication log', error as Error);
     },
   });
 }
@@ -74,7 +75,7 @@ export function useUpdateCommunicationLog() {
         description: 'Failed to update communication. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update communication log:', error);
+      logger.error('Failed to update communication log', error as Error);
     },
   });
 }
@@ -97,7 +98,7 @@ export function useDeleteCommunicationLog() {
         description: 'Failed to delete communication. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete communication log:', error);
+      logger.error('Failed to delete communication log', error as Error);
     },
   });
 }
@@ -120,7 +121,7 @@ export function useCompleteFollowUp() {
         description: 'Failed to complete follow-up. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to complete follow-up:', error);
+      logger.error('Failed to complete follow-up', error as Error);
     },
   });
 }

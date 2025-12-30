@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import type { VaccinationRecord, WeightEntry, MedicalRecord } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 // ============================================
 // VACCINATIONS
@@ -35,7 +36,7 @@ export function useCreateVaccination() {
         description: 'Failed to record vaccination. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create vaccination:', error);
+      logger.error('Failed to create vaccination', error as Error);
     },
   });
 }
@@ -61,7 +62,7 @@ export function useUpdateVaccination() {
         description: 'Failed to update vaccination. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update vaccination:', error);
+      logger.error('Failed to update vaccination', error as Error);
     },
   });
 }
@@ -86,7 +87,7 @@ export function useDeleteVaccination() {
         description: 'Failed to delete vaccination. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete vaccination:', error);
+      logger.error('Failed to delete vaccination', error as Error);
     },
   });
 }
@@ -122,7 +123,7 @@ export function useCreateWeightEntry() {
         description: 'Failed to record weight. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create weight entry:', error);
+      logger.error('Failed to create weight entry', error as Error);
     },
   });
 }
@@ -147,7 +148,7 @@ export function useUpdateWeightEntry() {
         description: 'Failed to update weight entry. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update weight entry:', error);
+      logger.error('Failed to update weight entry', error as Error);
     },
   });
 }
@@ -171,7 +172,7 @@ export function useDeleteWeightEntry() {
         description: 'Failed to delete weight entry. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete weight entry:', error);
+      logger.error('Failed to delete weight entry', error as Error);
     },
   });
 }
@@ -207,7 +208,7 @@ export function useCreateMedicalRecord() {
         description: 'Failed to add medical record. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create medical record:', error);
+      logger.error('Failed to create medical record', error as Error);
     },
   });
 }
@@ -232,7 +233,7 @@ export function useUpdateMedicalRecord() {
         description: 'Failed to update medical record. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update medical record:', error);
+      logger.error('Failed to update medical record', error as Error);
     },
   });
 }
@@ -256,7 +257,7 @@ export function useDeleteMedicalRecord() {
         description: 'Failed to delete medical record. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete medical record:', error);
+      logger.error('Failed to delete medical record', error as Error);
     },
   });
 }

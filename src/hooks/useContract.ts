@@ -16,6 +16,7 @@ import {
   prepareTemplateData,
 } from '@/lib/contractUtils';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 import type { ContractData } from '@/types';
 
 interface GenerateContractOptions {
@@ -81,7 +82,7 @@ export function useGenerateContract() {
           // Fill the template with contract data
           blob = await fillFillableContract(contractData, templateArrayBuffer);
         } catch (error) {
-          console.error('Failed to fill template, falling back to generated:', error);
+          logger.warn('Failed to fill template, falling back to generated', { error });
           // Fallback to generated mode if template fails
           blob = await generateContractDocumentFromJson(contractData);
         }
@@ -97,7 +98,7 @@ export function useGenerateContract() {
       try {
         savedPath = await saveContractToAppData(blob, outputFilename, contractsDirectory);
       } catch (error) {
-        console.warn('Failed to save contract to app data, falling back to download:', error);
+        logger.warn('Failed to save contract to app data, falling back to download', { error });
         if (autoDownload) {
           downloadContract(blob, outputFilename);
         }
@@ -125,7 +126,7 @@ export function useGenerateContract() {
           result.pdfFilename = pdfFilename;
           result.pdfFilePath = pdfPath;
         } catch (error) {
-          console.warn('Failed to save PDF contract to app data:', error);
+          logger.warn('Failed to save PDF contract to app data', { error });
           if (autoDownload) {
             downloadContract(pdfBlob, pdfFilename);
           }
@@ -149,7 +150,7 @@ export function useGenerateContract() {
       });
     },
     onError: (error) => {
-      console.error('Failed to generate contract:', error);
+      logger.error('Failed to generate contract', error as Error);
       toast({
         title: 'Error',
         description: error instanceof Error 
@@ -198,7 +199,7 @@ export async function openContractFile(filePath: string): Promise<void> {
     // Try to open as a URL
     window.open(filePath, '_blank');
   } catch (error) {
-    console.error('Failed to open contract file:', error);
+    logger.error('Failed to open contract file', error as Error);
     toast({
       title: 'Error',
       description: 'Could not open the contract file. Please navigate to it manually.',

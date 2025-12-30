@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import type { CreateDogInput, UpdateDogInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 export function useDogs() {
   return useQuery({
@@ -38,7 +39,7 @@ export function useCreateDog() {
         description: 'Failed to create dog. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create dog:', error);
+      logger.error('Failed to create dog', error as Error);
     },
   });
 }
@@ -65,7 +66,7 @@ export function useUpdateDog() {
         description: 'Failed to update dog. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update dog:', error);
+      logger.error('Failed to update dog', error as Error);
     },
   });
 }
@@ -90,7 +91,7 @@ export function useDeleteDog() {
         description: 'Failed to delete dog. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete dog:', error);
+      logger.error('Failed to delete dog', error as Error);
     },
   });
 }

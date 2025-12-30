@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db/documents';
 import type { CreateDocumentTagInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 /**
  * Get all document tags
@@ -46,7 +47,7 @@ export function useCreateDocumentTag() {
         description: 'Failed to create tag. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create document tag:', error);
+      logger.error('Failed to create document tag', error as Error);
     },
   });
 }
@@ -73,7 +74,7 @@ export function useDeleteDocumentTag() {
         description: 'Failed to delete tag. Only custom tags can be deleted.',
         variant: 'destructive',
       });
-      console.error('Failed to delete document tag:', error);
+      logger.error('Failed to delete document tag', error as Error);
     },
   });
 }
@@ -97,7 +98,7 @@ export function useAddTagToDocument() {
         description: 'Failed to add tag. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to add tag to document:', error);
+      logger.error('Failed to add tag to document', error as Error);
     },
   });
 }
@@ -121,7 +122,7 @@ export function useRemoveTagFromDocument() {
         description: 'Failed to remove tag. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to remove tag from document:', error);
+      logger.error('Failed to remove tag from document', error as Error);
     },
   });
 }
@@ -145,7 +146,7 @@ export function useSetDocumentTags() {
         description: 'Failed to update tags. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to set document tags:', error);
+      logger.error('Failed to set document tags', error as Error);
     },
   });
 }

@@ -7,6 +7,7 @@ import type {
   UpdateContactCategoryInput,
 } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 // ============================================
 // CONTACTS
@@ -53,7 +54,7 @@ export function useCreateContact() {
         description: 'Failed to create contact. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create contact:', error);
+      logger.error('Failed to create contact', error as Error);
     },
   });
 }
@@ -78,7 +79,7 @@ export function useUpdateContact() {
         description: 'Failed to update contact. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update contact:', error);
+      logger.error('Failed to update contact', error as Error);
     },
   });
 }
@@ -101,7 +102,7 @@ export function useDeleteContact() {
         description: 'Failed to delete contact. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete contact:', error);
+      logger.error('Failed to delete contact', error as Error);
     },
   });
 }
@@ -144,7 +145,7 @@ export function useCreateContactCategory() {
         description: 'Failed to create category. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create contact category:', error);
+      logger.error('Failed to create contact category', error as Error);
     },
   });
 }
@@ -170,7 +171,7 @@ export function useUpdateContactCategory() {
         description: 'Failed to update category. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update contact category:', error);
+      logger.error('Failed to update contact category', error as Error);
     },
   });
 }
@@ -194,7 +195,7 @@ export function useDeleteContactCategory() {
         description: 'Failed to delete category. Only custom categories can be deleted.',
         variant: 'destructive',
       });
-      console.error('Failed to delete contact category:', error);
+      logger.error('Failed to delete contact category', error as Error);
     },
   });
 }
@@ -218,7 +219,7 @@ export function useSetContactCategories() {
         description: 'Failed to update contact categories. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to set contact categories:', error);
+      logger.error('Failed to set contact categories', error as Error);
     },
   });
 }
@@ -238,7 +239,7 @@ export function useAddCategoryToContact() {
         description: 'Failed to add category to contact. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to add category to contact:', error);
+      logger.error('Failed to add category to contact', error as Error);
     },
   });
 }
@@ -258,7 +259,7 @@ export function useRemoveCategoryFromContact() {
         description: 'Failed to remove category from contact. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to remove category from contact:', error);
+      logger.error('Failed to remove category from contact', error as Error);
     },
   });
 }

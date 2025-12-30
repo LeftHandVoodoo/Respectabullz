@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import type { CreateExternalStudInput, UpdateExternalStudInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 export function useExternalStuds() {
   return useQuery({
@@ -36,7 +37,7 @@ export function useCreateExternalStud() {
         description: 'Failed to add stud. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create external stud:', error);
+      logger.error('Failed to create external stud', error as Error);
     },
   });
 }
@@ -60,7 +61,7 @@ export function useUpdateExternalStud() {
         description: 'Failed to update stud. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update external stud:', error);
+      logger.error('Failed to update external stud', error as Error);
     },
   });
 }
@@ -83,7 +84,7 @@ export function useDeleteExternalStud() {
         description: 'Failed to remove stud. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete external stud:', error);
+      logger.error('Failed to delete external stud', error as Error);
     },
   });
 }

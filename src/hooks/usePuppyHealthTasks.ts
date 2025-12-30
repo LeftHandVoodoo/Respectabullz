@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import type { CreatePuppyHealthTaskInput, UpdatePuppyHealthTaskInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 export function usePuppyHealthTasks(litterId?: string, puppyId?: string) {
   return useQuery({
@@ -51,7 +52,7 @@ export function useCreatePuppyHealthTask() {
         description: 'Failed to create task. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create puppy health task:', error);
+      logger.error('Failed to create puppy health task', error as Error);
     },
   });
 }
@@ -76,7 +77,7 @@ export function useUpdatePuppyHealthTask() {
         description: 'Failed to update task. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update puppy health task:', error);
+      logger.error('Failed to update puppy health task', error as Error);
     },
   });
 }
@@ -101,7 +102,7 @@ export function useCompletePuppyHealthTask() {
         description: 'Failed to complete task. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to complete puppy health task:', error);
+      logger.error('Failed to complete puppy health task', error as Error);
     },
   });
 }
@@ -116,7 +117,7 @@ export function useUncompletePuppyHealthTask() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
     onError: (error) => {
-      console.error('Failed to uncomplete puppy health task:', error);
+      logger.error('Failed to uncomplete puppy health task', error as Error);
     },
   });
 }
@@ -140,7 +141,7 @@ export function useDeletePuppyHealthTask() {
         description: 'Failed to delete task. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete puppy health task:', error);
+      logger.error('Failed to delete puppy health task', error as Error);
     },
   });
 }
@@ -168,7 +169,7 @@ export function useGeneratePuppyHealthTasks() {
         description: 'Failed to generate tasks. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to generate puppy health tasks:', error);
+      logger.error('Failed to generate puppy health tasks', error as Error);
     },
   });
 }

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import type { CreateTransportInput, UpdateTransportInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 export function useTransports(dogId?: string) {
   return useQuery({
@@ -33,7 +34,7 @@ export function useCreateTransport() {
         description: 'Failed to record transport. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create transport:', error);
+      logger.error('Failed to create transport', error as Error);
     },
   });
 }
@@ -60,7 +61,7 @@ export function useUpdateTransport() {
         description: 'Failed to update transport. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update transport:', error);
+      logger.error('Failed to update transport', error as Error);
     },
   });
 }
@@ -84,7 +85,7 @@ export function useDeleteTransport() {
         description: 'Failed to delete transport. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete transport:', error);
+      logger.error('Failed to delete transport', error as Error);
     },
   });
 }

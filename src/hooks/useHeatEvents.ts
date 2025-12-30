@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import type { HeatEvent } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/errorTracking';
 
 export function useHeatEvents(heatCycleId: string | undefined) {
   return useQuery({
@@ -40,7 +41,7 @@ export function useCreateHeatEvent() {
         description: 'Failed to record event. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to create heat event:', error);
+      logger.error('Failed to create heat event', error as Error);
     },
   });
 }
@@ -65,7 +66,7 @@ export function useUpdateHeatEvent() {
         description: 'Failed to update event. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to update heat event:', error);
+      logger.error('Failed to update heat event', error as Error);
     },
   });
 }
@@ -89,7 +90,7 @@ export function useDeleteHeatEvent() {
         description: 'Failed to delete event. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to delete heat event:', error);
+      logger.error('Failed to delete heat event', error as Error);
     },
   });
 }

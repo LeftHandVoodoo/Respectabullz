@@ -1,12 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import { toast } from '@/components/ui/use-toast';
-import { 
-  exportBackupWithPhotos, 
-  importBackupWithPhotos, 
+import {
+  exportBackupWithPhotos,
+  importBackupWithPhotos,
   getBackupInfo,
-  isTauriEnvironment 
+  isTauriEnvironment
 } from '@/lib/backupUtils';
+import { logger } from '@/lib/errorTracking';
 
 export function useSettings() {
   return useQuery({
@@ -61,7 +62,7 @@ export function useExportDatabase() {
         description: 'Failed to export database. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to export database:', error);
+      logger.error('Failed to export database', error as Error);
     },
   });
 }
@@ -92,7 +93,7 @@ export function useImportDatabase() {
         description: 'Failed to restore database. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to import database:', error);
+      logger.error('Failed to import database', error as Error);
     },
   });
 }
@@ -115,7 +116,7 @@ export function useClearDatabase() {
         description: 'Failed to clear database. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to clear database:', error);
+      logger.error('Failed to clear database', error as Error);
     },
   });
 }
@@ -154,7 +155,7 @@ export function useExportBackupWithPhotos() {
         description: 'Failed to create backup. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to export backup with photos:', error);
+      logger.error('Failed to export backup with photos', error as Error);
     },
   });
 }
@@ -198,7 +199,7 @@ export function useImportBackupWithPhotos() {
         description: 'Failed to restore backup. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to import backup with photos:', error);
+      logger.error('Failed to import backup with photos', error as Error);
     },
   });
 }
@@ -225,7 +226,7 @@ export function useSeedDatabase() {
         description: errorMessage,
         variant: 'destructive',
       });
-      console.error('Failed to seed database:', error);
+      logger.error('Failed to seed database', error as Error);
     },
   });
 }
@@ -248,7 +249,7 @@ export function useUnseedDatabase() {
         description: 'Failed to remove test data. Please try again.',
         variant: 'destructive',
       });
-      console.error('Failed to unseed database:', error);
+      logger.error('Failed to unseed database', error as Error);
     },
   });
 }
