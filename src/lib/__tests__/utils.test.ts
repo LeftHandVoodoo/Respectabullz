@@ -1,6 +1,6 @@
 // Unit tests for utility functions
 import { describe, it, expect } from 'vitest';
-import { cn, formatDate, parseLocalDate, formatCurrency, formatWeight, calculateAge, generateLitterCode } from '../utils';
+import { cn, formatDate, parseLocalDate, formatCurrency, formatWeight, calculateAge, generateLitterCode, formatPhoneNumber, getCategoryDisplayName } from '../utils';
 
 describe('cn (class name utility)', () => {
   it('merges class names correctly', () => {
@@ -245,6 +245,72 @@ describe('generateLitterCode', () => {
     }
     // With random 3-char suffix, should have many unique codes
     expect(codes.size).toBeGreaterThan(50);
+  });
+});
+
+describe('formatPhoneNumber', () => {
+  it('returns empty string for empty input', () => {
+    expect(formatPhoneNumber('')).toBe('');
+  });
+
+  it('formats partial phone numbers (1-3 digits)', () => {
+    expect(formatPhoneNumber('5')).toBe('(5');
+    expect(formatPhoneNumber('55')).toBe('(55');
+    expect(formatPhoneNumber('555')).toBe('(555');
+  });
+
+  it('formats partial phone numbers (4-6 digits)', () => {
+    expect(formatPhoneNumber('5551')).toBe('(555) 1');
+    expect(formatPhoneNumber('55512')).toBe('(555) 12');
+    expect(formatPhoneNumber('555123')).toBe('(555) 123');
+  });
+
+  it('formats complete phone numbers (7-10 digits)', () => {
+    expect(formatPhoneNumber('5551234')).toBe('(555) 123-4');
+    expect(formatPhoneNumber('55512345')).toBe('(555) 123-45');
+    expect(formatPhoneNumber('555123456')).toBe('(555) 123-456');
+    expect(formatPhoneNumber('5551234567')).toBe('(555) 123-4567');
+  });
+
+  it('strips non-digit characters', () => {
+    expect(formatPhoneNumber('(555) 123-4567')).toBe('(555) 123-4567');
+    expect(formatPhoneNumber('555-123-4567')).toBe('(555) 123-4567');
+    expect(formatPhoneNumber('555.123.4567')).toBe('(555) 123-4567');
+    expect(formatPhoneNumber('555 123 4567')).toBe('(555) 123-4567');
+  });
+
+  it('limits to 10 digits', () => {
+    expect(formatPhoneNumber('55512345678901')).toBe('(555) 123-4567');
+  });
+});
+
+describe('getCategoryDisplayName', () => {
+  it('returns display name for built-in categories', () => {
+    expect(getCategoryDisplayName('breeding')).toBe('Breeding');
+    expect(getCategoryDisplayName('show_fees')).toBe('Show Fees');
+    expect(getCategoryDisplayName('vet')).toBe('Vet');
+    expect(getCategoryDisplayName('misc')).toBe('Misc');
+  });
+
+  it('capitalizes custom categories with underscores', () => {
+    expect(getCategoryDisplayName('custom_category')).toBe('Custom Category');
+    expect(getCategoryDisplayName('my_special_expense')).toBe('My Special Expense');
+  });
+
+  it('capitalizes custom categories with spaces', () => {
+    expect(getCategoryDisplayName('special expense')).toBe('Special Expense');
+  });
+
+  it('handles mixed separators', () => {
+    expect(getCategoryDisplayName('some_mixed category')).toBe('Some Mixed Category');
+  });
+
+  it('handles single word custom categories', () => {
+    expect(getCategoryDisplayName('custom')).toBe('Custom');
+  });
+
+  it('handles already capitalized input', () => {
+    expect(getCategoryDisplayName('LOUD_CATEGORY')).toBe('Loud Category');
   });
 });
 

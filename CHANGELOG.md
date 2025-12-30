@@ -7,8 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Test Coverage**: Added comprehensive tests for expense-related components (IMP-010)
+  - `ExpensesFilters`: 18 tests covering search, category/dog filters, active badges, reset functionality
+  - `ExpensesTable`: 21 tests covering table rendering, sorting, exclusion checkboxes, action buttons
+  - `ExpensesChart`: 15 tests covering timeframe selection, chart rendering, date filtering
+  - `ReportsPage`: 15 tests covering page structure, tabs, financial summaries, data display
+  - Utility tests for `formatPhoneNumber` and `getCategoryDisplayName` functions
+  - Test count increased from 212 → 302 (90 new tests)
+  - Expense components coverage: 46-100% (up from 0%)
+
 ### Changed
 
+- **Test Configuration**: Updated `vitest.config.ts` to properly scope coverage to `src/` folder
+  - Added `include: ['src/**/*.{ts,tsx}']` to coverage config
+  - Excluded `dist/`, `scripts/`, `src-tauri/` from coverage reports
 - **Code Deduplication**: Refactored `contractUtils.ts` to import from `contractFormatting.ts` (IMP-009 follow-up)
   - Eliminated ~180 lines of duplicate code
   - Functions now have single source of truth in `contractFormatting.ts`
