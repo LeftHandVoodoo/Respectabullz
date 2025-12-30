@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Build Optimization**: Fixed large chunk size warnings
+  - Added `exceljs` to manual chunks, reducing ExpensesPage from 958KB → 20KB
+  - Set appropriate `chunkSizeWarningLimit` (1500KB) for inherently large PDF renderer
 - **ESLint Config**: Added `coverage/` to ignores list to prevent lint errors on generated coverage files
 - **Code Cleanup**: Removed unused exports to reduce dead code:
   - `withErrorLogging` from `src/lib/errorTracking.ts`

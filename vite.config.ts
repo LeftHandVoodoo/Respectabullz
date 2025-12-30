@@ -21,6 +21,8 @@ export default defineConfig({
     target: ['es2021', 'chrome100', 'safari13'],
     minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
     sourcemap: !!process.env.TAURI_DEBUG,
+    // PDF renderer (~1.5MB) is inherently large; Excel (~938KB) now in own chunk
+    chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -48,10 +50,12 @@ export default defineConfig({
           ],
           // Charts library (heavy)
           'vendor-recharts': ['recharts'],
-          // PDF generation (heavy)
+          // PDF generation (heavy - ~1.5MB, inherent to library)
           'vendor-pdf-renderer': ['@react-pdf/renderer'],
           // PDF viewing (heavy)
           'vendor-pdf-viewer': ['react-pdf', 'pdfjs-dist'],
+          // Excel export (heavy - ~900KB)
+          'vendor-excel': ['exceljs'],
           // Form and data management
           'vendor-data': [
             '@tanstack/react-query',
