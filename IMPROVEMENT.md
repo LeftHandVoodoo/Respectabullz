@@ -8,7 +8,7 @@
 
 ## Summary
 
-The codebase is in **good health** with all quality gates passing. Most actionable improvements have been completed: **unused dependencies removed** (IMP-001), **console.log statements cleaned up** (IMP-003), **legacy SQLite migration completed** (IMP-007), **version mismatch fixed** (IMP-002), and **build warnings resolved** (IMP-008). Remaining improvements focus on structured logging (IMP-005), test coverage (IMP-010), and code organization (IMP-009, IMP-011).
+The codebase is in **good health** with all quality gates passing. Most actionable improvements have been completed: **unused dependencies removed** (IMP-001), **console.log statements cleaned up** (IMP-003), **legacy SQLite migration completed** (IMP-007), **version mismatch fixed** (IMP-002), **build warnings resolved** (IMP-008), **large files split** (IMP-009), and **code-split for performance** (IMP-011). Remaining improvements focus on structured logging (IMP-005) and test coverage (IMP-010).
 
 ---
 
@@ -192,9 +192,9 @@ The codebase is in **good health** with all quality gates passing. Most actionab
 
 ---
 
-### IMP-011 | Performance | Low | Medium Impact | Medium Risk | M | Medium Confidence
+### ~~IMP-011 | Performance | Low | Medium Impact | Medium Risk | M | Medium Confidence~~ DONE
 
-**Code-split large chunks**
+**Code-split large chunks** - Completed 2025-12-30
 
 - **Evidence:** Build output shows `ExpensesPage` (958KB), `vendor-pdf-renderer` (1.49MB) exceed 500KB
 - **Why it matters:** Large initial bundles slow down app startup
@@ -204,6 +204,12 @@ The codebase is in **good health** with all quality gates passing. Most actionab
   - Configure `build.rollupOptions.output.manualChunks` in vite.config
 - **Tests/docs:** None
 - **Blast radius:** `vite.config.ts`, pages using PDF
+- **Completed:**
+  - ✅ Created `generatePacketPdf.tsx` with lazy PDF generation
+  - ✅ Updated `PacketExportDialog` to dynamically import PDF module
+  - ✅ PDF renderer (~1.5MB) now loads on-demand when exporting
+  - ✅ DogDetailPage reduced from 141KB to 85KB (40% reduction)
+  - ✅ ExpensesPage already optimized to 22KB via previous manualChunks fix
 
 ---
 
@@ -216,10 +222,10 @@ The codebase is in **good health** with all quality gates passing. Most actionab
 - ~~**IMP-008:** Clean up build warnings~~ DONE
 
 ### Medium Effort (Size M, ~half-day each)
-- **IMP-003:** Remove ~45 console.log statements
-- **IMP-004:** Add JSON.parse error handling
+- ~~**IMP-003:** Remove ~45 console.log statements~~ DONE
+- ~~**IMP-004:** Add JSON.parse error handling~~ DONE
 - **IMP-005:** Implement structured logging pattern
-- **IMP-011:** Code-split large chunks
+- ~~**IMP-011:** Code-split large chunks~~ DONE
 
 ### Larger Efforts (Size L, multi-day)
 - ~~**IMP-007:** Complete legacy SQLite migration (10 TODOs)~~ DONE

@@ -1,10 +1,11 @@
 /**
  * PacketExportDialog - Dialog for configuring and exporting customer packet PDF
- * Allows user to select which sections to include
+ * Allows user to select which sections to include.
+ *
+ * PDF generation is lazily loaded to reduce initial bundle size (~1.5MB savings).
  */
 import { useState } from 'react';
 import { FileDown, Loader2 } from 'lucide-react';
-import { pdf } from '@react-pdf/renderer';
 import { save } from '@tauri-apps/plugin-dialog';
 import { writeFile } from '@tauri-apps/plugin-fs';
 import {
@@ -29,7 +30,6 @@ import {
 import { toast } from '@/components/ui/use-toast';
 import { isTauriEnvironment } from '@/lib/backupUtils';
 import { getPhotoUrlAsync } from '@/lib/photoUtils';
-import { PacketDocument } from './templates/PacketDocument';
 import { getPacketData } from '@/lib/db';
 import type { PacketOptions } from '@/types';
 import { DEFAULT_PACKET_OPTIONS } from '@/types';
@@ -137,21 +137,19 @@ export function PacketExportDialog({
       } catch (error) {
         console.warn('Could not load logo:', error);
       }
-      
-      // Generate PDF
-      const doc = (
-        <PacketDocument
-          data={packetData}
-          options={options}
-          dogPhotoBase64={dogPhotoBase64}
-          logoBase64={logoBase64}
-          dogGalleryPhotosBase64={dogGalleryPhotosBase64}
-          sirePhotoBase64={sirePhotoBase64}
-          damPhotoBase64={damPhotoBase64}
-        />
-      );
-      
-      const blob = await pdf(doc).toBlob();
+
+      // Dynamically import PDF generation module (~1.5MB) only when needed
+      const { generatePacketPdfBlob } = await import('./generatePacketPdf');
+
+      const blob = await generatePacketPdfBlob({
+        packetData,
+        options,
+        dogPhotoBase64,
+        logoBase64,
+        dogGalleryPhotosBase64,
+        sirePhotoBase64,
+        damPhotoBase64,
+      });
       const arrayBuffer = await blob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
