@@ -21,7 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `VITE_LOG_LEVEL` environment variable support (debug, info, warn, error)
   - Development defaults to `debug`, production defaults to `info`
   - Added `shouldLog()` check to filter messages by log level
-  - Replaced 77+ console.* statements with logger.* calls in core database modules
+  - Replaced all console.* statements with logger.* calls:
+    - Core database modules: `init.ts`, `connection.ts`, `migrations.ts`
+    - All 17 hook files (79 statements): useContacts, useHealth, useSettings, usePuppyHealthTasks, useWaitlist, useDocumentTags, useContract, useClientInterests, useCommunicationLogs, useExternalStuds, useExpenses, useDogs, useExpenseCategories, useLitters, useHeatEvents, useTransport, useHeatCycles
   - Updated `CONTRIBUTING.md` with logging guidelines and best practices
 
 ### Changed
