@@ -21,8 +21,8 @@
 | Critical | 2 | 2 | 0 |
 | High | 5 | 5 | 0 |
 | Medium | 8 | 6 | 2 |
-| Low | 4 | 2 | 2 |
-| **Total** | **19** | **15** | **4** |
+| Low | 4 | 4 | 0 |
+| **Total** | **19** | **17** | **2** |
 
 ---
 
@@ -132,17 +132,23 @@ return `${uuidv4()}.${ext}`;
 
 ### Low Issues
 
-#### L-1: Missing PDF Images Don't Fail Generation ⚠️ OPEN
-**File**: `src/lib/pdfExport.ts`
-**Status**: `validateImagesBeforeExport()` function exists but isn't always called before generation.
+#### L-1: Missing PDF Images Don't Fail Generation ✅ RESOLVED
+**File**: `src/components/packet/PacketExportDialog.tsx`
+**Resolution**: Added missing photo tracking and user notification:
+- `missingPhotos` array tracks all photos that fail to load
+- Warning toast displayed before PDF generation lists missing photos
+- PDF still generates with available photos (graceful degradation)
+- Shows first 3 missing paths with count of additional failures
 
 #### L-2: PDF.js Worker Not Validated ✅ RESOLVED
 **File**: `src/components/documents/DocumentViewer.tsx`
 **Resolution**: Worker initialization has error boundaries and fallback handling.
 
-#### L-3: Logo Loading Failure Silent ⚠️ OPEN
+#### L-3: Logo Loading Failure Silent ✅ RESOLVED
 **File**: `src/components/packet/PacketExportDialog.tsx`
-**Status**: Console warning exists but no user-facing notification.
+**Resolution**: Toast notification already implemented for logo loading failures:
+- Both HTTP error and catch block show destructive toast
+- Message: "Kennel logo could not be loaded. PDF will be generated without it."
 
 #### L-4: Hardcoded Forward Slashes in Paths ✅ RESOLVED
 **File**: `src/lib/documentUtils.ts`
@@ -161,11 +167,8 @@ All high-priority issues have been resolved.
 | M-5 | backupUtils.ts | Partial restore notification | Open |
 | M-8 | photoUtils.ts | Dual URL scheme API | By Design |
 
-### Low Priority (2 remaining)
-| ID | File | Issue | Status |
-|----|------|-------|--------|
-| L-1 | pdfExport.ts | Missing image validation call | Open |
-| L-3 | PacketExportDialog.tsx | Silent logo loading failure | Open |
+### Low Priority (0 remaining)
+All low-priority issues have been resolved.
 
 ---
 
@@ -213,15 +216,14 @@ npm audit --omit=dev
 | `src/lib/backupUtils.ts` | M-2, M-5 | ⚠️ M-5 Open |
 | `src/lib/contractUtils.ts` | M-3 | ✅ Resolved |
 | `src/lib/photoUtils.ts` | M-4, M-7, M-8 | ⚠️ M-8 By Design |
-| `src/lib/pdfExport.ts` | M-6, L-1 | ⚠️ L-1 Open |
+| `src/lib/pdfExport.ts` | M-6, L-1 | ✅ Resolved |
 | `src/components/documents/DocumentViewer.tsx` | L-2 | ✅ Resolved |
-| `src/components/packet/PacketExportDialog.tsx` | L-3 | ⚠️ Open |
+| `src/components/packet/PacketExportDialog.tsx` | L-1, L-3 | ✅ Resolved |
 | `src-tauri/src/lib.rs` | N-1 (new) | Informational |
 
 ---
 
 ## Recommended Next Steps
 
-1. **L-1**: Call `validateImagesBeforeExport()` before PDF generation
-2. **L-3**: Add toast notification when logo fails to load
-3. **M-5**: Improve user notification for partial backup restores
+1. **M-5**: Improve user notification for partial backup restores
+2. **M-8**: Consider unifying photo URL API (currently by design, but could be cleaner)

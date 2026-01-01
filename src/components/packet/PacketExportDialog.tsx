@@ -56,11 +56,11 @@ export function PacketExportDialog({
   
   const handleExport = async () => {
     setIsExporting(true);
-    
+
     try {
       // Fetch all packet data
       const packetData = await getPacketData(dogId);
-      
+
       if (!packetData) {
         toast({
           title: 'Error',
@@ -70,18 +70,22 @@ export function PacketExportDialog({
         setIsExporting(false);
         return;
       }
-      
-      // Load photos and convert to base64
+
+      // Load photos and convert to base64, tracking any that fail to load
       let dogPhotoBase64: string | null = null;
       let sirePhotoBase64: string | null = null;
       let damPhotoBase64: string | null = null;
       const dogGalleryPhotosBase64: (string | null)[] = [];
-      
+      const missingPhotos: string[] = [];
+
       // Load dog's profile photo
       if (packetData.dog.profilePhotoPath) {
         dogPhotoBase64 = await getPhotoUrlAsync(packetData.dog.profilePhotoPath);
+        if (!dogPhotoBase64) {
+          missingPhotos.push(`Profile photo: ${packetData.dog.profilePhotoPath}`);
+        }
       }
-      
+
       // Load dog's gallery photos
       // Include profile photo in gallery if it exists
       if (packetData.dog.profilePhotoPath) {
@@ -89,8 +93,9 @@ export function PacketExportDialog({
         if (profilePhotoBase64) {
           dogGalleryPhotosBase64.push(profilePhotoBase64);
         }
+        // Profile photo missing already tracked above
       }
-      
+
       // Load additional gallery photos (excluding profile photo if it's already in dogPhotos)
       if (packetData.dogPhotos && packetData.dogPhotos.length > 0) {
         for (const photo of packetData.dogPhotos) {
@@ -101,24 +106,44 @@ export function PacketExportDialog({
           const photoBase64 = await getPhotoUrlAsync(photo.filePath);
           if (photoBase64) {
             dogGalleryPhotosBase64.push(photoBase64);
+          } else {
+            missingPhotos.push(`Gallery photo: ${photo.filePath}`);
           }
         }
       }
-      
+
       // Load sire photo if requested
       if (options.includeParentPhotos) {
         const sirePhotoPath = packetData.sirePhoto || packetData.sire?.profilePhotoPath;
         if (sirePhotoPath) {
           sirePhotoBase64 = await getPhotoUrlAsync(sirePhotoPath);
+          if (!sirePhotoBase64) {
+            missingPhotos.push(`Sire photo: ${sirePhotoPath}`);
+          }
         }
       }
-      
+
       // Load dam photo if requested
       if (options.includeParentPhotos) {
         const damPhotoPath = packetData.damPhoto || packetData.dam?.profilePhotoPath;
         if (damPhotoPath) {
           damPhotoBase64 = await getPhotoUrlAsync(damPhotoPath);
+          if (!damPhotoBase64) {
+            missingPhotos.push(`Dam photo: ${damPhotoPath}`);
+          }
         }
+      }
+
+      // Warn user about missing photos before proceeding
+      if (missingPhotos.length > 0) {
+        const photoCount = missingPhotos.length;
+        const photoList = missingPhotos.slice(0, 3).join('\n');
+        const moreText = photoCount > 3 ? `\n...and ${photoCount - 3} more` : '';
+        toast({
+          title: 'Warning: Missing Photos',
+          description: `${photoCount} photo(s) could not be loaded and will be excluded from the PDF:\n${photoList}${moreText}`,
+          variant: 'destructive',
+        });
       }
       
       // Load the kennel logo from assets
