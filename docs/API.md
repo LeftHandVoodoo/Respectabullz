@@ -1,6 +1,6 @@
 # Respectabullz Internal API Reference
 
-**Version 1.9.4**
+**Version 1.10.0**
 
 ## Overview
 

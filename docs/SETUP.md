@@ -1,6 +1,6 @@
 # Respectabullz Setup Guide
 
-**Version 1.9.3**
+**Version 1.10.0**
 
 ## System Requirements
 

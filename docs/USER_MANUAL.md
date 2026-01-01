@@ -1,15 +1,52 @@
 # Respectabullz User Manual
 
-**Version 1.9.4**
-**Last Updated: December 30, 2025**
+**Version 1.10.0**
+**Last Updated: January 1, 2026**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
+
+---
+
+## What's New in Version 1.10.0
+
+### Security & Reliability Improvements
+
+- **Security Hardening**: Enhanced application security with Content Security Policy (CSP) and restricted file access
+  - File system access now limited to app-specific directories only
+  - Added path traversal protection for file operations
+  - Improved security for document and photo handling
+
+- **Data Integrity**: Enhanced validation and error handling throughout the application
+  - Backup and restore operations now validate data structure before processing
+  - Health schedule templates validate JSON structure to prevent corruption
+  - Contract file writes verify successful completion
+  - Photo restore operations track and report failed files
+
+- **Image Validation**: Added validation to check for missing images before PDF export
+  - Prevents PDF generation failures due to missing photo files
+  - Provides clear error messages when images cannot be found
+
+### Changed
+
+- **Photo & Document Handling**: Improved file management
+  - Switched to UUID v4 for photo and document filenames to prevent collisions
+  - Standardized path handling for cross-platform compatibility
+  - Improved error messages for file operations
+
+- **State Management**: Better error recovery
+  - Optimistic updates with automatic rollback on failures
+  - Improved error handling in litter and whelping checklist operations
+
+- **User Feedback**: Enhanced error messages
+  - Clear notifications when PDF worker initialization fails
+  - Toast notifications for missing kennel logos during PDF export
 
 ---
 
 ## What's New in Version 1.9.4
 
 ### Added
+
 - **Test Coverage**: Added 90 new tests for expense-related components
   - ExpensesFilters, ExpensesTable, ExpensesChart, and ReportsPage now have comprehensive test coverage
   - Test count increased from 212 → 302
@@ -18,12 +55,14 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
   - All console.* statements replaced with logger.* calls across 17 hook files
 
 ### Changed
+
 - **Performance**: Lazy-load PDF renderer to improve initial load time
   - PDF generation module now loads on-demand when user clicks "Export PDF"
   - DogDetailPage reduced from 141KB to 85KB (40% reduction)
 - **Code Deduplication**: Refactored contract utilities to eliminate ~180 lines of duplicate code
 
 ### Fixed
+
 - **Contact Category Colors**: New custom categories now auto-assign a unique color (fixes #3)
 
 ---
@@ -31,6 +70,7 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
 ## What's New in Version 1.9.3
 
 ### Changed
+
 - **Build Optimization**: Fixed large chunk size warnings, reduced ExpensesPage bundle from 958KB → 20KB
 - **ESLint Config**: Added coverage/ to ignores list
 - **Code Cleanup**: Removed unused exports from errorTracking, documentUtils, and types
@@ -40,11 +80,13 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
 ## What's New in Version 1.9.2
 
 ### Changed
+
 - **Dependencies**: Removed 4 unused packages reducing bundle size
 - **Code Quality**: Removed ~40 debug console.log statements from production code
 - **Legacy Functions**: Implemented SQLite versions of previously stubbed functions
 
 ### Fixed
+
 - **Expense Categories**: Consistent capitalization across the app
 - **Test Suite**: Fixed failing test after company_name field addition
 - **React Router**: Added v7 future flags to eliminate deprecation warnings
@@ -55,6 +97,7 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
 ## What's New in Version 1.9.1
 
 ### Added
+
 - **Bug Reporting**: In-app bug reporting that creates GitHub issues
   - Bug report button in header (visible when GitHub is configured)
   - Standard bug report form: title, description, steps to reproduce, expected/actual behavior, severity
@@ -63,6 +106,7 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
   - New environment variables: `VITE_GITHUB_TOKEN`, `VITE_GITHUB_REPO`
 
 ### Changed
+
 - **Expense Export**: Upgraded from CSV to native Excel (.xlsx) format using ExcelJS
   - Header row is now bold and underlined
   - Amount column uses accounting number format ($#,##0.00)
@@ -71,6 +115,7 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
   - Button renamed from "Export CSV" to "Export Excel"
 
 ### Fixed
+
 - **Expense Export**: Fixed column misalignment issue - now exports as proper .xlsx file with correct column structure
 
 ---
@@ -78,6 +123,7 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
 ## What's New in Version 1.9.0
 
 ### Added
+
 - **Contact Company Name**: Added company name field to contacts
   - New optional field to capture company/business name for contacts
   - Displayed in contact list, detail panel, and form
@@ -93,6 +139,7 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
 ## What's New in Version 1.8.1
 
 ### Changed
+
 - **Bundle Size Optimization**: Reduced initial bundle from 4,291 kB to 320 kB (93% reduction)
   - Implemented React.lazy() for all pages except Dashboard for code splitting
   - Added Suspense boundary with skeleton loading fallback
@@ -103,6 +150,7 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
 ## What's New in Version 1.8.0
 
 ### Added
+
 - **Contacts Management System**: New dedicated section for managing business contacts
   - Full CRUD operations for contacts (create, read, update, delete)
   - Contact fields: name, company name, primary/secondary phone, email, full address, notes
@@ -117,6 +165,7 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
   - New navigation item in Business section of sidebar
 
 ### Bug Fixes
+
 - **Heat Cycle Dog Association**: Fixed heat cycles not displaying associated dog after creation
 - **Heat Cycle Query Performance**: Fixed N+1 query problem in heat cycle fetching
 - **Expense Category Filter**: Fixed category filter not showing all available categories and scroll issues
@@ -150,12 +199,14 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
 
 When you first open Respectabullz, you'll see a **Welcome Dialog** that lets you choose how to get started:
 
-**Option 1: Start Fresh**
+#### Option 1: Start Fresh
+
 - Begin with an empty database
 - Perfect if you're ready to add your own dogs and litters immediately
 - You can always add sample data later from Settings
 
-**Option 2: Load Sample Data**
+#### Option 2: Load Sample Data
+
 - Explore the app with demo data including:
   - Multiple dogs with complete profiles and photos
   - Litters with puppies
@@ -194,14 +245,16 @@ If you're upgrading from an earlier version of Respectabullz:
 3. **Follow the installation wizard** - The installer upgrades your existing installation in-place
 4. **Launch the application** - All your data, photos, and settings are automatically preserved
 
-**What Gets Preserved:**
+#### What Gets Preserved
+
 - ✅ All database records (dogs, litters, clients, sales, expenses, etc.)
 - ✅ All photos (dog photos, litter photos)
 - ✅ All contracts and attachments
 - ✅ All settings and preferences
 - ✅ All backups
 
-**What Gets Updated:**
+#### What Gets Updated
+
 - Application files and executables
 - Database schema (automatically migrated on first launch)
 - New features and bug fixes
@@ -283,12 +336,14 @@ Click any dog to view their complete profile with tabs:
 3. Select vaccine type, date, and next due date
 4. The system will remind you when vaccinations are due
 
-**Weight Tracking:**
+#### Weight Tracking
+
 1. In the **Health** tab, click **"Add Weight Entry"**
 2. Enter date and weight
 3. View weight chart to track growth trends
 
-**Medical Records:**
+#### Medical Records
+
 1. Click **"Add Medical Record"** in the Health tab
 2. Record vet visits, procedures, medications, etc.
 3. Upload documents or photos if needed
@@ -560,7 +615,8 @@ External studs are stored in your database and can be:
 - Edited or updated as needed
 - Used for tracking breeding partnerships
 
-**Benefits:**
+#### Benefits
+
 - Track breeding history with outside studs
 - Maintain contact information for stud owners
 - Record health testing information
@@ -675,7 +731,8 @@ The Contacts section helps you manage business contacts such as veterinarians, b
 - Filter by category using the category dropdown (supports multiple selection)
 - Categories are displayed as colored badges on contact cards
 
-**Contact Detail Panel:**
+#### Contact Detail Panel
+
 - Click any contact to view full details in the side panel
 - Clickable phone numbers, email addresses, and social media links
 - Edit or delete contacts using the action buttons
@@ -685,7 +742,8 @@ The Contacts section helps you manage business contacts such as veterinarians, b
 - A contact can belong to multiple categories
 - Categories help organize contacts by type (e.g., "Vet" + "Breeder" for a breeding veterinarian)
 
-**Business Card Support:**
+#### Business Card Support
+
 - Upload business cards via the document management system
 - Attach documents to contact records for reference
 
@@ -856,7 +914,8 @@ The Reports page provides comprehensive insights into your breeding program with
 
 Access via **Reports** → **Financial** tab:
 
-**Summary Cards:**
+#### Summary Cards
+
 - **Total Expenses**: Sum of all expenses recorded
 - **Tax Deductible**: Total of expenses marked as tax-deductible
 - **Non-Deductible**: Expenses not marked as tax-deductible
@@ -866,7 +925,8 @@ Access via **Reports** → **Financial** tab:
 - Identify seasonal spending patterns
 - Plan for upcoming costs
 
-**Expenses by Category:**
+#### Expenses by Category
+
 - Pie chart breaking down expenses by category
 - See where your money goes (Food, Vet, Supplies, Breeding, etc.)
 - Percentage breakdown for each category
@@ -883,7 +943,8 @@ Access via **Reports** → **Breeding** tab:
 - Track breeding frequency trends
 - Monitor program growth
 
-**Litter Financials Table:**
+#### Litter Financials Table
+
 - Detailed breakdown of income vs. expenses per litter
 - Shows: Litter code, puppy count, income, expenses, and profit/loss
 - **Export to CSV** button for further analysis
@@ -894,7 +955,8 @@ Access via **Reports** → **Breeding** tab:
 - Columns: Dam name, number of litters, total puppies, average litter size
 - Sorted by number of litters (most productive first)
 
-**Production by Sire:**
+#### Production by Sire
+
 - Table showing breeding performance by male
 - Columns: Sire name, number of litters, total puppies, average litter size
 - Sorted by number of litters (most productive first)
@@ -906,7 +968,8 @@ Access via **Reports** → **Dogs** tab:
 **Summary Cards:**
 - Total Dogs, Active, Sold, and Total Litters counts
 
-**Dog Status Distribution:**
+#### Dog Status Distribution
+
 - Bar chart showing breakdown by status (Active, Sold, Retired, Deceased)
 - **Double-click any bar** to see detailed list of dogs in that category
 - Color-coded for easy identification
@@ -915,7 +978,8 @@ Access via **Reports** → **Dogs** tab:
 
 Access via **Reports** → **Health** tab:
 
-**Vaccination Compliance Summary:**
+#### Vaccination Compliance Summary
+
 - **Up to Date**: Vaccinations with no upcoming due date
 - **Due Soon**: Vaccinations due within next 30 days
 - **Overdue**: Vaccinations past their due date
@@ -966,14 +1030,16 @@ Configure your kennel details for contracts and documents:
 
 ### Appearance
 
-**Theme Selection:**
+#### Theme Selection
+
 - **Light**: Light color scheme
 - **Dark**: Dark color scheme (default)
 - **System**: Follows your operating system theme
 
 ### Preferences
 
-**Weight Unit:**
+#### Weight Unit
+
 - **Pounds (lbs)**: Display weights in pounds
 - **Kilograms (kg)**: Display weights in kilograms
 
@@ -984,7 +1050,8 @@ Configure your kennel details for contracts and documents:
   - Follow-up reminders
   - Puppy health tasks
 
-**Contracts Save Location:**
+#### Contracts Save Location
+
 - Choose where completed contracts are saved
 - **Default**: Contracts are saved to `%APPDATA%/com.respectabullz.app/contracts/`
 - **Custom Directory**: Click **"Choose Folder"** to select a custom location
@@ -1025,7 +1092,8 @@ Creates a complete backup including database and all photos:
 4. Choose save location
 5. Backup file shows photo count and total size
 
-**Restoring Full Backup:**
+#### Restoring Full Backup
+
 1. Click **"Restore Full Backup"**
 2. Select the backup ZIP file
 3. System restores:
@@ -1052,13 +1120,15 @@ Export only the database (no photos) for quick backups or data transfer:
 
 #### Testing Tools
 
-**Seed Test Data:**
+#### Seed Test Data
+
 - Populates database with comprehensive dummy data for testing
 - Includes dogs, litters, health records, clients, sales, etc.
 - Database must be empty to seed test data
 - Useful for learning features or testing
 
-**Remove Test Data:**
+#### Remove Test Data
+
 - Removes all seeded test data
 - Keeps your real data intact
 
@@ -1190,6 +1260,7 @@ For issues or questions:
 
 ## Version History
 
+- **v1.10.0**: Security hardening (CSP, restricted file access), data integrity improvements (zod validation, rollback on failures), UUID v4 filenames, image validation before PDF export
 - **v1.9.4**: Comprehensive expense testing (90 new tests), structured logging, lazy-load PDF renderer, auto-assign contact category colors
 - **v1.9.3**: Build optimization, reduced bundle size, code cleanup
 - **v1.9.2**: Code quality improvements, dependency cleanup, legacy function implementation
@@ -1210,6 +1281,6 @@ See [CHANGELOG.md](../CHANGELOG.md) for complete version history.
 
 ---
 
-**Respectabullz User Manual v1.9.4**
-*Last Updated: December 30, 2025*
+#### Respectabullz User Manual v1.10.0
 
+*Last Updated: January 1, 2026*
