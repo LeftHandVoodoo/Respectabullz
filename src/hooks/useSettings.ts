@@ -166,19 +166,54 @@ export function useImportBackupWithPhotos() {
   return useMutation({
     mutationFn: importBackupWithPhotos,
     onSuccess: (result) => {
-      if (result.success && result.databaseJson) {
+      // Show metadata validation warnings first if present
+      if (result.metadataValidationErrors && result.metadataValidationErrors.length > 0) {
+        const errorSummary = result.metadataValidationErrors.length > 3
+          ? `${result.metadataValidationErrors.slice(0, 3).join('; ')} (and ${result.metadataValidationErrors.length - 3} more)`
+          : result.metadataValidationErrors.join('; ');
+        toast({
+          title: 'Backup metadata warning',
+          description: `Backup metadata validation failed: ${errorSummary}. Restore will continue without metadata.`,
+          variant: 'destructive',
+        });
+      }
+
+      if (result.databaseJson) {
         // Import the database
         db.importDatabase(result.databaseJson).then((success) => {
           if (success) {
             queryClient.invalidateQueries();
-            toast({
-              title: 'Backup restored',
-              description: `Database and ${result.photoCount || 0} photos have been restored.`,
-            });
+            
+            // Build success message with photo restore details
+            let description = `Database and ${result.photoCount || 0} photo(s) restored successfully.`;
+            
+            if (result.failedPhotos && result.failedPhotos.length > 0) {
+              const failedCount = result.failedPhotos.length;
+              const failedList = result.failedPhotos.length > 3
+                ? `${result.failedPhotos.slice(0, 3).join(', ')} (and ${failedCount - 3} more)`
+                : result.failedPhotos.join(', ');
+              description = `Database restored successfully. ${result.photoCount || 0} photo(s) restored, but ${failedCount} photo(s) failed: ${failedList}`;
+              
+              toast({
+                title: 'Partial restore completed',
+                description,
+                variant: 'destructive',
+              });
+            } else {
+              toast({
+                title: 'Backup restored',
+                description,
+              });
+            }
           } else {
+            // Database import failed
+            let description = `Photos restored (${result.photoCount || 0}), but database import failed.`;
+            if (result.failedPhotos && result.failedPhotos.length > 0) {
+              description += ` Additionally, ${result.failedPhotos.length} photo(s) failed to restore.`;
+            }
             toast({
               title: 'Partial restore',
-              description: `Photos restored (${result.photoCount || 0}), but database import failed.`,
+              description,
               variant: 'destructive',
             });
           }
@@ -186,9 +221,14 @@ export function useImportBackupWithPhotos() {
       } else if (result.error === 'cancelled') {
         // User cancelled - no message needed
       } else {
+        // Complete failure
+        let description = result.error || 'Failed to restore backup.';
+        if (result.failedPhotos && result.failedPhotos.length > 0) {
+          description += ` ${result.failedPhotos.length} photo(s) also failed to restore.`;
+        }
         toast({
           title: 'Restore failed',
-          description: result.error || 'Failed to restore backup.',
+          description,
           variant: 'destructive',
         });
       }

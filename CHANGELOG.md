@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Backup Restore**: Enhanced user notifications for partial restore scenarios (M-5)
+  - Shows detailed failed photo list (up to 3 photos, then count of remaining)
+  - Differentiates between complete success, partial photo restore, and complete failure
+  - Provides actionable information about which photos failed to restore
+
+### Fixed
+- **Backup Metadata Validation**: Improved error handling and user notification (M-2)
+  - Metadata validation errors are now tracked and displayed to users
+  - Shows validation errors in toast notification when metadata is corrupted
+  - Replaced all `console.error` calls with structured logger calls in backupUtils.ts
+
 ## [1.10.0] - 2026-01-01
 
 ### Added

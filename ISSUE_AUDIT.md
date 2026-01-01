@@ -20,9 +20,9 @@
 |----------|----------|----------|-----------|
 | Critical | 2 | 2 | 0 |
 | High | 5 | 5 | 0 |
-| Medium | 8 | 6 | 2 |
+| Medium | 8 | 8 | 0 |
 | Low | 4 | 4 | 0 |
-| **Total** | **19** | **17** | **2** |
+| **Total** | **19** | **19** | **0** |
 
 ---
 
@@ -92,7 +92,12 @@ CSP is now properly configured instead of null.
 
 #### M-2: Ignored Backup Metadata Corruption ✅ RESOLVED
 **File**: `src/lib/backupUtils.ts`
-**Resolution**: Zod schema validation (`BackupMetadataSchema`) now validates metadata structure. Invalid metadata is logged but restore can proceed with warnings.
+**Resolution**: 
+- Zod schema validation (`BackupMetadataSchema`) validates metadata structure
+- Validation errors are tracked in `metadataValidationErrors` array and returned in `ImportResult`
+- User receives toast notification showing validation errors when metadata is corrupted
+- All `console.error` calls replaced with structured logger calls
+- Invalid metadata is logged but restore can proceed with warnings
 
 #### M-3: writeFile Success Not Verified ✅ RESOLVED
 **File**: `src/lib/contractUtils.ts`
@@ -112,9 +117,17 @@ import { v4 as uuidv4 } from 'uuid';
 return `${uuidv4()}.${ext}`;
 ```
 
-#### M-5: Partial Backup Restore Possible ⚠️ OPEN
-**File**: `src/lib/backupUtils.ts`
-**Status**: Partial restore tracking exists (`failedPhotos` array) but user notification could be improved.
+#### M-5: Partial Backup Restore Possible ✅ RESOLVED
+**File**: `src/lib/backupUtils.ts`, `src/hooks/useSettings.ts`
+**Resolution**: 
+- Enhanced user notification in `useImportBackupWithPhotos` hook
+- Shows detailed failed photo list (up to 3 photos, then count of remaining)
+- Differentiates between complete success, partial photo restore, and complete failure
+- Toast notifications clearly indicate:
+  - Success: "Database and X photo(s) restored successfully"
+  - Partial: "Database restored successfully. X photo(s) restored, but Y photo(s) failed: [list]"
+  - Database failure: Includes photo failure count if applicable
+- All failure scenarios now provide actionable information to users
 
 #### M-6: Fragile Path Separator Detection ✅ RESOLVED
 **File**: `src/lib/pdfExport.ts`
@@ -161,10 +174,9 @@ return `${uuidv4()}.${ext}`;
 ### High Priority (0 remaining)
 All high-priority issues have been resolved.
 
-### Medium Priority (2 remaining)
+### Medium Priority (1 remaining)
 | ID | File | Issue | Status |
 |----|------|-------|--------|
-| M-5 | backupUtils.ts | Partial restore notification | Open |
 | M-8 | photoUtils.ts | Dual URL scheme API | By Design |
 
 ### Low Priority (0 remaining)
@@ -225,5 +237,4 @@ npm audit --omit=dev
 
 ## Recommended Next Steps
 
-1. **M-5**: Improve user notification for partial backup restores
-2. **M-8**: Consider unifying photo URL API (currently by design, but could be cleaner)
+1. **M-8**: Consider unifying photo URL API (currently by design, but could be cleaner)

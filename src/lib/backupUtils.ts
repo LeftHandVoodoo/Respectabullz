@@ -34,6 +34,7 @@ interface ImportResult {
   error?: string;
   failedPhotos?: string[];
   metadata?: BackupMetadata;
+  metadataValidationErrors?: string[];
 }
 
 /**
@@ -57,7 +58,7 @@ async function getPhotoFiles(): Promise<string[]> {
     
     return photoFiles;
   } catch (error) {
-    console.error('Failed to list photo files:', error);
+    logger.error('Failed to list photo files', error instanceof Error ? error : undefined);
     return [];
   }
 }
@@ -143,7 +144,7 @@ export async function exportBackupWithPhotos(databaseJson: string): Promise<bool
     
     return true;
   } catch (error) {
-    console.error('Failed to create backup:', error);
+    logger.error('Failed to create backup', error instanceof Error ? error : undefined);
     throw error;
   }
 }
@@ -174,6 +175,7 @@ export async function importBackupWithPhotos(): Promise<ImportResult> {
 
     // Validate and parse metadata
     let metadata: BackupMetadata | undefined;
+    const metadataValidationErrors: string[] = [];
     const metadataFile = zip.file('metadata.json');
     if (metadataFile) {
       const metadataText = await metadataFile.async('string');
@@ -184,12 +186,16 @@ export async function importBackupWithPhotos(): Promise<ImportResult> {
           metadata = parseResult.data;
           logger.info('Backup metadata validated', { metadata });
         } else {
+          const validationErrors = parseResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`);
+          metadataValidationErrors.push(...validationErrors);
           logger.warn('Backup metadata failed validation', {
-            errors: parseResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
+            errors: validationErrors.join('; '),
           });
           // Continue without metadata - we can still try to restore
         }
       } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+        metadataValidationErrors.push(`Failed to parse metadata: ${errorMessage}`);
         logger.error('Failed to parse backup metadata', e instanceof Error ? e : undefined);
         // Continue without metadata
       }
@@ -245,6 +251,7 @@ export async function importBackupWithPhotos(): Promise<ImportResult> {
       photoCount,
       failedPhotos: failedPhotos.length > 0 ? failedPhotos : undefined,
       metadata,
+      metadataValidationErrors: metadataValidationErrors.length > 0 ? metadataValidationErrors : undefined,
       error: failedPhotos.length > 0
         ? `${failedPhotos.length} photo(s) failed to restore`
         : undefined,
@@ -285,7 +292,7 @@ export async function getBackupInfo(): Promise<{ photoCount: number; photosSize:
       photosSize: totalSize,
     };
   } catch (error) {
-    console.error('Failed to get backup info:', error);
+    logger.error('Failed to get backup info', error instanceof Error ? error : undefined);
     return { photoCount: 0, photosSize: 0 };
   }
 }
