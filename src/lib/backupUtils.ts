@@ -72,7 +72,7 @@ async function readPhotoFile(filename: string): Promise<Uint8Array | null> {
     const data = await readFile(photoPath, { baseDir: BaseDirectory.AppData });
     return data;
   } catch (error) {
-    console.error(`Failed to read photo file ${filename}:`, error);
+    logger.error(`Failed to read photo file ${filename}`, error instanceof Error ? error : undefined);
     return null;
   }
 }
