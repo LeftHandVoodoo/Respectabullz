@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Provides actionable information about which photos failed to restore
 
 ### Fixed
+- **PDF Export Missing Photos**: Added user notification when photos fail to load during packet export (L-1)
+  - Tracks all photos that fail to load (profile, gallery, sire, dam)
+  - Displays warning toast before PDF generation listing up to 3 missing paths
+  - PDF still generates with available photos (graceful degradation)
+
 - **Backup Metadata Validation**: Improved error handling and user notification (M-2)
   - Metadata validation errors are now tracked and displayed to users
   - Shows validation errors in toast notification when metadata is corrupted
