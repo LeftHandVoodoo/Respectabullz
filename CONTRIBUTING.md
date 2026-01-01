@@ -18,11 +18,9 @@ cd respectabullz
 # Install dependencies
 npm install
 
-# Generate Prisma client
+# (Optional) Generate Prisma client for schema reference
+# Note: The app uses SQLite directly via Tauri, Prisma schema is for reference only
 npm run db:generate
-
-# Push database schema
-npm run db:push
 
 # Start development server
 npm run dev
@@ -160,11 +158,18 @@ logger.error('Failed to save', error, { entityType: 'dog', id });
 
 ## Testing
 
-Currently, the project uses manual testing. When adding automated tests:
+The project uses Vitest for automated testing:
 
-- Use Vitest for unit tests
-- Use React Testing Library for component tests
-- Place tests next to source files as `*.test.ts(x)`
+- **Test Framework**: Vitest
+- **Component Testing**: React Testing Library
+- **Test Location**: Place tests next to source files as `*.test.ts(x)` or in `__tests__/` directories
+- **Coverage**: Run `npm run test:coverage` to generate coverage reports
+- **Current Status**: 302 tests across 15 test files
+
+When adding new features or fixing bugs:
+- Add tests for new functionality
+- Update existing tests when behavior changes
+- Aim for meaningful coverage of critical paths
 
 ## Documentation
 
@@ -178,6 +183,7 @@ Update documentation when:
 Key documentation files:
 - `README.md` - Project overview
 - `CHANGELOG.md` - Version history
+- `SECURITY.md` - Security policy and reporting
 - `docs/ARCHITECTURE.md` - System design
 - `docs/DATA_MODEL.md` - Database schema
 - `docs/API.md` - API reference
@@ -191,10 +197,13 @@ This project uses Semantic Versioning:
 - PATCH: Bug fixes
 
 Version is tracked in:
-- `src/lib/version.ts` (single source of truth)
+- `VERSION` (root file, single source of truth)
+- `src/lib/version.ts` (auto-generated from VERSION)
 - `package.json`
 - `src-tauri/tauri.conf.json`
 - `src-tauri/Cargo.toml`
+
+**Note**: Use `npm run version:bump` script to update all version files consistently.
 
 ## Release Process
 

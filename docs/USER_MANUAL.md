@@ -1,9 +1,32 @@
 # Respectabullz User Manual
 
-**Version 1.10.0**
+**Version 1.10.1**
 **Last Updated: January 1, 2026**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
+
+---
+
+## What's New in Version 1.10.1
+
+### Changed
+
+- **Backup Restore**: Enhanced user notifications for partial restore scenarios (M-5)
+  - Shows detailed failed photo list (up to 3 photos, then count of remaining)
+  - Differentiates between complete success, partial photo restore, and complete failure
+  - Provides actionable information about which photos failed to restore
+
+### Fixed
+
+- **PDF Export Missing Photos**: Added user notification when photos fail to load during packet export (L-1)
+  - Tracks all photos that fail to load (profile, gallery, sire, dam)
+  - Displays warning toast before PDF generation listing up to 3 missing paths
+  - PDF still generates with available photos (graceful degradation)
+
+- **Backup Metadata Validation**: Improved error handling and user notification (M-2)
+  - Metadata validation errors are now tracked and displayed to users
+  - Shows validation errors in toast notification when metadata is corrupted
+  - Replaced all `console.error` calls with structured logger calls in backupUtils.ts
 
 ---
 
@@ -1260,6 +1283,7 @@ For issues or questions:
 
 ## Version History
 
+- **v1.10.1**: Improved backup restore error handling with detailed user notifications, enhanced PDF export with photo validation warnings, structured logging in backupUtils
 - **v1.10.0**: Security hardening (CSP, restricted file access), data integrity improvements (zod validation, rollback on failures), UUID v4 filenames, image validation before PDF export
 - **v1.9.4**: Comprehensive expense testing (90 new tests), structured logging, lazy-load PDF renderer, auto-assign contact category colors
 - **v1.9.3**: Build optimization, reduced bundle size, code cleanup
@@ -1281,6 +1305,6 @@ See [CHANGELOG.md](../CHANGELOG.md) for complete version history.
 
 ---
 
-#### Respectabullz User Manual v1.10.0
+#### Respectabullz User Manual v1.10.1
 
 *Last Updated: January 1, 2026*

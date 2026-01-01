@@ -88,18 +88,69 @@ For testing releases:
 
 ## Current Version
 
-**1.9.3** (2025-12-29) - Current Release
+**1.10.1** (2026-01-01) - Current Release
 
-Patch release - Build Optimization:
-- Added company name field to contacts for storing business/company names
-- Displayed in contact list, detail panel, and form
-- Included in contact search functionality
-- Database migration v5 adds `company_name` column to contacts table
-- Added sortable columns (Name, Categories, Location) to contacts table
+Patch release - UX Improvements:
+- Enhanced backup restore error handling with detailed user notifications
+- Shows failed photo list (up to 3 photos, then count of remaining)
+- PDF export now validates and warns about missing photos before generation
+- Replaced console.error calls with structured logger in backupUtils.ts
 
 ---
 
 ## Release History
+
+**1.10.0** (2026-01-01)
+
+Minor release - Security Hardening:
+- Security: Restricted assetProtocol.scope to app-specific directory only
+- Security: Enabled Content Security Policy (CSP) in Tauri configuration
+- Security: Restricted filesystem capabilities to app directories
+- Security: Added filename validation to prevent path traversal attacks
+- Data Integrity: Health schedule template JSON parse now throws on corruption
+- Data Integrity: localStorage migration validates with zod schema before migration
+- Data Integrity: Backup metadata validated with zod schema during restore
+- Data Integrity: Photo restore tracks and reports failed files
+- Data Integrity: Contract file writes verify file existence after write
+- Photo Handling: Switched to UUID v4 for photo and document filenames
+- Photo Handling: Standardized photo URL path construction (forward slashes)
+- State Management: Optimistic update handling with rollback in useUpdateLitter
+- State Management: Try-catch with state rollback in WhelpingChecklist
+- User Feedback: PDF worker initialization error handling with user-friendly message
+- User Feedback: Toast notification when kennel logo fails to load during PDF export
+- Added: validateImagesBeforeExport() function for pre-export image checking
+
+**1.9.4** (2025-12-30)
+
+Patch release - Test Coverage and Performance:
+- Added 90 new tests for expense components (ExpensesFilters, ExpensesTable, ExpensesChart, ReportsPage)
+- Implemented environment-based structured logging (VITE_LOG_LEVEL support)
+- Lazy-load PDF renderer for improved initial load time
+- Code deduplication in contract utilities (~180 lines removed)
+- Fixed: New contact categories auto-assign unique color (fixes #3)
+
+**1.9.3** (2025-12-29)
+
+Patch release - Build Optimization:
+- Fixed large chunk size warnings (ExpensesPage: 958KB → 20KB)
+- Added coverage/ to ESLint ignores
+- Removed unused exports from errorTracking, documentUtils, types
+
+**1.9.2** (2025-12-29)
+
+Patch release - Code Quality:
+- Removed 4 unused packages reducing bundle size
+- Removed ~40 debug console.log statements
+- Implemented SQLite versions of legacy stubbed functions
+- Fixed expense category capitalization consistency
+- Added React Router v7 future flags
+
+**1.9.1** (2025-12-29)
+
+Patch release - Bug Reporting:
+- In-app bug reporting to GitHub Issues
+- Expense export upgraded to native Excel (.xlsx) format
+- Fixed expense export column misalignment
 
 **1.9.0** (2025-12-24)
 
