@@ -1,9 +1,30 @@
 # Respectabullz User Manual
 
-**Version 1.9.3**
-**Last Updated: December 29, 2025**
+**Version 1.9.4**
+**Last Updated: December 30, 2025**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
+
+---
+
+## What's New in Version 1.9.4
+
+### Added
+- **Test Coverage**: Added 90 new tests for expense-related components
+  - ExpensesFilters, ExpensesTable, ExpensesChart, and ReportsPage now have comprehensive test coverage
+  - Test count increased from 212 → 302
+- **Structured Logging**: Implemented environment-based log level configuration
+  - Added `VITE_LOG_LEVEL` environment variable support (debug, info, warn, error)
+  - All console.* statements replaced with logger.* calls across 17 hook files
+
+### Changed
+- **Performance**: Lazy-load PDF renderer to improve initial load time
+  - PDF generation module now loads on-demand when user clicks "Export PDF"
+  - DogDetailPage reduced from 141KB to 85KB (40% reduction)
+- **Code Deduplication**: Refactored contract utilities to eliminate ~180 lines of duplicate code
+
+### Fixed
+- **Contact Category Colors**: New custom categories now auto-assign a unique color (fixes #3)
 
 ---
 
@@ -1169,6 +1190,7 @@ For issues or questions:
 
 ## Version History
 
+- **v1.9.4**: Comprehensive expense testing (90 new tests), structured logging, lazy-load PDF renderer, auto-assign contact category colors
 - **v1.9.3**: Build optimization, reduced bundle size, code cleanup
 - **v1.9.2**: Code quality improvements, dependency cleanup, legacy function implementation
 - **v1.9.1**: Bug reporting to GitHub, Excel expense export
@@ -1188,6 +1210,6 @@ See [CHANGELOG.md](../CHANGELOG.md) for complete version history.
 
 ---
 
-**Respectabullz User Manual v1.9.3**
-*Last Updated: December 29, 2025*
+**Respectabullz User Manual v1.9.4**
+*Last Updated: December 30, 2025*
 

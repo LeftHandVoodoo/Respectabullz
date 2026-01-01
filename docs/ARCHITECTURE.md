@@ -1,6 +1,6 @@
 # Respectabullz Architecture
 
-**Version 1.9.3**
+**Version 1.9.4**
 
 ## Overview
 
@@ -341,10 +341,12 @@ User Action → Form Submit → Data Hook (useMutation)
 
 ## Future Considerations
 
-### Completed Improvements (as of 1.9.0)
+### Completed Improvements (as of 1.9.4)
 - ✅ PDF generation for contracts (dual Word + PDF output since 1.6.0)
 - ✅ PDF viewer with page navigation and zoom controls (since 1.5.0)
 - ✅ Code splitting with 93% bundle size reduction (since 1.8.1)
+- ✅ Lazy-load PDF renderer for on-demand loading (since 1.9.4)
+- ✅ Structured logging with environment-based log levels (since 1.9.4)
 
 ### Planned Improvements
 1. Full Prisma integration with Tauri IPC
