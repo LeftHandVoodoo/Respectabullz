@@ -19,10 +19,10 @@
 | Severity | Original | Resolved | Remaining |
 |----------|----------|----------|-----------|
 | Critical | 2 | 2 | 0 |
-| High | 5 | 4 | 1 |
+| High | 5 | 5 | 0 |
 | Medium | 8 | 6 | 2 |
 | Low | 4 | 2 | 2 |
-| **Total** | **19** | **14** | **5** |
+| **Total** | **19** | **15** | **4** |
 
 ---
 
@@ -63,9 +63,12 @@ CSP is now properly configured instead of null.
 - Restricts to allowed file extensions only
 - Called before `shellOpen()` at line 372
 
-#### H-2: Whelping Checklist State Desynchronization ⚠️ OPEN
+#### H-2: Whelping Checklist State Desynchronization ✅ RESOLVED
 **File**: `src/components/litters/WhelpingChecklist.tsx`
-**Status**: Requires review - optimistic update pattern without rollback on error.
+**Resolution**: Proper rollback pattern implemented in both `toggleItem()` and `resetChecklist()`:
+- Previous state saved before optimistic update
+- State reverted in catch block on mutation failure
+- Toast notification handled by mutation's `onError` handler
 
 #### H-3: Mutation Errors Don't Revert Optimistic State ✅ RESOLVED
 **File**: `src/hooks/useLitters.ts`
@@ -149,10 +152,8 @@ return `${uuidv4()}.${ext}`;
 
 ## Remaining Issues Summary
 
-### High Priority (1 remaining)
-| ID | File | Issue | Status |
-|----|------|-------|--------|
-| H-2 | WhelpingChecklist.tsx | Optimistic update without rollback | Open |
+### High Priority (0 remaining)
+All high-priority issues have been resolved.
 
 ### Medium Priority (2 remaining)
 | ID | File | Issue | Status |
@@ -204,7 +205,7 @@ npm audit --omit=dev
 | `src-tauri/tauri.conf.json` | C-1, C-2 | ✅ Resolved |
 | `src-tauri/capabilities/default.json` | (new) | ✅ Properly configured |
 | `src/lib/documentUtils.ts` | H-1, L-4 | ✅ Resolved |
-| `src/components/litters/WhelpingChecklist.tsx` | H-2 | ⚠️ Open |
+| `src/components/litters/WhelpingChecklist.tsx` | H-2 | ✅ Resolved |
 | `src/hooks/useLitters.ts` | H-3 | ✅ Resolved |
 | `src/lib/db/health.ts` | H-4 | ✅ Resolved |
 | `src/lib/errorTracking.ts` | H-5 | ⚠️ Mitigated |
@@ -221,7 +222,6 @@ npm audit --omit=dev
 
 ## Recommended Next Steps
 
-1. **H-2**: Add error rollback to WhelpingChecklist optimistic updates
-2. **L-1**: Call `validateImagesBeforeExport()` before PDF generation
-3. **L-3**: Add toast notification when logo fails to load
-4. **M-5**: Improve user notification for partial backup restores
+1. **L-1**: Call `validateImagesBeforeExport()` before PDF generation
+2. **L-3**: Add toast notification when logo fails to load
+3. **M-5**: Improve user notification for partial backup restores
