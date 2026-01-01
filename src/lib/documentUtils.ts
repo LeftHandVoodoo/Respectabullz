@@ -92,13 +92,40 @@ export function isSupportedFile(filename: string): boolean {
 }
 
 /**
+ * Validate a stored document filename
+ * Supports both legacy format ({timestamp}-{random}.{ext}) and new UUID format ({uuid}.{ext})
+ * e.g., "1704067200000-abc123.pdf" or "550e8400-e29b-41d4-a716-446655440000.pdf"
+ */
+function isValidStoredFilename(filename: string): boolean {
+  // Must not contain path traversal sequences
+  if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return false;
+  }
+
+  // UUID v4 pattern: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx where y is 8, 9, a, or b
+  const uuidPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}\.(jpg|jpeg|png|gif|webp|pdf|doc|docx|xls|xlsx)$/i;
+
+  // Legacy format: digits-alphanumeric.extension
+  const legacyPattern = /^\d+-[a-z0-9]+\.(jpg|jpeg|png|gif|webp|pdf|doc|docx|xls|xlsx)$/i;
+
+  if (!uuidPattern.test(filename) && !legacyPattern.test(filename)) {
+    return false;
+  }
+
+  // Extension must be in the allowed list
+  const ext = getFileExtension(filename);
+  return ALL_SUPPORTED_EXTENSIONS.includes(ext);
+}
+
+import { v4 as uuidv4 } from 'uuid';
+
+/**
  * Generate a unique filename for storing documents
  */
 function generateUniqueFilename(originalPath: string): string {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 8);
   const ext = getFileExtension(originalPath);
-  return `${timestamp}-${random}.${ext}`;
+  // Use UUID v4 for collision-free filenames
+  return `${uuidv4()}.${ext}`;
 }
 
 /**
@@ -230,6 +257,7 @@ export async function copyDocumentToDocsDir(sourcePath: string): Promise<{ filen
     const docsDir = await ensureDocumentsDirectory();
 
     const newFilename = generateUniqueFilename(sourcePath);
+    // Use forward slashes for cross-platform compatibility - Tauri normalizes on all platforms
     const destPath = `${docsDir}/${newFilename}`;
 
     const sourceData = await readFile(sourcePath);
@@ -340,6 +368,12 @@ export async function deleteDocumentFile(filename: string): Promise<boolean> {
  * Open a document with the system default application
  */
 export async function openDocumentWithSystem(filename: string): Promise<boolean> {
+  // Validate filename format before opening
+  if (!isValidStoredFilename(filename)) {
+    console.error('Invalid document filename format:', filename);
+    return false;
+  }
+
   try {
     const fullPath = await getDocumentFullPath(filename);
     await shellOpen(fullPath);

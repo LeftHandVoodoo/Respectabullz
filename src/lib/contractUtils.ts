@@ -679,17 +679,22 @@ export async function saveContractToAppData(
         // For absolute paths, we'll write directly without baseDir
         try {
           await writeFile(customPath, uint8Array);
+          // Verify the file was written successfully
+          const fileExists = await exists(customPath);
+          if (!fileExists) {
+            throw new Error('File write verification failed: file does not exist after write');
+          }
           return customPath;
         } catch (error) {
           console.error('Failed to save to custom directory, falling back to default:', error);
           // Fall through to default directory
         }
       }
-      
+
       // Default: Save to contracts folder in app data directory
       const contractsPath = `contracts/${filename}`;
       const baseDir = BaseDirectory.AppData;
-      
+
       // Ensure contracts directory exists
       try {
         const dirExists = await exists('contracts', { baseDir });
@@ -699,9 +704,15 @@ export async function saveContractToAppData(
       } catch (error) {
         console.warn('Could not check/create contracts directory:', error);
       }
-      
+
       await writeFile(contractsPath, uint8Array, { baseDir });
-      
+
+      // Verify the file was written successfully
+      const fileWritten = await exists(contractsPath, { baseDir });
+      if (!fileWritten) {
+        throw new Error('File write verification failed: contract file does not exist after write');
+      }
+
       // Return the relative path (full path construction would require Tauri path API)
       // The file is saved at: %APPDATA%/com.respectabullz.app/contracts/{filename}
       return contractsPath;

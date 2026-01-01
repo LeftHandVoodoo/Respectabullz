@@ -108,6 +108,9 @@ export function WhelpingChecklist({ litter }: WhelpingChecklistProps) {
   };
 
   const toggleItem = async (sectionId: string, itemId: string) => {
+    // Save previous state for rollback
+    const previousChecklist = checklist;
+
     const newChecklist = checklist.map(section => {
       if (section.id !== sectionId) return section;
       return {
@@ -122,26 +125,45 @@ export function WhelpingChecklist({ litter }: WhelpingChecklistProps) {
         }),
       };
     });
-    
+
+    // Optimistically update UI
     setChecklist(newChecklist);
-    
-    // Save to database
-    await updateLitter.mutateAsync({
-      id: litter.id,
-      data: {
-        whelpingChecklistState: JSON.stringify(newChecklist),
-      },
-    });
+
+    // Save to database with rollback on error
+    try {
+      await updateLitter.mutateAsync({
+        id: litter.id,
+        data: {
+          whelpingChecklistState: JSON.stringify(newChecklist),
+        },
+      });
+    } catch {
+      // Rollback to previous state on failure
+      setChecklist(previousChecklist);
+      // Toast is shown by the mutation's onError handler
+    }
   };
 
   const resetChecklist = async () => {
+    // Save previous state for rollback
+    const previousChecklist = checklist;
+
+    // Optimistically update UI
     setChecklist(DEFAULT_CHECKLIST);
-    await updateLitter.mutateAsync({
-      id: litter.id,
-      data: {
-        whelpingChecklistState: null,
-      },
-    });
+
+    // Save to database with rollback on error
+    try {
+      await updateLitter.mutateAsync({
+        id: litter.id,
+        data: {
+          whelpingChecklistState: null,
+        },
+      });
+    } catch {
+      // Rollback to previous state on failure
+      setChecklist(previousChecklist);
+      // Toast is shown by the mutation's onError handler
+    }
   };
 
   return (

@@ -133,9 +133,21 @@ export function PacketExportDialog({
             reader.onloadend = () => resolve(reader.result as string);
             reader.readAsDataURL(logoBlob);
           });
+        } else {
+          console.warn('Logo response not OK:', logoResponse.status);
+          toast({
+            title: 'Warning',
+            description: 'Kennel logo could not be loaded. PDF will be generated without it.',
+            variant: 'destructive',
+          });
         }
       } catch (error) {
         console.warn('Could not load logo:', error);
+        toast({
+          title: 'Warning',
+          description: 'Kennel logo could not be loaded. PDF will be generated without it.',
+          variant: 'destructive',
+        });
       }
 
       // Dynamically import PDF generation module (~1.5MB) only when needed

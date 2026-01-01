@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Image Validation**: Added `validateImagesBeforeExport()` function to check for missing images before PDF generation (L-1)
+
+### Changed
+
+- **Security Hardening (CRITICAL)**:
+  - Restricted `assetProtocol.scope` to app-specific directory only (`$APPDATA/com.respectabullz.app/**`) (C-1)
+  - Enabled Content Security Policy (CSP) in Tauri configuration (C-1)
+  - Restricted filesystem capabilities to app, document, picture, download, and desktop directories (C-1)
+  - Added filename validation before `shellOpen()` to prevent path traversal attacks (H-1)
+
+- **State Management**:
+  - Added proper optimistic update handling with rollback in `useUpdateLitter` mutation (H-3)
+  - Added try-catch with state rollback in `WhelpingChecklist` toggle and reset functions (H-2)
+
+- **Data Integrity**:
+  - Health schedule template JSON parse now throws error on corruption instead of returning empty array (H-4)
+  - localStorage migration now validates data structure with zod schema before migration (M-1)
+  - Backup metadata is now validated with zod schema during restore (M-2)
+  - Photo restore now tracks and reports failed files instead of silently continuing (M-5)
+  - Contract file writes now verify file existence after write operation (M-3)
+
+- **Photo Handling**:
+  - Switched to UUID v4 for photo and document filenames to prevent collisions (M-4)
+  - Improved dialog result extraction to handle multiple return formats (M-7)
+  - Standardized photo URL path construction to use forward slashes (M-8)
+  - Updated filename validation to support both legacy and UUID formats
+
+- **Cross-Platform Compatibility**:
+  - Normalized path joining in pdfExport.ts to use forward slashes consistently (M-6)
+  - Added comments documenting Tauri's cross-platform path normalization (L-4)
+
+- **User Feedback**:
+  - Added PDF worker initialization error handling with user-friendly message (L-2)
+  - Added toast notification when kennel logo fails to load during PDF export (L-3)
+
+### Dependencies
+
+- Added `uuid` and `zod` packages for improved filename generation and schema validation
+
 ## [1.9.4] - 2025-12-30
 
 ### Added

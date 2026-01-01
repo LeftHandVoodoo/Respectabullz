@@ -23,7 +23,23 @@ import {
 // Configure PDF.js worker - import from node_modules via Vite's ?url import
 // This bundles the worker file and provides a URL to it
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+
+// Track worker initialization status
+let pdfWorkerInitialized = false;
+let pdfWorkerError: string | null = null;
+
+try {
+  if (workerSrc) {
+    pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+    pdfWorkerInitialized = true;
+  } else {
+    pdfWorkerError = 'PDF worker source is not available';
+    console.error('PDF.js worker initialization failed: worker source is undefined');
+  }
+} catch (error) {
+  pdfWorkerError = error instanceof Error ? error.message : 'Unknown error initializing PDF worker';
+  console.error('PDF.js worker initialization failed:', error);
+}
 
 interface DocumentViewerProps {
   document: DocumentWithRelations;
@@ -60,6 +76,13 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
             setIsLoading(false);
           });
       } else if (isPdfFile(document.filename)) {
+        // Check if PDF worker initialized successfully
+        if (!pdfWorkerInitialized) {
+          setError(`PDF viewer unavailable: ${pdfWorkerError || 'Worker failed to initialize'}. Try opening the file with your system PDF viewer.`);
+          setIsLoading(false);
+          return;
+        }
+
         // Use base64 for PDFs - more reliable in Tauri desktop apps
         getDocumentBase64(document.filename)
           .then((base64Url) => {

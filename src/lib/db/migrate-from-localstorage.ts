@@ -3,9 +3,39 @@
 
 import { execute, isDatabaseEmpty } from './connection';
 import { dateToSql, boolToSql } from './utils';
+import { z } from 'zod';
+import { logger } from '@/lib/errorTracking';
 
 // localStorage key used by the old db.ts
 const STORAGE_KEY = 'respectabullz_db';
+
+// Zod schema for validating localStorage data structure
+// Uses .passthrough() to allow additional fields we don't know about
+const OldDatabaseSchema = z.object({
+  dogs: z.array(z.object({ id: z.string(), name: z.string() }).passthrough()).optional().default([]),
+  litters: z.array(z.object({ id: z.string(), code: z.string() }).passthrough()).optional().default([]),
+  heatCycles: z.array(z.object({ id: z.string(), bitchId: z.string() }).passthrough()).optional().default([]),
+  heatEvents: z.array(z.object({ id: z.string(), heatCycleId: z.string() }).passthrough()).optional().default([]),
+  vaccinations: z.array(z.object({ id: z.string(), dogId: z.string() }).passthrough()).optional().default([]),
+  weightEntries: z.array(z.object({ id: z.string(), dogId: z.string() }).passthrough()).optional().default([]),
+  medicalRecords: z.array(z.object({ id: z.string(), dogId: z.string() }).passthrough()).optional().default([]),
+  transports: z.array(z.object({ id: z.string(), dogId: z.string() }).passthrough()).optional().default([]),
+  expenses: z.array(z.object({ id: z.string() }).passthrough()).optional().default([]),
+  clients: z.array(z.object({ id: z.string(), name: z.string() }).passthrough()).optional().default([]),
+  sales: z.array(z.object({ id: z.string(), clientId: z.string() }).passthrough()).optional().default([]),
+  salePuppies: z.array(z.object({ id: z.string(), saleId: z.string() }).passthrough()).optional().default([]),
+  clientInterests: z.array(z.object({ id: z.string(), clientId: z.string() }).passthrough()).optional().default([]),
+  pedigreeEntries: z.array(z.object({ id: z.string(), dogId: z.string() }).passthrough()).optional().default([]),
+  dogPhotos: z.array(z.object({ id: z.string(), dogId: z.string() }).passthrough()).optional().default([]),
+  litterPhotos: z.array(z.object({ id: z.string(), litterId: z.string() }).passthrough()).optional().default([]),
+  settings: z.array(z.object({ id: z.string(), key: z.string() }).passthrough()).optional().default([]),
+  puppyHealthTasks: z.array(z.object({ id: z.string(), litterId: z.string() }).passthrough()).optional().default([]),
+  healthScheduleTemplates: z.array(z.object({ id: z.string(), name: z.string() }).passthrough()).optional().default([]),
+  waitlistEntries: z.array(z.object({ id: z.string(), clientId: z.string() }).passthrough()).optional().default([]),
+  communicationLogs: z.array(z.object({ id: z.string(), clientId: z.string() }).passthrough()).optional().default([]),
+  externalStuds: z.array(z.object({ id: z.string(), name: z.string() }).passthrough()).optional().default([]),
+  geneticTests: z.array(z.object({ id: z.string(), dogId: z.string() }).passthrough()).optional().default([]),
+}).passthrough();
 
 // Old database interface from localStorage
 interface OldDatabase {
@@ -81,30 +111,56 @@ export function hasLocalStorageData(): boolean {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return false;
-    const parsed = JSON.parse(stored) as OldDatabase;
+
+    const rawParsed = JSON.parse(stored);
+
+    // Validate the structure with zod
+    const parseResult = OldDatabaseSchema.safeParse(rawParsed);
+    if (!parseResult.success) {
+      logger.warn('localStorage data failed schema validation', {
+        errors: parseResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
+      });
+      return false;
+    }
+
+    const parsed = parseResult.data;
     // Check if there's any actual data
     return (
-      parsed.dogs?.length > 0 ||
-      parsed.litters?.length > 0 ||
-      parsed.clients?.length > 0 ||
-      parsed.sales?.length > 0
+      parsed.dogs.length > 0 ||
+      parsed.litters.length > 0 ||
+      parsed.clients.length > 0 ||
+      parsed.sales.length > 0
     );
   } catch (e) {
-    console.error('[Migration] Failed to check localStorage data:', e);
+    logger.error('[Migration] Failed to check localStorage data', e instanceof Error ? e : undefined);
     return false;
   }
 }
 
 /**
- * Get the localStorage data
+ * Get the localStorage data with schema validation
  */
 function getLocalStorageData(): OldDatabase | null {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return null;
-    return JSON.parse(stored) as OldDatabase;
+
+    const rawParsed = JSON.parse(stored);
+
+    // Validate the structure with zod
+    const parseResult = OldDatabaseSchema.safeParse(rawParsed);
+    if (!parseResult.success) {
+      logger.error('[Migration] localStorage data failed schema validation', {
+        errors: parseResult.error.errors.slice(0, 5).map(e => `${e.path.join('.')}: ${e.message}`),
+        totalErrors: parseResult.error.errors.length,
+      });
+      return null;
+    }
+
+    // Cast to OldDatabase since we've validated the structure
+    return parseResult.data as unknown as OldDatabase;
   } catch (e) {
-    console.error('[Migration] Failed to parse localStorage data:', e);
+    logger.error('[Migration] Failed to parse localStorage data', e instanceof Error ? e : undefined);
     return null;
   }
 }

@@ -3,6 +3,7 @@
 
 import { query, execute } from './connection';
 import { generateId, dateToSql, sqlToDate, nowIso } from './utils';
+import { logger } from '@/lib/errorTracking';
 import type {
   VaccinationRecord,
   WeightEntry,
@@ -590,9 +591,22 @@ interface HealthScheduleTemplateRow {
 function rowToHealthScheduleTemplate(row: HealthScheduleTemplateRow): HealthScheduleTemplate {
   let items: HealthScheduleTemplate['items'] = [];
   try {
-    items = JSON.parse(row.items);
+    const parsed = JSON.parse(row.items);
+    // Validate that parsed data is an array
+    if (!Array.isArray(parsed)) {
+      throw new Error('Expected items to be an array');
+    }
+    items = parsed;
   } catch (e) {
-    console.error('Failed to parse health schedule template items:', e);
+    // Log the error with context for debugging
+    logger.error('Failed to parse health schedule template items', {
+      templateId: row.id,
+      templateName: row.name,
+      rawItems: row.items?.substring(0, 100), // First 100 chars for debugging
+      error: e instanceof Error ? e.message : String(e),
+    });
+    // Throw to surface the data corruption issue
+    throw new Error(`Corrupted health schedule data for template "${row.name}" (${row.id}). The items data could not be parsed.`);
   }
   return {
     id: row.id,

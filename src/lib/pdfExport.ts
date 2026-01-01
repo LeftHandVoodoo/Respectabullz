@@ -510,9 +510,10 @@ const joinPaths = (base: string, next: string): string => {
   if (isAbsolutePath(next)) {
     return next;
   }
-  const separator = base.includes('\\') ? '\\' : '/';
-  const normalizedBase = base.endsWith(separator) ? base.slice(0, -1) : base;
-  return `${normalizedBase}${separator}${next.replace(/^[\\/]+/, '')}`;
+  // Normalize both paths to use forward slashes (Tauri normalizes on all platforms)
+  const normalizedBase = base.replace(/\\/g, '/').replace(/\/$/, '');
+  const normalizedNext = next.replace(/\\/g, '/').replace(/^\//, '');
+  return `${normalizedBase}/${normalizedNext}`;
 };
 
 const fetchAsDataUrl = async (path: string): Promise<string | null> => {
@@ -577,6 +578,41 @@ export async function imagePathToBase64(
     console.error('Error converting image to base64:', imagePath);
     return null;
   }
+}
+
+/**
+ * Validate that required images exist before PDF export
+ * Returns a list of missing image paths
+ */
+export async function validateImagesBeforeExport(
+  imagePaths: (string | null | undefined)[],
+  photoBasePath?: string
+): Promise<{ valid: string[]; missing: string[] }> {
+  const valid: string[] = [];
+  const missing: string[] = [];
+
+  for (const imagePath of imagePaths) {
+    if (!imagePath) continue;
+
+    const trimmedPath = imagePath.trim();
+    if (!trimmedPath) continue;
+
+    // Skip data URLs and HTTP URLs - they're always "valid" for our purposes
+    if (trimmedPath.startsWith('data:') || trimmedPath.startsWith('http')) {
+      valid.push(trimmedPath);
+      continue;
+    }
+
+    // Try to load the image
+    const result = await imagePathToBase64(trimmedPath, photoBasePath);
+    if (result) {
+      valid.push(trimmedPath);
+    } else {
+      missing.push(trimmedPath);
+    }
+  }
+
+  return { valid, missing };
 }
 
 // Get genetic test result color

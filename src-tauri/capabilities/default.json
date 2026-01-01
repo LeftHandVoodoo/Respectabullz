@@ -8,6 +8,7 @@
     "shell:allow-open",
     "dialog:default",
     "dialog:allow-open",
+    "dialog:allow-save",
     "notification:default",
     "fs:default",
     "fs:allow-exists",
@@ -18,25 +19,30 @@
     {
       "identifier": "fs:allow-read",
       "allow": [
-        { "path": "$APPDATA/**" },
-        { "path": "$HOME/**" },
-        { "path": "**" }
+        { "path": "$APPDATA/com.respectabullz.app/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$PICTURE/**" },
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DESKTOP/**" }
       ]
     },
     {
       "identifier": "fs:allow-write",
       "allow": [
-        { "path": "$APPDATA/**" },
-        { "path": "$HOME/**" },
-        { "path": "**" }
+        { "path": "$APPDATA/com.respectabullz.app/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DESKTOP/**" }
       ]
     },
     {
       "identifier": "fs:scope",
       "allow": [
-        { "path": "$APPDATA/**" },
-        { "path": "$HOME/**" },
-        { "path": "**" }
+        { "path": "$APPDATA/com.respectabullz.app/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$PICTURE/**" },
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DESKTOP/**" }
       ]
     },
     "sql:default",

@@ -49,6 +49,17 @@ export function useUpdateLitter() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateLitterInput }) =>
       db.updateLitter(id, data),
+    onMutate: async (variables) => {
+      // Cancel any outgoing refetches to prevent overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['litters', variables.id] });
+      await queryClient.cancelQueries({ queryKey: ['litters'] });
+
+      // Snapshot the previous value for potential rollback
+      const previousLitter = queryClient.getQueryData(['litters', variables.id]);
+      const previousLitters = queryClient.getQueryData(['litters']);
+
+      return { previousLitter, previousLitters };
+    },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['litters'] });
       queryClient.invalidateQueries({ queryKey: ['litters', variables.id] });
@@ -58,7 +69,18 @@ export function useUpdateLitter() {
         description: 'The litter has been updated successfully.',
       });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback to previous state on error
+      if (context?.previousLitter) {
+        queryClient.setQueryData(['litters', variables.id], context.previousLitter);
+      }
+      if (context?.previousLitters) {
+        queryClient.setQueryData(['litters'], context.previousLitters);
+      }
+      // Force refetch to ensure sync with server state
+      queryClient.invalidateQueries({ queryKey: ['litters'] });
+      queryClient.invalidateQueries({ queryKey: ['litters', variables.id] });
+
       toast({
         title: 'Error',
         description: 'Failed to update litter. Please try again.',

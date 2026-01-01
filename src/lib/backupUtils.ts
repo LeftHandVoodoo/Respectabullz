@@ -4,16 +4,36 @@
 import JSZip from 'jszip';
 import { readFile, writeFile, exists, mkdir, readDir, BaseDirectory } from '@tauri-apps/plugin-fs';
 import { save, open } from '@tauri-apps/plugin-dialog';
+import { z } from 'zod';
+import { logger } from '@/lib/errorTracking';
 
 const PHOTOS_DIR = 'photos';
 const DB_FILENAME = 'database.json';
 const BACKUP_VERSION = '1.0';
+
+// Zod schema for validating backup metadata
+const BackupMetadataSchema = z.object({
+  version: z.string(),
+  createdAt: z.string(),
+  appVersion: z.string(),
+  photoCount: z.number(),
+});
 
 interface BackupMetadata {
   version: string;
   createdAt: string;
   appVersion: string;
   photoCount: number;
+}
+
+// Extended result type for detailed restore status
+interface ImportResult {
+  success: boolean;
+  databaseJson?: string;
+  photoCount?: number;
+  error?: string;
+  failedPhotos?: string[];
+  metadata?: BackupMetadata;
 }
 
 /**
@@ -131,7 +151,7 @@ export async function exportBackupWithPhotos(databaseJson: string): Promise<bool
 /**
  * Import database and photos from a ZIP backup file
  */
-export async function importBackupWithPhotos(): Promise<{ success: boolean; databaseJson?: string; photoCount?: number; error?: string }> {
+export async function importBackupWithPhotos(): Promise<ImportResult> {
   try {
     // Open file dialog to select backup
     const selectedPath = await open({
@@ -141,56 +161,68 @@ export async function importBackupWithPhotos(): Promise<{ success: boolean; data
         extensions: ['zip']
       }]
     });
-    
+
     if (!selectedPath || typeof selectedPath !== 'string') {
       return { success: false, error: 'cancelled' };
     }
-    
+
     // Read the ZIP file
     const zipData = await readFile(selectedPath);
-    
+
     // Load the ZIP
     const zip = await JSZip.loadAsync(zipData);
-    
-    // Check for metadata
+
+    // Validate and parse metadata
+    let metadata: BackupMetadata | undefined;
     const metadataFile = zip.file('metadata.json');
     if (metadataFile) {
       const metadataText = await metadataFile.async('string');
       try {
-        JSON.parse(metadataText) as BackupMetadata;
+        const rawMetadata = JSON.parse(metadataText);
+        const parseResult = BackupMetadataSchema.safeParse(rawMetadata);
+        if (parseResult.success) {
+          metadata = parseResult.data;
+          logger.info('Backup metadata validated', { metadata });
+        } else {
+          logger.warn('Backup metadata failed validation', {
+            errors: parseResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
+          });
+          // Continue without metadata - we can still try to restore
+        }
       } catch (e) {
-        console.error('Failed to parse backup metadata:', e);
-        // Continue with restore even if metadata is corrupted
+        logger.error('Failed to parse backup metadata', e instanceof Error ? e : undefined);
+        // Continue without metadata
       }
     }
-    
+
     // Extract database
     const dbFile = zip.file(DB_FILENAME);
     if (!dbFile) {
       return { success: false, error: 'Invalid backup: missing database.json' };
     }
-    
+
     const databaseJson = await dbFile.async('string');
-    
+
     // Ensure photos directory exists
     const photosDirExists = await exists(PHOTOS_DIR, { baseDir: BaseDirectory.AppData });
     if (!photosDirExists) {
       await mkdir(PHOTOS_DIR, { recursive: true, baseDir: BaseDirectory.AppData });
     }
-    
-    // Extract photos
+
+    // Extract photos with detailed tracking
     const photosFolder = zip.folder('photos');
     let photoCount = 0;
-    
+    const failedPhotos: string[] = [];
+
     if (photosFolder) {
       const photoEntries: { name: string; file: JSZip.JSZipObject }[] = [];
-      
+
       photosFolder.forEach((relativePath, file) => {
         if (!file.dir) {
           photoEntries.push({ name: relativePath, file });
         }
       });
-      
+
       for (const { name, file } of photoEntries) {
         try {
           const photoData = await file.async('uint8array');
@@ -198,21 +230,30 @@ export async function importBackupWithPhotos(): Promise<{ success: boolean; data
           await writeFile(photoPath, photoData, { baseDir: BaseDirectory.AppData });
           photoCount++;
         } catch (error) {
-          console.error(`Failed to restore photo ${name}:`, error);
+          failedPhotos.push(name);
+          logger.error(`Failed to restore photo ${name}`, error instanceof Error ? error : undefined);
         }
       }
     }
-    
-    return { 
-      success: true, 
+
+    // Determine success status based on photo restoration
+    const allPhotosRestored = failedPhotos.length === 0;
+
+    return {
+      success: allPhotosRestored,
       databaseJson,
-      photoCount 
+      photoCount,
+      failedPhotos: failedPhotos.length > 0 ? failedPhotos : undefined,
+      metadata,
+      error: failedPhotos.length > 0
+        ? `${failedPhotos.length} photo(s) failed to restore`
+        : undefined,
     };
   } catch (error) {
-    console.error('Failed to import backup:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    logger.error('Failed to import backup', error instanceof Error ? error : undefined);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 }

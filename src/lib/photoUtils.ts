@@ -12,11 +12,12 @@ const SUPPORTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
 /**
  * Generate a unique filename for storing photos
  */
+import { v4 as uuidv4 } from 'uuid';
+
 function generateUniqueFilename(originalPath: string): string {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 8);
   const ext = originalPath.split('.').pop()?.toLowerCase() || 'jpg';
-  return `${timestamp}-${random}.${ext}`;
+  // Use UUID v4 for collision-free filenames
+  return `${uuidv4()}.${ext}`;
 }
 
 /**
@@ -94,17 +95,32 @@ export async function selectImageFile(): Promise<string | null> {
 
 /**
  * Helper to extract path from dialog result
+ * Handles various return types from Tauri dialog plugin
  */
 function extractPath(item: unknown): string | null {
+  // Handle string paths (Tauri v1 style)
   if (typeof item === 'string') {
     return item;
   }
-  if (typeof item === 'object' && item !== null && 'path' in item) {
-    const path = (item as Record<string, unknown>).path;
-    if (typeof path === 'string') {
-      return path;
+
+  // Handle object with path property (Tauri v2 style)
+  if (typeof item === 'object' && item !== null) {
+    // Check for 'path' property (FileResponse type)
+    if ('path' in item) {
+      const path = (item as { path: unknown }).path;
+      if (typeof path === 'string') {
+        return path;
+      }
+    }
+    // Check for 'file' property (alternative response format)
+    if ('file' in item) {
+      const file = (item as { file: unknown }).file;
+      if (typeof file === 'string') {
+        return file;
+      }
     }
   }
+
   return null;
 }
 
@@ -296,6 +312,7 @@ export async function getPhotoUrlAsync(filename: string | null | undefined): Pro
 /**
  * Get photo URL synchronously (requires initPhotoBasePath to be called first)
  * Falls back to async lookup if cache isn't ready
+ * Uses convertFileSrc (asset://) for better performance vs base64
  */
 export function getPhotoUrlSync(filename: string | null | undefined): string | null {
   if (!filename) return null;
@@ -305,14 +322,12 @@ export function getPhotoUrlSync(filename: string | null | undefined): string | n
     return photoUrlCache.get(filename) || null;
   }
 
-  // If base path is initialized, construct URL
+  // If base path is initialized, construct URL using convertFileSrc
   if (cachedPhotosBasePath) {
     try {
-      // Use join to properly construct path (handles Windows/Unix differences)
-      // Since we can't use async join here, we'll use the async version as fallback
-      // For now, construct manually but use proper path separator detection
-      const separator = cachedPhotosBasePath.includes('\\') ? '\\' : '/';
-      const fullPath = `${cachedPhotosBasePath}${separator}${filename}`;
+      // Normalize path to use forward slashes (Tauri handles this on all platforms)
+      const normalizedBase = cachedPhotosBasePath.replace(/\\/g, '/').replace(/\/$/, '');
+      const fullPath = `${normalizedBase}/${filename}`;
       const url = convertFileSrc(fullPath);
       photoUrlCache.set(filename, url);
       return url;

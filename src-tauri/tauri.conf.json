@@ -23,13 +23,11 @@
       }
     ],
     "security": {
-      "csp": null,
+      "csp": "default-src 'self'; img-src 'self' data: asset: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; connect-src 'self' https:",
       "assetProtocol": {
         "enable": true,
         "scope": [
-          "$APPDATA/**",
-          "$HOME/**",
-          "**/*"
+          "$APPDATA/com.respectabullz.app/**"
         ]
       }
     }
