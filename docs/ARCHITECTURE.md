@@ -1,6 +1,6 @@
 # Respectabullz Architecture
 
-**Version 1.10.1**
+**Version 1.10.2**
 
 ## Overview
 
@@ -79,7 +79,7 @@ Respectabullz is a desktop application for dog breeder management, built with a 
 ### 4. Database Layer (lib/db/)
 - **Purpose**: Data persistence abstraction with modular architecture
 - **Structure**:
-  - `connection.ts` - SQLite connection management via tauri-plugin-sql
+  - `connection.ts` - SQLite connection management via tauri-plugin-sql (uses promise-based locking to prevent duplicate connections)
   - `migrations.ts` - Schema versioning and database initialization
   - `utils.ts` - ID generation, date/type conversions
   - `dogs.ts` - Dog, DogPhoto, PedigreeEntry operations
@@ -94,6 +94,8 @@ Respectabullz is a desktop application for dog breeder management, built with a 
   - `init.ts` - Database initialization and migration orchestration
   - `legacy.ts` - Compatibility stubs for functions pending full implementation
   - `index.ts` - Centralized re-exports for backwards compatibility
+- **Supporting Utilities**:
+  - `src/lib/fsUtils.ts` - Atomic file write helpers using write-to-temp-then-rename pattern
 - **Responsibilities**:
   - CRUD operations for all entities
   - Data validation and type conversion
@@ -267,6 +269,12 @@ User Action → Form Submit → Data Hook (useMutation)
 - Prisma for type-safe database operations
 - Shared types between frontend and database
 
+### 6. Atomic File Operations
+- All critical file writes use write-to-temp-then-rename pattern (`fsUtils.ts`)
+- Prevents data corruption from interrupted writes (power loss, crash)
+- Applied to: backups, contracts, photos, documents, log files
+- Pattern: write to `path.tmp`, then atomically rename to `path`
+
 ## Security Considerations
 
 ### Data Protection
@@ -341,7 +349,7 @@ User Action → Form Submit → Data Hook (useMutation)
 
 ## Future Considerations
 
-### Completed Improvements (as of 1.10.0)
+### Completed Improvements (as of 1.10.2)
 - ✅ PDF generation for contracts (dual Word + PDF output since 1.6.0)
 - ✅ PDF viewer with page navigation and zoom controls (since 1.5.0)
 - ✅ Code splitting with 93% bundle size reduction (since 1.8.1)
@@ -350,6 +358,9 @@ User Action → Form Submit → Data Hook (useMutation)
 - ✅ Security hardening with CSP and restricted file access (since 1.10.0)
 - ✅ Data integrity validation with zod schemas (since 1.10.0)
 - ✅ UUID v4 filenames for collision prevention (since 1.10.0)
+- ✅ Atomic file writes for data corruption prevention (since 1.10.2)
+- ✅ Database singleton with promise-based locking (since 1.10.2)
+- ✅ Optimistic update rollback in mutation hooks (since 1.10.2)
 
 ### Planned Improvements
 1. Full Prisma integration with Tauri IPC
