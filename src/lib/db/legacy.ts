@@ -1,6 +1,8 @@
 // Legacy functions that need to be implemented for SQLite
 // These are placeholders that maintain API compatibility
 
+import { z } from 'zod';
+import { logger } from '@/lib/errorTracking';
 import type {
   PacketData,
   Dog,
@@ -8,6 +10,23 @@ import type {
   MatingCompatibilityResult,
   CommonGeneticTest,
 } from '@/types';
+
+// Zod schema for validating database import format
+const DatabaseImportSchema = z.object({
+  version: z.string(),
+  exportedAt: z.string().optional(),
+  data: z.object({
+    dogs: z.array(z.unknown()).optional(),
+    litters: z.array(z.unknown()).optional(),
+    clients: z.array(z.unknown()).optional(),
+    sales: z.array(z.unknown()).optional(),
+    breederSettings: z.unknown().optional(),
+    vaccinations: z.array(z.unknown()).optional(),
+    medicalRecords: z.array(z.unknown()).optional(),
+    weightEntries: z.array(z.unknown()).optional(),
+    geneticTests: z.array(z.unknown()).optional(),
+  }),
+});
 import { getDogs, getDogPhotos } from './dogs';
 import { getVaccinations, getMedicalRecords, getWeightEntries, getGeneticTests, getHealthScheduleTemplate, createPuppyHealthTask } from './health';
 import { getSale, getClient } from './sales';
@@ -445,19 +464,42 @@ export async function exportDatabase(): Promise<string> {
  */
 export async function importDatabase(data: string): Promise<boolean> {
   try {
-    const parsed = JSON.parse(data);
-
-    if (!parsed.version || !parsed.data) {
-      console.error('Invalid backup format: missing version or data');
+    // Parse JSON first
+    let rawData: unknown;
+    try {
+      rawData = JSON.parse(data);
+    } catch (parseError) {
+      logger.error('Failed to parse import data as JSON', parseError instanceof Error ? parseError : undefined, {
+        context: 'importDatabase',
+        dataLength: data.length
+      });
       return false;
     }
 
+    // Validate with Zod schema
+    const parseResult = DatabaseImportSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      const validationErrors = parseResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`);
+      logger.warn('Database import failed schema validation', {
+        context: 'importDatabase',
+        errors: validationErrors.join('; ')
+      });
+      return false;
+    }
+
+    const parsed = parseResult.data;
+    logger.info('Database import validated', { version: parsed.version });
+
     // For now, just validate the format
     // Full implementation would import each entity type
-    console.error('Full database import not yet implemented - use backup restore instead');
+    logger.warn('Full database import not yet implemented - use backup restore instead', {
+      context: 'importDatabase'
+    });
     return false;
   } catch (error) {
-    console.error('Failed to parse import data:', error);
+    logger.error('Unexpected error during database import', error instanceof Error ? error : undefined, {
+      context: 'importDatabase'
+    });
     return false;
   }
 }

@@ -52,6 +52,15 @@ export function useUpdateExpense() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateExpenseInput }) =>
       db.updateExpense(id, data),
+    onMutate: async () => {
+      // Cancel any outgoing refetches to prevent overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['expenses'] });
+
+      // Snapshot the previous value for potential rollback
+      const previousExpenses = queryClient.getQueryData(['expenses']);
+
+      return { previousExpenses };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -60,13 +69,20 @@ export function useUpdateExpense() {
         description: 'The expense has been updated successfully.',
       });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback to previous state on error
+      if (context?.previousExpenses) {
+        queryClient.setQueryData(['expenses'], context.previousExpenses);
+      }
+      // Force refetch to ensure sync with server state
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+
       toast({
         title: 'Error',
         description: 'Failed to update expense. Please try again.',
         variant: 'destructive',
       });
-      logger.error('Failed to update expense', error as Error);
+      logger.error('Failed to update expense', error as Error, { variables });
     },
   });
 }

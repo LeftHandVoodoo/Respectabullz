@@ -45,6 +45,35 @@ export {
   buildBreederAddress,
 };
 
+// ============================================
+// PATH VALIDATION UTILITIES
+// ============================================
+
+/**
+ * Windows reserved device names that cannot be used as file/directory names.
+ * These names are reserved by the OS regardless of extension.
+ */
+const WINDOWS_RESERVED_NAMES = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i;
+
+/**
+ * Validates that a path does not contain Windows reserved names.
+ * Returns true if the path is valid (no reserved names found).
+ *
+ * @param path - The file or directory path to validate
+ * @returns true if valid, false if it contains reserved names
+ */
+export function isValidWindowsPath(path: string): boolean {
+  // Split path on both forward and back slashes
+  const parts = path.split(/[/\\]/);
+
+  // Check each path segment (strip extension for comparison)
+  return !parts.some(part => {
+    // Get the base name without extension
+    const baseName = part.split('.')[0];
+    return WINDOWS_RESERVED_NAMES.test(baseName);
+  });
+}
+
 type TemplateAlignment = 'left' | 'right' | 'center' | 'justify';
 
 interface ContractTemplateStyle {
@@ -665,29 +694,35 @@ export async function saveContractToAppData(
   try {
     // Check if we're in a Tauri environment
     if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
-      const { writeFile, BaseDirectory, exists, mkdir } = await import('@tauri-apps/plugin-fs');
+      const { BaseDirectory, exists, mkdir } = await import('@tauri-apps/plugin-fs');
+      const { atomicWriteFile, atomicWriteFileAbsolute } = await import('@/lib/fsUtils');
       const { join } = await import('@tauri-apps/api/path');
-      
+
       // Convert blob to Uint8Array
       const arrayBuffer = await blob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
-      
+
       // Try custom directory first if provided
       if (customDirectory) {
-        // Use custom directory (absolute path)
-        const customPath = await join(customDirectory, filename);
-        // For absolute paths, we'll write directly without baseDir
-        try {
-          await writeFile(customPath, uint8Array);
-          // Verify the file was written successfully
-          const fileExists = await exists(customPath);
-          if (!fileExists) {
-            throw new Error('File write verification failed: file does not exist after write');
+        // Validate path for Windows reserved names
+        if (!isValidWindowsPath(customDirectory)) {
+          console.warn('Custom directory contains Windows reserved names, falling back to default');
+        } else {
+          // Use custom directory (absolute path)
+          const customPath = await join(customDirectory, filename);
+          // For absolute paths, use atomic write without baseDir
+          try {
+            await atomicWriteFileAbsolute(customPath, uint8Array);
+            // Verify the file was written successfully
+            const fileExists = await exists(customPath);
+            if (!fileExists) {
+              throw new Error('File write verification failed: file does not exist after write');
+            }
+            return customPath;
+          } catch (error) {
+            console.error('Failed to save to custom directory, falling back to default:', error);
+            // Fall through to default directory
           }
-          return customPath;
-        } catch (error) {
-          console.error('Failed to save to custom directory, falling back to default:', error);
-          // Fall through to default directory
         }
       }
 
@@ -705,7 +740,8 @@ export async function saveContractToAppData(
         console.warn('Could not check/create contracts directory:', error);
       }
 
-      await writeFile(contractsPath, uint8Array, { baseDir });
+      // Use atomic write to prevent partial file corruption
+      await atomicWriteFile(contractsPath, uint8Array, { baseDir });
 
       // Verify the file was written successfully
       const fileWritten = await exists(contractsPath, { baseDir });

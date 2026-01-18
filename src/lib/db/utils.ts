@@ -43,6 +43,7 @@ export function sqlToBool(value: number | null | undefined): boolean {
 
 /**
  * Convert camelCase to snake_case for SQL column names
+ * @internal - used only in tests
  */
 export function camelToSnake(str: string): string {
   return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
@@ -50,6 +51,7 @@ export function camelToSnake(str: string): string {
 
 /**
  * Convert snake_case to camelCase for TypeScript properties
+ * @internal - used only in tests
  */
 export function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -58,6 +60,7 @@ export function snakeToCamel(str: string): string {
 /**
  * Transform a database row (snake_case) to TypeScript object (camelCase)
  * Also handles date and boolean conversions
+ * @internal - used only in tests
  */
 export function rowToObject<T>(row: Record<string, unknown>, dateFields: string[] = [], boolFields: string[] = []): T {
   const result: Record<string, unknown> = {};
@@ -80,6 +83,7 @@ export function rowToObject<T>(row: Record<string, unknown>, dateFields: string[
 /**
  * Transform a TypeScript object (camelCase) to database row (snake_case)
  * Also handles date and boolean conversions
+ * @internal - used only in tests
  */
 export function objectToRow(
   obj: Record<string, unknown>,
@@ -106,6 +110,7 @@ export function objectToRow(
 /**
  * Build an UPDATE SET clause from an object
  * Returns { clause: "col1 = ?, col2 = ?", values: [val1, val2] }
+ * @internal - used only in tests
  */
 export function buildUpdateClause(
   data: Record<string, unknown>,
@@ -135,6 +140,7 @@ export function buildUpdateClause(
 /**
  * Build an INSERT statement from an object
  * Returns { columns: "(col1, col2)", placeholders: "(?, ?)", values: [val1, val2] }
+ * @internal - used only in tests
  */
 export function buildInsertClause(
   data: Record<string, unknown>,

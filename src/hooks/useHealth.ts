@@ -47,6 +47,15 @@ export function useUpdateVaccination() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<VaccinationRecord> }) =>
       db.updateVaccination(id, data),
+    onMutate: async () => {
+      // Cancel any outgoing refetches to prevent overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['vaccinations'] });
+
+      // Snapshot the previous value for potential rollback
+      const previousVaccinations = queryClient.getQueryData(['vaccinations']);
+
+      return { previousVaccinations };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vaccinations'] });
       queryClient.invalidateQueries({ queryKey: ['dogs'] });
@@ -56,13 +65,20 @@ export function useUpdateVaccination() {
         description: 'The vaccination has been updated successfully.',
       });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback to previous state on error
+      if (context?.previousVaccinations) {
+        queryClient.setQueryData(['vaccinations'], context.previousVaccinations);
+      }
+      // Force refetch to ensure sync with server state
+      queryClient.invalidateQueries({ queryKey: ['vaccinations'] });
+
       toast({
         title: 'Error',
         description: 'Failed to update vaccination. Please try again.',
         variant: 'destructive',
       });
-      logger.error('Failed to update vaccination', error as Error);
+      logger.error('Failed to update vaccination', error as Error, { variables });
     },
   });
 }
@@ -134,6 +150,15 @@ export function useUpdateWeightEntry() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<WeightEntry> }) =>
       db.updateWeightEntry(id, data),
+    onMutate: async () => {
+      // Cancel any outgoing refetches to prevent overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['weights'] });
+
+      // Snapshot the previous value for potential rollback
+      const previousWeights = queryClient.getQueryData(['weights']);
+
+      return { previousWeights };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['weights'] });
       queryClient.invalidateQueries({ queryKey: ['dogs'] });
@@ -142,13 +167,20 @@ export function useUpdateWeightEntry() {
         description: 'The weight entry has been updated successfully.',
       });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback to previous state on error
+      if (context?.previousWeights) {
+        queryClient.setQueryData(['weights'], context.previousWeights);
+      }
+      // Force refetch to ensure sync with server state
+      queryClient.invalidateQueries({ queryKey: ['weights'] });
+
       toast({
         title: 'Error',
         description: 'Failed to update weight entry. Please try again.',
         variant: 'destructive',
       });
-      logger.error('Failed to update weight entry', error as Error);
+      logger.error('Failed to update weight entry', error as Error, { variables });
     },
   });
 }
@@ -219,6 +251,15 @@ export function useUpdateMedicalRecord() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<MedicalRecord> }) =>
       db.updateMedicalRecord(id, data),
+    onMutate: async () => {
+      // Cancel any outgoing refetches to prevent overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['medical'] });
+
+      // Snapshot the previous value for potential rollback
+      const previousMedical = queryClient.getQueryData(['medical']);
+
+      return { previousMedical };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medical'] });
       queryClient.invalidateQueries({ queryKey: ['dogs'] });
@@ -227,13 +268,20 @@ export function useUpdateMedicalRecord() {
         description: 'The medical record has been updated successfully.',
       });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback to previous state on error
+      if (context?.previousMedical) {
+        queryClient.setQueryData(['medical'], context.previousMedical);
+      }
+      // Force refetch to ensure sync with server state
+      queryClient.invalidateQueries({ queryKey: ['medical'] });
+
       toast({
         title: 'Error',
         description: 'Failed to update medical record. Please try again.',
         variant: 'destructive',
       });
-      logger.error('Failed to update medical record', error as Error);
+      logger.error('Failed to update medical record', error as Error, { variables });
     },
   });
 }

@@ -48,6 +48,17 @@ export function useUpdateClient() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateClientInput }) =>
       db.updateClient(id, data),
+    onMutate: async (variables) => {
+      // Cancel any outgoing refetches to prevent overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['clients', variables.id] });
+      await queryClient.cancelQueries({ queryKey: ['clients'] });
+
+      // Snapshot the previous value for potential rollback
+      const previousClient = queryClient.getQueryData(['clients', variables.id]);
+      const previousClients = queryClient.getQueryData(['clients']);
+
+      return { previousClient, previousClients };
+    },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['clients', variables.id] });
@@ -56,13 +67,24 @@ export function useUpdateClient() {
         description: 'The client has been updated successfully.',
       });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback to previous state on error
+      if (context?.previousClient) {
+        queryClient.setQueryData(['clients', variables.id], context.previousClient);
+      }
+      if (context?.previousClients) {
+        queryClient.setQueryData(['clients'], context.previousClients);
+      }
+      // Force refetch to ensure sync with server state
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['clients', variables.id] });
+
       toast({
         title: 'Error',
         description: 'Failed to update client. Please try again.',
         variant: 'destructive',
       });
-      logger.error('Failed to update client', error as Error);
+      logger.error('Failed to update client', error as Error, { variables });
     },
   });
 }
@@ -138,6 +160,17 @@ export function useUpdateSale() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateSaleInput }) =>
       db.updateSale(id, data),
+    onMutate: async (variables) => {
+      // Cancel any outgoing refetches to prevent overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['sales', variables.id] });
+      await queryClient.cancelQueries({ queryKey: ['sales'] });
+
+      // Snapshot the previous value for potential rollback
+      const previousSale = queryClient.getQueryData(['sales', variables.id]);
+      const previousSales = queryClient.getQueryData(['sales']);
+
+      return { previousSale, previousSales };
+    },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['sales', variables.id] });
@@ -148,13 +181,24 @@ export function useUpdateSale() {
         description: 'The sale has been updated successfully.',
       });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback to previous state on error
+      if (context?.previousSale) {
+        queryClient.setQueryData(['sales', variables.id], context.previousSale);
+      }
+      if (context?.previousSales) {
+        queryClient.setQueryData(['sales'], context.previousSales);
+      }
+      // Force refetch to ensure sync with server state
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['sales', variables.id] });
+
       toast({
         title: 'Error',
         description: 'Failed to update sale. Please try again.',
         variant: 'destructive',
       });
-      logger.error('Failed to update sale', error as Error);
+      logger.error('Failed to update sale', error as Error, { variables });
     },
   });
 }

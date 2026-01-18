@@ -7,6 +7,10 @@ import { logger } from '../errorTracking';
 // Database singleton instance
 let db: Database | null = null;
 
+// Promise-based lock to prevent duplicate connection attempts
+// This ensures only one Database.load() call is in flight at a time
+let dbPromise: Promise<Database> | null = null;
+
 // Database path - will be in app data directory
 // Format: sqlite:filename.db (creates database in app data directory)
 const DB_NAME = 'sqlite:respectabullz.db';
@@ -14,57 +18,75 @@ const DB_NAME = 'sqlite:respectabullz.db';
 /**
  * Get or create the database connection
  * This is a singleton - only one connection is maintained
+ *
+ * Uses a promise-based lock to prevent race conditions where multiple
+ * concurrent calls to getDatabase() could create duplicate connections.
+ * The first caller initiates the connection, and subsequent callers
+ * await the same promise.
  */
 export async function getDatabase(): Promise<Database> {
+  // Fast path: return cached connection
   if (db) {
     return db;
   }
-  
-  try {
-    logger.debug('Attempting to load database', { name: DB_NAME });
-    db = await Database.load(DB_NAME);
-    logger.info('Successfully connected to SQLite database');
 
-    // Test the connection with a simple query
+  // If a connection attempt is in progress, await it
+  if (dbPromise) {
+    return dbPromise;
+  }
+
+  // Initiate new connection with promise-based lock
+  dbPromise = (async () => {
     try {
-      await db.select('SELECT 1 as test');
-      logger.debug('Database connection verified');
-    } catch (testError) {
-      logger.warn('Connection test failed', { error: testError });
-    }
+      logger.debug('Attempting to load database', { name: DB_NAME });
+      const database = await Database.load(DB_NAME);
+      logger.info('Successfully connected to SQLite database');
 
-    return db;
-  } catch (error) {
-    logger.error('Failed to connect to database', error as Error);
+      // Test the connection with a simple query
+      try {
+        await database.select('SELECT 1 as test');
+        logger.debug('Database connection verified');
+      } catch (testError) {
+        logger.warn('Connection test failed', { error: testError });
+      }
 
-    // Extract error message with better handling for Tauri plugin errors
-    let errorMessage = 'Unknown database error';
-    if (error instanceof Error) {
-      errorMessage = error.message || error.toString();
-      logger.debug('Error details', { name: error.name, stack: error.stack });
-    } else if (typeof error === 'string') {
-      errorMessage = error;
-    } else if (error && typeof error === 'object') {
-      const errObj = error as Record<string, unknown>;
-      if ('message' in errObj && typeof errObj.message === 'string') {
-        errorMessage = errObj.message;
-      } else if ('error' in errObj && typeof errObj.error === 'string') {
-        errorMessage = errObj.error;
-      } else {
-        try {
-          errorMessage = JSON.stringify(error);
-        } catch {
-          errorMessage = String(error);
+      // Store in singleton before returning
+      db = database;
+      return database;
+    } catch (error) {
+      logger.error('Failed to connect to database', error as Error);
+
+      // Extract error message with better handling for Tauri plugin errors
+      let errorMessage = 'Unknown database error';
+      if (error instanceof Error) {
+        errorMessage = error.message || error.toString();
+        logger.debug('Error details', { name: error.name, stack: error.stack });
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        const errObj = error as Record<string, unknown>;
+        if ('message' in errObj && typeof errObj.message === 'string') {
+          errorMessage = errObj.message;
+        } else if ('error' in errObj && typeof errObj.error === 'string') {
+          errorMessage = errObj.error;
+        } else {
+          try {
+            errorMessage = JSON.stringify(error);
+          } catch {
+            errorMessage = String(error);
+          }
         }
       }
+      logger.debug('Extracted error message', { errorMessage });
+
+      throw new Error(`Database connection failed: ${errorMessage}. Please ensure Tauri is running and SQL plugin is properly configured.`);
+    } finally {
+      // Clear promise lock so retry is possible on failure
+      dbPromise = null;
     }
-    logger.debug('Extracted error message', { errorMessage });
-    
-    // Reset db so we can retry
-    db = null;
-    
-    throw new Error(`Database connection failed: ${errorMessage}. Please ensure Tauri is running and SQL plugin is properly configured.`);
-  }
+  })();
+
+  return dbPromise;
 }
 
 /**
@@ -72,6 +94,9 @@ export async function getDatabase(): Promise<Database> {
  * Call this when the app is shutting down
  */
 export async function closeDatabase(): Promise<void> {
+  // Clear promise lock first to prevent new connection attempts during close
+  dbPromise = null;
+
   if (db) {
     await db.close();
     db = null;

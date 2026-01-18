@@ -2,7 +2,8 @@
 // Creates ZIP archives containing database JSON and all photo files
 
 import JSZip from 'jszip';
-import { readFile, writeFile, exists, mkdir, readDir, BaseDirectory } from '@tauri-apps/plugin-fs';
+import { readFile, exists, mkdir, readDir, BaseDirectory } from '@tauri-apps/plugin-fs';
+import { atomicWriteFile, atomicWriteFileAbsolute } from '@/lib/fsUtils';
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { z } from 'zod';
 import { logger } from '@/lib/errorTracking';
@@ -139,9 +140,9 @@ export async function exportBackupWithPhotos(databaseJson: string): Promise<bool
       return false;
     }
 
-    // Write the ZIP file
-    await writeFile(savePath, zipData);
-    
+    // Write the ZIP file atomically (write to temp then rename)
+    await atomicWriteFileAbsolute(savePath, zipData);
+
     return true;
   } catch (error) {
     logger.error('Failed to create backup', error instanceof Error ? error : undefined);
@@ -233,7 +234,8 @@ export async function importBackupWithPhotos(): Promise<ImportResult> {
         try {
           const photoData = await file.async('uint8array');
           const photoPath = `${PHOTOS_DIR}/${name}`;
-          await writeFile(photoPath, photoData, { baseDir: BaseDirectory.AppData });
+          // Use atomic write to prevent partial file corruption
+          await atomicWriteFile(photoPath, photoData, { baseDir: BaseDirectory.AppData });
           photoCount++;
         } catch (error) {
           failedPhotos.push(name);

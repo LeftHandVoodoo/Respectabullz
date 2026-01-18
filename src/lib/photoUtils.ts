@@ -2,7 +2,9 @@
 // Uses Tauri's file system and dialog plugins
 
 import { open } from '@tauri-apps/plugin-dialog';
-import { readFile, writeFile, exists, mkdir, BaseDirectory } from '@tauri-apps/plugin-fs';
+import { logger } from '@/lib/errorTracking';
+import { readFile, exists, mkdir, BaseDirectory } from '@tauri-apps/plugin-fs';
+import { atomicWriteFile } from '@/lib/fsUtils';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { convertFileSrc } from '@tauri-apps/api/core';
 
@@ -22,6 +24,12 @@ function generateUniqueFilename(originalPath: string): string {
 
 /**
  * Ensure the photos directory exists in app data
+ *
+ * Note: The exists() check followed by mkdir() has a theoretical TOCTOU race condition,
+ * but this is safe because:
+ * 1. mkdir with `recursive: true` is idempotent - it succeeds even if directory exists
+ * 2. Single-user desktop app context eliminates concurrent directory creation scenarios
+ * 3. The exists check is purely an optimization to skip unnecessary mkdir calls
  */
 async function ensurePhotosDirectory(): Promise<string> {
   try {
@@ -30,6 +38,7 @@ async function ensurePhotosDirectory(): Promise<string> {
 
     const dirExists = await exists(photosPath, { baseDir: BaseDirectory.AppData });
     if (!dirExists) {
+      // mkdir with recursive:true is idempotent - safe even if directory was created between check and call
       await mkdir(photosPath, { recursive: true, baseDir: BaseDirectory.AppData });
     }
 
@@ -88,7 +97,10 @@ export async function selectImageFile(): Promise<string | null> {
 
     return null;
   } catch (error) {
-    console.error('Failed to open file dialog:', error);
+    logger.warn('Failed to open file dialog, returning null', {
+      error: error instanceof Error ? error.message : String(error),
+      context: 'selectImageFile'
+    });
     return null;
   }
 }
@@ -183,13 +195,18 @@ export async function copyImageToPhotosDir(sourcePath: string): Promise<string |
       ? sourceData
       : new Uint8Array(sourceData);
 
-    // Write to destination using BaseDirectory.AppData
-    await writeFile(destPath, dataToWrite, { baseDir: BaseDirectory.AppData });
+    // Write to destination atomically using BaseDirectory.AppData
+    // This prevents partial file corruption if write is interrupted
+    await atomicWriteFile(destPath, dataToWrite, { baseDir: BaseDirectory.AppData });
 
     // Return just the filename - we'll reconstruct the full path when needed
     return newFilename;
   } catch (error) {
-    console.error('Failed to copy image to photos directory:', error);
+    logger.warn('Failed to copy image to photos directory, returning null', {
+      error: error instanceof Error ? error.message : String(error),
+      context: 'copyImageToPhotosDir',
+      sourcePath
+    });
     return null;
   }
 }

@@ -50,6 +50,17 @@ export function useUpdateDog() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateDogInput }) =>
       db.updateDog(id, data),
+    onMutate: async (variables) => {
+      // Cancel any outgoing refetches to prevent overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['dogs', variables.id] });
+      await queryClient.cancelQueries({ queryKey: ['dogs'] });
+
+      // Snapshot the previous value for potential rollback
+      const previousDog = queryClient.getQueryData(['dogs', variables.id]);
+      const previousDogs = queryClient.getQueryData(['dogs']);
+
+      return { previousDog, previousDogs };
+    },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['dogs'] });
       queryClient.invalidateQueries({ queryKey: ['dogs', variables.id] });
@@ -60,13 +71,24 @@ export function useUpdateDog() {
         description: 'The dog has been updated successfully.',
       });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback to previous state on error
+      if (context?.previousDog) {
+        queryClient.setQueryData(['dogs', variables.id], context.previousDog);
+      }
+      if (context?.previousDogs) {
+        queryClient.setQueryData(['dogs'], context.previousDogs);
+      }
+      // Force refetch to ensure sync with server state
+      queryClient.invalidateQueries({ queryKey: ['dogs'] });
+      queryClient.invalidateQueries({ queryKey: ['dogs', variables.id] });
+
       toast({
         title: 'Error',
         description: 'Failed to update dog. Please try again.',
         variant: 'destructive',
       });
-      logger.error('Failed to update dog', error as Error);
+      logger.error('Failed to update dog', error as Error, { variables });
     },
   });
 }

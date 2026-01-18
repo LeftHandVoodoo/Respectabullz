@@ -2,7 +2,9 @@
 // Uses Tauri's file system and dialog plugins
 
 import { open } from '@tauri-apps/plugin-dialog';
-import { readFile, writeFile, exists, mkdir, remove, BaseDirectory } from '@tauri-apps/plugin-fs';
+import { logger } from '@/lib/errorTracking';
+import { readFile, exists, mkdir, remove, BaseDirectory } from '@tauri-apps/plugin-fs';
+import { atomicWriteFile } from '@/lib/fsUtils';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
@@ -266,14 +268,19 @@ export async function copyDocumentToDocsDir(sourcePath: string): Promise<{ filen
       ? sourceData
       : new Uint8Array(sourceData);
 
-    await writeFile(destPath, dataToWrite, { baseDir: BaseDirectory.AppData });
+    // Write to destination atomically to prevent partial file corruption
+    await atomicWriteFile(destPath, dataToWrite, { baseDir: BaseDirectory.AppData });
 
     return {
       filename: newFilename,
       fileSize: dataToWrite.length,
     };
   } catch (error) {
-    console.error('Failed to copy document to docs directory:', error);
+    logger.warn('Failed to copy document to docs directory, returning null', {
+      error: error instanceof Error ? error.message : String(error),
+      context: 'copyDocumentToDocsDir',
+      sourcePath
+    });
     return null;
   }
 }
@@ -359,7 +366,11 @@ export async function deleteDocumentFile(filename: string): Promise<boolean> {
     await remove(docPath, { baseDir: BaseDirectory.AppData });
     return true;
   } catch (error) {
-    console.error('Failed to delete document file:', error);
+    logger.warn('Failed to delete document file, returning false', {
+      error: error instanceof Error ? error.message : String(error),
+      context: 'deleteDocumentFile',
+      filename
+    });
     return false;
   }
 }

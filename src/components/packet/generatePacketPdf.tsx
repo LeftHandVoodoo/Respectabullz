@@ -7,6 +7,7 @@
  */
 import { pdf } from '@react-pdf/renderer';
 import { PacketDocument } from './templates/PacketDocument';
+import { logger } from '@/lib/errorTracking';
 import type { PacketData, PacketOptions } from '@/types';
 
 export interface GeneratePdfOptions {
@@ -36,5 +37,20 @@ export async function generatePacketPdfBlob(opts: GeneratePdfOptions): Promise<B
     />
   );
 
-  return await pdf(doc).toBlob();
+  try {
+    return await pdf(doc).toBlob();
+  } catch (error) {
+    logger.error('Failed to generate PDF blob', error instanceof Error ? error : undefined, {
+      context: 'generatePacketPdfBlob',
+      dogName: opts.packetData.dog?.name,
+      hasPhotos: {
+        dog: !!opts.dogPhotoBase64,
+        logo: !!opts.logoBase64,
+        sire: !!opts.sirePhotoBase64,
+        dam: !!opts.damPhotoBase64,
+        galleryCount: opts.dogGalleryPhotosBase64.filter(Boolean).length
+      }
+    });
+    throw error;
+  }
 }

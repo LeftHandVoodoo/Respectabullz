@@ -88,7 +88,19 @@ For testing releases:
 
 ## Current Version
 
-**1.10.1** (2026-01-01) - Current Release
+**1.10.2** (2026-01-18) - Current Release
+
+Patch release - Data Integrity & Robustness:
+- Atomic file writes for backups, contracts, photos, documents, and logs
+- Optimistic update rollback for all mutation hooks
+- Fixed race conditions in database connection and log rotation
+- Added Zod validation to database imports
+- Windows reserved name validation for user paths
+- Improved error handling and logging throughout
+
+---
+
+**1.10.1** (2026-01-01)
 
 Patch release - UX Improvements:
 - Enhanced backup restore error handling with detailed user notifications

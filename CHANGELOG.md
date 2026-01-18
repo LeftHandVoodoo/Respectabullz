@@ -7,6 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.2] - 2026-01-18
+
+### Added
+
+- **File System Utilities**: Created `fsUtils.ts` with atomic write helpers (3B.1)
+  - `atomicWriteFile()` for writes with BaseDirectory
+  - `atomicWriteFileAbsolute()` for absolute path writes
+  - Uses write-to-temp-then-rename pattern to prevent data corruption
+
+### Fixed
+
+- **Atomic File Writes (HIGH)**: Implemented write-to-temp-then-rename pattern for critical files (3B.1)
+  - `backupUtils.ts`: Backup ZIP export and photo restoration now use atomic writes
+  - `contractUtils.ts`: Contract saves (custom and default directories) now use atomic writes
+  - `photoUtils.ts`: Photo copy operations now use atomic writes
+  - `documentUtils.ts`: Document copy operations now use atomic writes
+  - `errorTracking.ts`: Log file writes and clear operations now use atomic writes
+
+- **Log Rotation Race Condition (RC-2)**: Fixed TOCTOU vulnerability in `errorTracking.ts`
+  - Removed separate `exists()` check before `readFile()` to eliminate race window
+  - Now catches file-not-found errors directly from `readFile()` call
+  - Added documentation explaining the atomic write pattern
+
+- **Photo Directory Creation (RC-3)**: Added documentation to `photoUtils.ts:ensurePhotosDirectory()`
+  - Explains why the exists-then-mkdir pattern is safe with `recursive: true`
+  - mkdir with recursive:true is idempotent and handles concurrent creation
+
+- **Database Singleton Race (RC-5)**: Added promise-based lock to `connection.ts:getDatabase()`
+  - Prevents multiple concurrent `Database.load()` calls from creating duplicate connections
+  - First caller initiates connection, subsequent callers await the same promise
+  - Lock is cleared on failure to allow retry
+
+- **State Management**: Added optimistic update rollback to update mutations (3A.1)
+  - `useUpdateDog`: Added onMutate snapshot and onError rollback
+  - `useUpdateVaccination`: Added onMutate snapshot and onError rollback
+  - `useUpdateWeightEntry`: Added onMutate snapshot and onError rollback
+  - `useUpdateMedicalRecord`: Added onMutate snapshot and onError rollback
+  - `useUpdateClient`: Added onMutate snapshot and onError rollback
+  - `useUpdateSale`: Added onMutate snapshot and onError rollback
+  - `useUpdateExpense`: Added onMutate snapshot and onError rollback
+
+- **Async Race Condition**: Fixed race condition in `useImportBackupWithPhotos` (3A.2)
+  - Converted `.then()` chain to async/await in onSuccess handler
+  - Database import and query invalidation now properly awaited before showing success toast
+
+- **Silent Error Swallowing**: Added proper error logging to catch blocks (3B.2)
+  - `photoUtils.ts`: Replaced `console.error` with `logger.warn()` in file operations
+  - `documentUtils.ts`: Replaced `console.error` with `logger.warn()` in file operations
+  - Errors are now visible in structured logs while maintaining fallback return values
+
+- **Database Import Validation**: Added Zod schema validation to database import (3B.3)
+  - `legacy.ts`: Added `DatabaseImportSchema` with proper structure validation
+  - Validates version and data fields before processing import
+  - Provides detailed error logging for validation failures
+
+- **Windows Path Validation**: Added reserved name validation for user paths (XP-5)
+  - `contractUtils.ts`: Added `isValidWindowsPath()` utility function
+  - Validates custom contract directory paths for Windows reserved names (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
+  - Falls back to default directory if user path contains reserved names
+
+- **PDF Generation Error Handling**: Added try-catch to PDF blob generation (PDF-1)
+  - `generatePacketPdf.tsx`: Wrapped `pdf(doc).toBlob()` with proper error handling
+  - Logs context about dog name and photo presence on failure
+
+### Changed
+
+- **Unused Code Documentation**: Marked test-only utilities in `utils.ts` with `@internal` comments
+  - `camelToSnake`, `snakeToCamel`, `rowToObject`, `objectToRow`, `buildUpdateClause`, `buildInsertClause`
+
 ## [1.10.1] - 2026-01-01
 
 ### Changed

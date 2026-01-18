@@ -5,7 +5,8 @@
  * Falls back to console logging in browser/non-Tauri environments.
  */
 
-import { writeFile, readFile, exists, mkdir, BaseDirectory } from '@tauri-apps/plugin-fs';
+import { readFile, exists, mkdir, BaseDirectory } from '@tauri-apps/plugin-fs';
+import { atomicWriteFile } from '@/lib/fsUtils';
 
 // Log levels (ordered by severity)
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -122,6 +123,13 @@ async function initialize(): Promise<void> {
 
 /**
  * Write queued log entries to file
+ *
+ * This function addresses potential TOCTOU race conditions by:
+ * 1. Reading file content first and catching errors if file doesn't exist (no separate exists check)
+ * 2. Using atomic write (write-to-temp-then-rename) to prevent corruption
+ *
+ * In a single-user desktop app, concurrent access is minimal, but atomic writes
+ * ensure data integrity if the app crashes or is closed during write.
  */
 async function flushWriteQueue(): Promise<void> {
   if (isWriting || writeQueue.length === 0 || !isTauriEnvironment()) {
@@ -134,44 +142,42 @@ async function flushWriteQueue(): Promise<void> {
 
   try {
     const logPath = `${LOG_DIR}/${LOG_FILENAME}`;
-    
-    // Check if log file exists and read current content
+
+    // Read current content directly - no separate exists check to avoid TOCTOU
+    // If file doesn't exist, we catch the error and start fresh
     let currentContent = '';
     try {
-      const fileExists = await exists(logPath, { baseDir: BaseDirectory.AppData });
-      if (fileExists) {
-        const data = await readFile(logPath, { baseDir: BaseDirectory.AppData });
-        currentContent = new TextDecoder().decode(data);
-        
-        // Check size and rotate if needed
-        if (data.length > MAX_LOG_SIZE_BYTES) {
-          // Keep only the last half of the log
-          const lines = currentContent.split('\n');
-          const keepLines = Math.floor(lines.length / 2);
-          currentContent = lines.slice(-keepLines).join('\n');
-          currentContent = `[${new Date().toISOString()}] [INFO ] Log file rotated (size exceeded ${MAX_LOG_SIZE_BYTES} bytes)\n${currentContent}`;
-        }
+      const data = await readFile(logPath, { baseDir: BaseDirectory.AppData });
+      currentContent = new TextDecoder().decode(data);
+
+      // Check size and rotate if needed
+      if (data.length > MAX_LOG_SIZE_BYTES) {
+        // Keep only the last half of the log
+        const lines = currentContent.split('\n');
+        const keepLines = Math.floor(lines.length / 2);
+        currentContent = lines.slice(-keepLines).join('\n');
+        currentContent = `[${new Date().toISOString()}] [INFO ] Log file rotated (size exceeded ${MAX_LOG_SIZE_BYTES} bytes)\n${currentContent}`;
       }
     } catch {
       // File doesn't exist or can't be read, start fresh
+      // This is expected on first run or after log file deletion
     }
 
     // Append new entries
     const newContent = entriesToWrite.map(formatLogEntry).join('\n');
-    const finalContent = currentContent 
-      ? `${currentContent}\n${newContent}` 
+    const finalContent = currentContent
+      ? `${currentContent}\n${newContent}`
       : newContent;
 
-    // Write back to file
-    const encoder = new TextEncoder();
-    await writeFile(logPath, encoder.encode(finalContent), { baseDir: BaseDirectory.AppData });
+    // Write atomically to prevent corruption if interrupted
+    await atomicWriteFile(logPath, finalContent, { baseDir: BaseDirectory.AppData });
   } catch (error) {
     console.error('Failed to write log file:', error);
     // Re-queue failed entries
     writeQueue = [...entriesToWrite, ...writeQueue];
   } finally {
     isWriting = false;
-    
+
     // If more entries were queued during writing, flush again
     if (writeQueue.length > 0) {
       setTimeout(flushWriteQueue, 100);
@@ -329,9 +335,9 @@ export async function clearLogFile(): Promise<boolean> {
 
   try {
     const logPath = `${LOG_DIR}/${LOG_FILENAME}`;
-    const encoder = new TextEncoder();
     const header = `[${new Date().toISOString()}] [INFO ] Log file cleared\n`;
-    await writeFile(logPath, encoder.encode(header), { baseDir: BaseDirectory.AppData });
+    // Use atomic write for consistency with other log operations
+    await atomicWriteFile(logPath, header, { baseDir: BaseDirectory.AppData });
     logBuffer = [];
     return true;
   } catch (error) {
