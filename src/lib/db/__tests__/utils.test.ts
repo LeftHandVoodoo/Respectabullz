@@ -6,8 +6,6 @@ import {
   sqlToDate,
   boolToSql,
   sqlToBool,
-  camelToSnake,
-  snakeToCamel,
   nowIso,
 } from '../utils';
 
@@ -113,62 +111,6 @@ describe('sqlToBool', () => {
   it('converts other numbers to false', () => {
     expect(sqlToBool(2)).toBe(false);
     expect(sqlToBool(-1)).toBe(false);
-  });
-});
-
-describe('camelToSnake', () => {
-  it('converts camelCase to snake_case', () => {
-    expect(camelToSnake('myVariableName')).toBe('my_variable_name');
-  });
-
-  it('handles single word', () => {
-    expect(camelToSnake('name')).toBe('name');
-  });
-
-  it('handles consecutive capitals', () => {
-    expect(camelToSnake('myURLParser')).toBe('my_u_r_l_parser');
-  });
-
-  it('handles already lowercase', () => {
-    expect(camelToSnake('lowercase')).toBe('lowercase');
-  });
-
-  it('handles empty string', () => {
-    expect(camelToSnake('')).toBe('');
-  });
-
-  it('converts database field names correctly', () => {
-    expect(camelToSnake('dateOfBirth')).toBe('date_of_birth');
-    expect(camelToSnake('registrationNumber')).toBe('registration_number');
-    expect(camelToSnake('isTaxDeductible')).toBe('is_tax_deductible');
-  });
-});
-
-describe('snakeToCamel', () => {
-  it('converts snake_case to camelCase', () => {
-    expect(snakeToCamel('my_variable_name')).toBe('myVariableName');
-  });
-
-  it('handles single word', () => {
-    expect(snakeToCamel('name')).toBe('name');
-  });
-
-  it('handles multiple underscores', () => {
-    expect(snakeToCamel('very_long_variable_name')).toBe('veryLongVariableName');
-  });
-
-  it('handles already camelCase', () => {
-    expect(snakeToCamel('alreadyCamel')).toBe('alreadyCamel');
-  });
-
-  it('handles empty string', () => {
-    expect(snakeToCamel('')).toBe('');
-  });
-
-  it('converts database column names correctly', () => {
-    expect(snakeToCamel('date_of_birth')).toBe('dateOfBirth');
-    expect(snakeToCamel('registration_number')).toBe('registrationNumber');
-    expect(snakeToCamel('is_tax_deductible')).toBe('isTaxDeductible');
   });
 });
 
