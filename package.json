@@ -64,7 +64,7 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.1",
     "react-pdf": "^10.2.0",
-    "react-router-dom": "^6.28.0",
+    "react-router-dom": "^6.30.3",
     "react-to-print": "^3.0.2",
     "recharts": "^2.13.3",
     "tailwind-merge": "^2.5.4",
