@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **react-router-dom**: Upgraded to 6.30.3 to fix XSS vulnerability via open redirects (GHSA-2w69-qvjg-hvjx)
+- **lodash**: Upgraded to 4.17.23 to fix prototype pollution in `_.unset` and `_.omit` functions
+
+### Changed
+
+- **Dependencies**: Updated 26 packages to latest patch/minor versions
+  - rollup 4.53.3 → 4.56.0
+  - eslint 9.39.1 → 9.39.2
+  - react-pdf 10.2.0 → 10.3.0
+  - typescript-eslint 8.18.3 → 8.19.0
+  - @babel/* packages to 7.28.6
+  - caniuse-lite to 1.0.30001766
+
+### Added
+
+- **CLAUDE.md**: Added project-specific Claude Code configuration with tech stack, commands, conventions, and architecture documentation
+- **Claude Code Integration**: Added `.mcp.json` for MCP server configuration
+
 ## [1.10.2] - 2026-01-18
 
 ### Added
