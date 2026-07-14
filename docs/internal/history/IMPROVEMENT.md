@@ -1,3 +1,9 @@
+> **Historical and obsolete:** This document records a past self-review and is
+> retained only for provenance. It is not current assurance, test, security,
+> release, cost, or portfolio evidence. For current status see
+> [README](../../../README.md), [Security](../../../SECURITY.md), and
+> [Test Evidence](../../case-study/TEST_EVIDENCE.md).
+
 # Improvement Scan Report
 
 **Generated:** 2025-12-30

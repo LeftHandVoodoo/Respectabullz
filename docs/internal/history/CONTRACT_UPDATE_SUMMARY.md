@@ -1,3 +1,10 @@
+> **Historical and obsolete:** This document records a past contract-template
+> update and is retained only for provenance. It is not current product, legal,
+> rights, release, or portfolio evidence. Several generated source artifacts named
+> below were removed during repository cleanup. For the current rights boundary see
+> [RIGHTS](../../../RIGHTS.md), and for current status see
+> [README](../../../README.md).
+
 # Contract Generation Update Summary
 
 ## Overview
