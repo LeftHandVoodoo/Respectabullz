@@ -1,20 +1,52 @@
 # Respectabullz User Manual
 
-**Version 1.10.1**
-**Last Updated: January 1, 2026**
+**Version 1.10.3**
+**Last Updated: July 14, 2026**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
+
+> **Current capability notice (July 14, 2026):** This notice supersedes older
+> release-history text below. Restore/import is unavailable, both in-app exports
+> are partial, and no factory reset is exposed. Production builds do not provide
+> sample-data tools. Automatic legacy browser-storage import is withdrawn; detection
+> blocks startup before SQLite setup and preserves the original payload. Bug reporting
+> is credential-free and requires review before
+> the user copies a draft and opens the fixed blank GitHub Issues/new page. Report
+> text is kept out of the URL and must be pasted and submitted manually. There is no
+> in-app updater. See [RELIABILITY.md](RELIABILITY.md) and
+> [BACKUP_FORMAT.md](BACKUP_FORMAT.md) before relying on data-safety features.
+
+---
+
+## What's New in Version 1.10.3
+
+- Incomplete restore/import and destructive reset controls are withdrawn. JSON and
+  ZIP outputs are explicitly partial exports.
+- Database startup now blocks operational screens until schema integrity and bounded
+  document-storage reconciliation succeed.
+- A detected legacy `respectabullz_db` browser-storage payload is left unchanged and
+  blocks startup; do not clear that browser profile while a transactional recovery
+  workflow is pending.
+- The declared schema-v4-to-v5 migration and managed-document workflow use
+  transaction, compensation, and failure-path checks.
+- Bug reporting no longer accepts or bundles a repository token; it presents a
+  sanitized local draft and opens a fixed blank GitHub issue page.
+- Development demos can run with `npm run demo:dev` under the separate
+  `com.respectabullz.demo` application identity. Both the interface and Rust command
+  require that exact identity and a debug build. The seed refuses existing user-created
+  records, uses reserved contacts and `DEMO-*` identifiers, and has no automated teardown.
 
 ---
 
 ## What's New in Version 1.10.1
 
-### Changed
+These are historical release notes, not current operating instructions.
 
-- **Backup Restore**: Enhanced user notifications for partial restore scenarios (M-5)
-  - Shows detailed failed photo list (up to 3 photos, then count of remaining)
-  - Differentiates between complete success, partial photo restore, and complete failure
-  - Provides actionable information about which photos failed to restore
+### Withdrawn behavior
+
+- Earlier builds described a photo-and-record restore flow. That flow is now
+  withdrawn because it did not provide a verified, transactional recovery path.
+  The current UI exposes no restore/import control.
 
 ### Fixed
 
@@ -23,27 +55,29 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
   - Displays warning toast before PDF generation listing up to 3 missing paths
   - PDF still generates with available photos (graceful degradation)
 
-- **Backup Metadata Validation**: Improved error handling and user notification (M-2)
-  - Metadata validation errors are now tracked and displayed to users
-  - Shows validation errors in toast notification when metadata is corrupted
-  - Replaced all `console.error` calls with structured logger calls in backupUtils.ts
+- **Legacy export metadata handling**: This release changed error handling in the
+  legacy ZIP utility. Metadata validation did not make the artifact complete or
+  recoverable, and the corresponding restore path is no longer supported.
 
 ---
 
 ## What's New in Version 1.10.0
 
+These are historical implementation notes and are not a blanket security or data
+integrity guarantee.
+
 ### Security & Reliability Improvements
 
-- **Security Hardening**: Enhanced application security with Content Security Policy (CSP) and restricted file access
-  - File system access now limited to app-specific directories only
-  - Added path traversal protection for file operations
-  - Improved security for document and photo handling
+- **Scoped hardening**: Added a Content Security Policy, narrower configured file
+  access, and filename/path checks. These controls reduce specific risks but do not
+  establish complete confinement or a formal security assurance.
 
-- **Data Integrity**: Enhanced validation and error handling throughout the application
-  - Backup and restore operations now validate data structure before processing
+- **Data integrity changes**: Added validation and error handling to selected paths.
+  - Legacy export/restore utilities added structure checks, but did not establish a
+    complete or transactional recovery workflow; restore is now withdrawn.
   - Health schedule templates validate JSON structure to prevent corruption
   - Contract file writes verify successful completion
-  - Photo restore operations track and report failed files
+  - The former photo restore path tracked some file failures; it is not supported.
 
 - **Image Validation**: Added validation to check for missing images before PDF export
   - Prevents PDF generation failures due to missing photo files
@@ -72,7 +106,9 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
 
 - **Test Coverage**: Added 90 new tests for expense-related components
   - ExpensesFilters, ExpensesTable, ExpensesChart, and ReportsPage now have comprehensive test coverage
-  - Test count increased from 212 → 302
+  - The suite count reported for that historical release increased from 212 to 302;
+    this is not the current verification count. See
+    [TEST_EVIDENCE.md](case-study/TEST_EVIDENCE.md).
 - **Structured Logging**: Implemented environment-based log level configuration
   - Added `VITE_LOG_LEVEL` environment variable support (debug, info, warn, error)
   - All console.* statements replaced with logger.* calls across 17 hook files
@@ -121,12 +157,13 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
 
 ### Added
 
-- **Bug Reporting**: In-app bug reporting that creates GitHub issues
-  - Bug report button in header (visible when GitHub is configured)
+- **Bug Reporting**: A historical direct-API design was introduced in this release
   - Standard bug report form: title, description, steps to reproduce, expected/actual behavior, severity
   - Auto-collects system info: app version, platform, timestamp
-  - Submits directly to GitHub Issues API with appropriate labels
-  - New environment variables: `VITE_GITHUB_TOKEN`, `VITE_GITHUB_REPO`
+  - The direct submission and credential design has since been removed. The current
+    flow sanitizes and previews a draft, then copies it and opens the fixed blank
+    GitHub Issues/new page after approval. It puts no report data in the URL and sends
+    nothing automatically; the user pastes and submits the report.
 
 ### Changed
 
@@ -211,7 +248,7 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
    - [Inquiries](#inquiries)
    - [Sales](#sales)
 6. [Analytics & Reports](#analytics--reports)
-7. [Settings & Backup](#settings--backup)
+7. [Settings & Data Export](#settings--data-export)
 8. [Tips & Best Practices](#tips--best-practices)
 
 ---
@@ -220,27 +257,20 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
 
 ### First Launch
 
-When you first open Respectabullz, you'll see a **Welcome Dialog** that lets you choose how to get started:
+When you first open Respectabullz, the Welcome dialog provides one production choice:
+continue with an empty database.
 
-#### Option 1: Start Fresh
+#### Start Fresh
 
 - Begin with an empty database
 - Perfect if you're ready to add your own dogs and litters immediately
-- You can always add sample data later from Settings
 
-#### Option 2: Load Sample Data
-
-- Explore the app with demo data including:
-  - Multiple dogs with complete profiles and photos
-  - Litters with puppies
-  - Health records (vaccinations, weights, medical records)
-  - Heat cycles and breeding events
-  - Clients and sales
-  - Expenses and transport records
-  - 4-generation pedigree data
-- Great for learning the features and seeing how everything works together
-- You can clear this data later from Settings → Data Management → Clear All Data
-- You can also load sample data later from Settings → Data Management → Seed Test Data (requires empty database)
+Production builds do not expose sample-data, seed, remove-test-data, or clear-all-data
+controls. The seed helper requires both a debug build and the exact
+`com.respectabullz.demo` identity; the ordinary `npm run tauri:dev` identity does not
+show or accept it. Portfolio maintainers use `npm run demo:dev`, whose seed refuses
+any user-created application record and uses a demo-only capability scope, reserved
+contacts, and `DEMO-*` animal identifiers. There is no automated teardown.
 
 After making your choice, you'll see the **Dashboard** page. This is your command center, showing key metrics and reminders at a glance.
 
@@ -261,28 +291,22 @@ Many pages have an **"Add"** or **"New"** button in the top-right corner to quic
 
 ### Upgrading from a Previous Version
 
-If you're upgrading from an earlier version of Respectabullz:
+There is no in-app updater and this manual does not guarantee preservation for an
+arbitrary historical version or installer path. Before upgrading:
 
-1. **Download the latest installer** from the Releases page
-2. **Run the installer** - It will automatically detect your existing installation
-3. **Follow the installation wizard** - The installer upgrades your existing installation in-place
-4. **Launch the application** - All your data, photos, and settings are automatically preserved
+1. Close Respectabullz.
+2. Make an independent storage-level copy of the complete app-data directory and
+   every external document or contract location you used. A custom contracts folder
+   is session-scoped and may not appear as a current setting after restart.
+3. Keep the original installer and copy until the upgraded app and records have
+   been checked.
+4. Obtain the installer only from the repository owner's published release
+   channel and verify any published checksum and signing information.
+5. Test high-value workflows with disposable data before relying on the upgrade.
 
-#### What Gets Preserved
-
-- ✅ All database records (dogs, litters, clients, sales, expenses, etc.)
-- ✅ All photos (dog photos, litter photos)
-- ✅ All contracts and attachments
-- ✅ All settings and preferences
-- ✅ All backups
-
-#### What Gets Updated
-
-- Application files and executables
-- Database schema (automatically migrated on first launch)
-- New features and bug fixes
-
-**Important:** You do **NOT** need to uninstall the previous version. The installer handles upgrades automatically and safely preserves all your data.
+The current in-app exports are partial and must not be used as proof that every
+record and file can be recovered. Migration support is version-specific; unsupported
+database baselines should fail visibly rather than be assumed compatible.
 
 ---
 
@@ -914,7 +938,8 @@ Generate professional sales contracts:
 4. Click **"Generate Contract"** to create the document
 5. Contract is automatically saved and can be:
    - **Default Location**: `%APPDATA%/com.respectabullz.app/contracts/`
-   - **Custom Location**: If you've set a custom directory in Settings → Preferences → Contracts Save Location
+   - **Custom Location**: If you selected a folder in Settings → Preferences →
+     Contracts Save Location during the current app session; reselect it after restart
    - Printed for signatures
    - Emailed to clients
    - Linked to the sale record
@@ -1024,7 +1049,7 @@ Most reports can be exported to CSV:
 
 ---
 
-## Settings & Backup
+## Settings & Data Export
 
 Access settings from the sidebar (gear icon).
 
@@ -1034,10 +1059,10 @@ Configure your kennel details for contracts and documents:
 
 1. Go to **Settings** page → **Breeder Information** section
 2. Fill in required fields (marked with *):
-   - **Breeder/Owner Name**: Your full name (defaults to "Johnny Bonilla")
+   - **Breeder/Owner Name**: Your full name
    - **Address Line 1**: Street address
-   - **City**: City name (defaults to "Martinsburg")
-   - **State**: State name (defaults to "WV")
+   - **City**: City name
+   - **State**: State name or abbreviation
    - **Phone**: Contact phone number (automatically formats to (xxx) xxx-xxxx as you type)
 3. Optional fields:
    - **Kennel Name**: Your kennel name
@@ -1075,110 +1100,71 @@ Configure your kennel details for contracts and documents:
 
 #### Contracts Save Location
 
-- Choose where completed contracts are saved
+- Choose where completed contracts are saved for the current app session
 - **Default**: Contracts are saved to `%APPDATA%/com.respectabullz.app/contracts/`
 - **Custom Directory**: Click **"Choose Folder"** to select a custom location
   - Useful for organizing contracts in a specific folder (e.g., "Documents/Contracts")
-  - Selected directory persists across app restarts
-  - All future contracts will be saved to the selected location
-- To reset to default, clear the custom directory setting
+  - The native folder grant lasts only for the current app session
+  - Contracts generated later in that session use the selected location
+  - Reselect the folder after every restart; a persisted legacy path is ignored
+- Restarting returns contract output to the default unless you reselect a custom folder
 
 ### Application Updates
 
-Check for and install updates directly from within the app:
-
-1. Go to **Settings** → **Application Updates** section
-2. Click **"Check for Updates"** to see if a new version is available
-3. If an update is available:
-   - View the version number and release notes
-   - Click **"Download Update"** to start the download
-   - Progress bar shows download percentage
-4. Once downloaded, click **"Install and Restart"**
-   - The app will close, install the update, and restart automatically
-
-**Notes:**
-- Updates are downloaded securely from GitHub releases
-- Your data is preserved during updates
-- No manual download or reinstall required
+Respectabullz has no in-app updater. Obtain a new installer manually from the
+repository owner's published release channel. Review the release evidence,
+checksum, and code-signing status before installation; do not assume an installer
+or migration preserves every historical record and file. Follow the independent
+copy and verification steps in [Upgrading from a Previous Version](#upgrading-from-a-previous-version).
 
 ### Data Management
 
-#### Full Backup (Recommended)
+#### Partial Data Export with Photos
 
-Creates a complete backup including database and all photos:
+1. Go to **Settings** → **Data Management**.
+2. Under **Partial Data Export with Photos**, click **"Export Partial Data (ZIP)"**.
+3. Choose a destination for the ZIP file.
 
-1. Go to **Settings** → **Data Management** section
-2. Click **"Export Full Backup"**
-3. System creates a ZIP file containing:
-   - Complete database (all records)
-   - All photos (from `photos/` directory)
-4. Choose save location
-5. Backup file shows photo count and total size
+The ZIP contains a partial JSON record export plus managed photos found by the
+exporter. It omits managed documents, generated contracts, logs, external file
+locations, and database domains that are outside the JSON export subset. It writes
+directly to the exact file selected in the native save dialog; it is not atomic, and
+an interrupted write can leave an incomplete file.
 
-#### Restoring Full Backup
+#### Partial Data Export
 
-1. Click **"Restore Full Backup"**
-2. Select the backup ZIP file
-3. System restores:
-   - All database records
-   - All photos to their original locations
-4. **Warning**: This will replace all current data
+1. Under **Partial Data Export**, click **"Export Partial Data (JSON)"**.
+2. Choose a destination for the JSON file.
 
-#### Data-Only Backup
+The JSON includes dogs, litters, expenses, breeder details, and per-dog
+vaccinations, medical records, weight entries, and genetic tests. It does not include
+photos or the omitted domains listed above.
 
-Export only the database (no photos) for quick backups or data transfer:
+Both files are plaintext user-managed exports. After saving one, you control its
+access, retention, encryption, sharing, and deletion. Neither format is a complete
+or verified backup or a supported transfer format. Verify the saved file before using
+it as a convenience copy.
 
-1. Click **"Export Data Only"**
-2. System creates a JSON file with all database records
-3. Use for:
-   - Quick backups
-   - Transferring data between installations
-   - Sharing data without photos
+#### Restore and reset status
 
-**Restoring Data-Only Backup:**
-1. Click **"Import Data Only"**
-2. Select the JSON backup file
-3. System restores all database records
-4. **Note**: Photos are not included in data-only backups
+The Settings page displays: **"Restore is temporarily unavailable while complete
+recovery verification is implemented."** No import/restore control or factory
+reset is currently available.
 
-#### Testing Tools
+Production builds expose no testing-data controls. Development builds may expose a
+seed helper that refuses to run when any user-created application record exists. The supported
+portfolio capture command, `npm run demo:dev`, uses the separately addressed
+`com.respectabullz.demo` data and capability boundary. There is no automated
+remove-test-data action or production demo mode.
 
-#### Seed Test Data
+#### Independent data protection
 
-- Populates database with comprehensive dummy data for testing
-- Includes dogs, litters, health records, clients, sales, etc.
-- Database must be empty to seed test data
-- Useful for learning features or testing
+Close the app and use a trusted storage or backup tool to copy the complete
+application-data directory plus all configured external document and contract
+directories. Store and test those copies according to your own recovery and
+retention policy. Respectabullz cannot currently validate or restore them for you.
 
-#### Remove Test Data
-
-- Removes all seeded test data
-- Keeps your real data intact
-
-#### Danger Zone
-
-**Clear All Data:**
-- **Permanently deletes** all your data including:
-  - All dogs and puppies
-  - All litters
-  - All health records
-  - All clients and sales
-  - All expenses and transport records
-  - All photos
-- **This action cannot be undone**
-- Always create a backup before clearing data
-
-### Backup Best Practices
-
-- **Create backups weekly** or before major changes
-- **Store backups in multiple locations**:
-  - Local computer
-  - Cloud storage (Google Drive, Dropbox, OneDrive)
-  - External hard drive
-- **Test restore process** periodically to ensure backups work
-- **Keep backups for at least one year** for record-keeping
-- **Use full backups** for complete data protection
-- **Use data-only backups** for quick transfers or when photos aren't needed
+See [BACKUP_FORMAT.md](BACKUP_FORMAT.md) for the exact export boundary.
 
 ---
 
@@ -1189,7 +1175,8 @@ Export only the database (no photos) for quick backups or data transfer:
 1. **Enter Data Promptly**: Record information as it happens for accuracy
 2. **Use Photos**: Upload photos for dogs and litters - they're valuable for records
 3. **Complete Profiles**: Fill in all available fields - you'll thank yourself later
-4. **Regular Backups**: Set a reminder to backup weekly
+4. **Independent Copies**: Maintain and verify complete storage-level copies;
+   in-app exports are partial
 5. **Check Dashboard Daily**: Stay on top of reminders and upcoming tasks
 
 ### Dog Management
@@ -1262,7 +1249,8 @@ Export only the database (no photos) for quick backups or data transfer:
 
 - Large photo files can slow the app
 - Consider compressing photos before upload
-- Regular backups help maintain performance
+- Review record and file growth; creating an export does not improve runtime
+  performance
 
 ### Missing Features
 
@@ -1283,28 +1271,32 @@ For issues or questions:
 
 ## Version History
 
-- **v1.10.1**: Improved backup restore error handling with detailed user notifications, enhanced PDF export with photo validation warnings, structured logging in backupUtils
-- **v1.10.0**: Security hardening (CSP, restricted file access), data integrity improvements (zod validation, rollback on failures), UUID v4 filenames, image validation before PDF export
-- **v1.9.4**: Comprehensive expense testing (90 new tests), structured logging, lazy-load PDF renderer, auto-assign contact category colors
+These summaries describe historical changes, not current assurance or operating
+instructions. Current containment limits are stated at the top of this manual.
+
+- **v1.10.3**: Restore/reset containment, transactional schema/document controls, credential-free bug reports, Windows-aware CI, and a separately addressed synthetic demo fixture
+- **v1.10.1**: Historical legacy restore-notification changes (the restore path is now withdrawn), PDF photo warnings, and logging changes
+- **v1.10.0**: Scoped CSP, file-access, validation, rollback, filename, and PDF image-checking changes; not a blanket security or recovery guarantee
+- **v1.9.4**: Historical expense-test additions, structured logging, lazy-loaded PDF renderer, and contact-category color changes
 - **v1.9.3**: Build optimization, reduced bundle size, code cleanup
 - **v1.9.2**: Code quality improvements, dependency cleanup, legacy function implementation
-- **v1.9.1**: Bug reporting to GitHub, Excel expense export
+- **v1.9.1**: Historical direct GitHub-reporting design (since replaced by the credential-free reviewed-draft flow) and Excel expense export
 - **v1.9.0**: Contact company name field, sortable contacts columns
 - **v1.8.1**: Bundle size optimization (93% reduction)
 - **v1.8.0**: Contacts Management System for business contacts with multi-category tagging
 - **v1.7.x**: Heat cycle and expense category bug fixes, N+1 query performance fix
 - **v1.6.x**: Fillable contract template support, contract generation fixes
 - **v1.5.x**: Document management, PDF preview, custom contracts directory
-- **v1.4.0**: Full column sorting on Expenses page, litter form dialog scrolling fix, expense filter bug fixes, enhanced seed data
-- **v1.3.0**: Enhanced seed data coverage, multi-select expense filters, expense exclusion capabilities
+- **v1.4.0**: Full Expenses sorting, litter-dialog and filter fixes, and historical development seed changes
+- **v1.3.0**: Historical development seed changes, multi-select expense filters, and expense exclusions
 - **v1.2.0**: SQLite database migration, modular database architecture, comprehensive test infrastructure
 - **v1.1.0**: Reusable dialog components, virtual scrolling, centralized error tracking
-- **v1.0.x**: First stable release - Customer packet PDF export, comprehensive dog management, all core features production-ready
+- **v1.0.x**: Historical first-release feature summary; the former "production-ready" wording is not a current assurance claim
 
 See [CHANGELOG.md](../CHANGELOG.md) for complete version history.
 
 ---
 
-#### Respectabullz User Manual v1.10.1
+#### Respectabullz User Manual v1.10.3
 
-*Last Updated: January 1, 2026*
+*Last Updated: July 14, 2026*

@@ -5,7 +5,6 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
-import { useSettings } from './useSettings';
 import {
   generateContractDocumentFromJson,
   generateContractPDF,
@@ -17,6 +16,8 @@ import {
 } from '@/lib/contractUtils';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/errorTracking';
+import { loadFillableContractTemplate } from '@/lib/contractTemplate';
+import { getSessionContractsDirectory } from '@/lib/contractDestination';
 import type { ContractData } from '@/types';
 
 interface GenerateContractOptions {
@@ -32,7 +33,7 @@ interface GenerateContractOptions {
   templateMode?: 'generated' | 'fillable';
   /**
    * Custom template path when using 'fillable' mode.
-   * If not provided, uses the default template at /contracts/fillable_contract_2.docx
+   * If not provided, uses the bundled template in the public contacts assets.
    */
   fillableTemplatePath?: string;
 }
@@ -52,9 +53,6 @@ interface GenerateContractResult {
  * Hook for generating contract documents
  */
 export function useGenerateContract() {
-  const { data: settings } = useSettings();
-  const contractsDirectory = settings?.contractsDirectory || '';
-  
   return useMutation({
     mutationFn: async (options: GenerateContractOptions): Promise<GenerateContractResult> => {
       const {
@@ -63,21 +61,18 @@ export function useGenerateContract() {
         filename,
         format = 'docx',
         templateMode = 'generated',
-        fillableTemplatePath = '/contracts/fillable_contract_2.docx',
+        fillableTemplatePath,
       } = options;
 
       let blob: Blob;
+      const contractsDirectory = getSessionContractsDirectory();
 
       // Generate the Word document based on template mode
       if (templateMode === 'fillable') {
         // Use the fillable template approach
         try {
           // Fetch the template file
-          const response = await fetch(fillableTemplatePath);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch template: ${response.status} ${response.statusText}`);
-          }
-          const templateArrayBuffer = await response.arrayBuffer();
+          const templateArrayBuffer = await loadFillableContractTemplate(fillableTemplatePath);
           
           // Fill the template with contract data
           blob = await fillFillableContract(contractData, templateArrayBuffer);

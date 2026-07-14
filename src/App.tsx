@@ -38,29 +38,30 @@ function PageLoader() {
 function App() {
   return (
     <ErrorBoundary>
-      <FirstLaunchDialog />
-      <AppShell>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/dogs" element={<DogsPage />} />
-            <Route path="/dogs/:id" element={<DogDetailPage />} />
-            <Route path="/litters" element={<LittersPage />} />
-            <Route path="/litters/:id" element={<LitterDetailPage />} />
-            <Route path="/heat-cycles" element={<HeatCyclesPage />} />
-            <Route path="/heat-cycles/:id" element={<HeatCycleDetailPage />} />
-            <Route path="/transport" element={<TransportPage />} />
-            <Route path="/expenses" element={<ExpensesPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/clients" element={<ClientsPage />} />
-            <Route path="/contacts" element={<ContactsPage />} />
-            <Route path="/inquiries" element={<InquiriesPage />} />
-            <Route path="/sales" element={<SalesPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Routes>
-        </Suspense>
-      </AppShell>
+      <FirstLaunchDialog>
+        <AppShell>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/dogs" element={<DogsPage />} />
+              <Route path="/dogs/:id" element={<DogDetailPage />} />
+              <Route path="/litters" element={<LittersPage />} />
+              <Route path="/litters/:id" element={<LitterDetailPage />} />
+              <Route path="/heat-cycles" element={<HeatCyclesPage />} />
+              <Route path="/heat-cycles/:id" element={<HeatCycleDetailPage />} />
+              <Route path="/transport" element={<TransportPage />} />
+              <Route path="/expenses" element={<ExpensesPage />} />
+              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/clients" element={<ClientsPage />} />
+              <Route path="/contacts" element={<ContactsPage />} />
+              <Route path="/inquiries" element={<InquiriesPage />} />
+              <Route path="/sales" element={<SalesPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Routes>
+          </Suspense>
+        </AppShell>
+      </FirstLaunchDialog>
     </ErrorBoundary>
   );
 }

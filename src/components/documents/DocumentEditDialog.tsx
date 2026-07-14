@@ -13,7 +13,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { TagSelector } from './TagSelector';
 import { useUpdateDocument } from '@/hooks/useDocuments';
-import { useSetDocumentTags } from '@/hooks/useDocumentTags';
 import type { DocumentWithRelations } from '@/types';
 import { formatFileSize, getFileTypeDisplayName } from '@/lib/documentUtils';
 
@@ -35,7 +34,6 @@ export function DocumentEditDialog({
   const [isSaving, setIsSaving] = React.useState(false);
 
   const updateDocument = useUpdateDocument();
-  const setDocumentTags = useSetDocumentTags();
 
   // Reset form when document changes
   React.useEffect(() => {
@@ -46,16 +44,12 @@ export function DocumentEditDialog({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Update notes
       await updateDocument.mutateAsync({
         id: document.id,
-        data: { notes: notes || undefined },
-      });
-
-      // Update tags
-      await setDocumentTags.mutateAsync({
-        documentId: document.id,
-        tagIds: selectedTagIds,
+        data: {
+          notes: notes || null,
+          tagIds: selectedTagIds,
+        },
       });
 
       onOpenChange(false);

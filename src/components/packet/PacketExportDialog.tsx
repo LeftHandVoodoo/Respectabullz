@@ -31,6 +31,7 @@ import { toast } from '@/components/ui/use-toast';
 import { isTauriEnvironment } from '@/lib/backupUtils';
 import { getPhotoUrlAsync } from '@/lib/photoUtils';
 import { getPacketData } from '@/lib/db';
+import { loadPacketPdfGenerator } from './pdfRuntime';
 import type { PacketOptions } from '@/types';
 import { DEFAULT_PACKET_OPTIONS } from '@/types';
 
@@ -176,7 +177,7 @@ export function PacketExportDialog({
       }
 
       // Dynamically import PDF generation module (~1.5MB) only when needed
-      const { generatePacketPdfBlob } = await import('./generatePacketPdf');
+      const { generatePacketPdfBlob } = await loadPacketPdfGenerator();
 
       const blob = await generatePacketPdfBlob({
         packetData,
@@ -234,7 +235,7 @@ export function PacketExportDialog({
       console.error('Error exporting packet:', error);
       toast({
         title: 'Export Failed',
-        description: error instanceof Error ? error.message : 'An error occurred while generating the PDF.',
+        description: error instanceof Error ? error.message : String(error),
         variant: 'destructive',
       });
     } finally {

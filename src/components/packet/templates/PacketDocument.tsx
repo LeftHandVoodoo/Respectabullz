@@ -73,6 +73,12 @@ function PageHeader({ data, logoBase64 }: { data: PacketData; logoBase64?: strin
   );
 }
 
+// React PDF can omit a Page background in some mixed-orientation documents.
+// Paint the full Letter canvas explicitly from the padded content origin.
+function PageBackground() {
+  return <View style={sharedStyles.pageBackground} fixed />;
+}
+
 // Footer component for all pages
 function PageFooter({ data }: { data: PacketData; pageNumber?: number }) {
   return (
@@ -122,6 +128,7 @@ export function PacketDocument({
       {/* Dog Information Page */}
       {options.includeDogInfo && (
         <Page size="LETTER" style={sharedStyles.page}>
+          <PageBackground />
           <PageHeader data={data} logoBase64={logoBase64} />
           <DogInfoSection 
             data={data} 
@@ -142,6 +149,7 @@ export function PacketDocument({
       {/* Photos Page */}
       {options.includePhotos && (
         <Page size="LETTER" style={sharedStyles.page}>
+          <PageBackground />
           <PageHeader data={data} logoBase64={logoBase64} />
           <PhotoGallerySection 
             data={data}
@@ -155,14 +163,30 @@ export function PacketDocument({
       )}
       
       {/* Health Records Page */}
-      {(options.includeVaccinations || options.includeMedicalRecords || options.includeGeneticTests) && (
+      {(options.includeVaccinations || options.includeMedicalRecords) && (
         <Page size="LETTER" style={sharedStyles.page}>
+          <PageBackground />
           <PageHeader data={data} logoBase64={logoBase64} />
           <HealthSection 
             data={data}
             includeVaccinations={options.includeVaccinations}
             includeMedicalRecords={options.includeMedicalRecords}
-            includeGeneticTests={options.includeGeneticTests}
+            includeGeneticTests={false}
+          />
+          <PageFooter data={data} />
+        </Page>
+      )}
+
+      {/* Genetic testing gets a dedicated physical page to prevent a split grid. */}
+      {options.includeGeneticTests && (
+        <Page size="LETTER" style={sharedStyles.page}>
+          <PageBackground />
+          <PageHeader data={data} logoBase64={logoBase64} />
+          <HealthSection
+            data={data}
+            includeVaccinations={false}
+            includeMedicalRecords={false}
+            includeGeneticTests
           />
           <PageFooter data={data} />
         </Page>
@@ -171,6 +195,7 @@ export function PacketDocument({
       {/* Weight Chart Page */}
       {options.includeWeightChart && data.weightEntries.length > 0 && (
         <Page size="LETTER" style={sharedStyles.page}>
+          <PageBackground />
           <PageHeader data={data} logoBase64={logoBase64} />
           <WeightChartSection data={data} />
           <PageFooter data={data} />
@@ -180,19 +205,36 @@ export function PacketDocument({
       {/* Financial Page */}
       {options.includeFinancial && (
         <Page size="LETTER" style={sharedStyles.page}>
+          <PageBackground />
           <PageHeader data={data} logoBase64={logoBase64} />
           <FinancialSection data={data} />
           <PageFooter data={data} />
         </Page>
       )}
       
-      {/* Care Instructions Page */}
+      {/* Care guide sections use explicit pages so framing never depends on
+          React PDF's continuation-page behavior. */}
       {options.includeCareInstructions && (
-        <Page size="LETTER" style={sharedStyles.page}>
-          <PageHeader data={data} logoBase64={logoBase64} />
-          <CareInstructionsSection data={data} />
-          <PageFooter data={data} />
-        </Page>
+        <>
+          <Page size="LETTER" style={sharedStyles.page}>
+            <PageBackground />
+            <PageHeader data={data} logoBase64={logoBase64} />
+            <CareInstructionsSection data={data} part="essentials" />
+            <PageFooter data={data} />
+          </Page>
+          <Page size="LETTER" style={sharedStyles.page}>
+            <PageBackground />
+            <PageHeader data={data} logoBase64={logoBase64} />
+            <CareInstructionsSection data={data} part="daily-care" />
+            <PageFooter data={data} />
+          </Page>
+          <Page size="LETTER" style={sharedStyles.page}>
+            <PageBackground />
+            <PageHeader data={data} logoBase64={logoBase64} />
+            <CareInstructionsSection data={data} part="veterinary" />
+            <PageFooter data={data} />
+          </Page>
+        </>
       )}
       
       {/* Thank You / Final Page */}
@@ -201,6 +243,7 @@ export function PacketDocument({
         justifyContent: 'center',
         alignItems: 'center',
       }}>
+        <PageBackground />
         <View style={{
           alignItems: 'center',
           maxWidth: 400,

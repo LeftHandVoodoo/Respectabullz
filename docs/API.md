@@ -1,6 +1,6 @@
 # Respectabullz Internal API Reference
 
-**Version 1.10.2**
+**Version 1.10.3**
 
 ## Overview
 
@@ -666,9 +666,12 @@ generateContractDocumentFromJson(contractData: ContractData): Promise<Blob>
 
 **Storage:** Generated contracts are saved to:
 - Default: `%APPDATA%/com.respectabullz.app/contracts/`
-- Custom: User-selected directory (if configured in Settings > Preferences > Contracts Save Location)
+- Custom: Native-dialog-selected directory for the current app session
 
-**Settings Integration:** The save location is controlled by the `contractsDirectory` setting, which can be set via Settings page or defaults to app data directory.
+**Permission lifetime:** `useContract` reads the session-scoped destination from
+`src/lib/contractDestination.ts`. The native grant does not survive restart, so the
+folder must be reselected each launch. A persisted legacy `contractsDirectory` value
+is ignored for generation; otherwise output uses the app-data default.
 
 ### fillFillableContract
 Fills a pre-made fillable Word template with contract data by replacing Word Content Controls (SDT fields).
@@ -745,7 +748,8 @@ getSettings(): Promise<Record<string, string>>
 - `theme`: "light" | "dark" | "system"
 - `weightUnit`: "lbs" | "kg"
 - `notificationsEnabled`: "true" | "false"
-- `contractsDirectory`: Custom directory path for saving contracts (empty string uses default)
+- `contractsDirectory`: Legacy persisted value; ignored by current contract generation
+  because native folder authority is session-scoped
 - `dataFolderPath`: Path to data folder (legacy, may be empty)
 
 ---
@@ -839,96 +843,91 @@ deleteLitterPhoto(id: string): Promise<boolean>
 
 ---
 
-## Backup Operations
+## Partial Export and Withdrawn Recovery Operations
+
+The public Settings UI currently exposes partial export only. Restore/import and
+factory-reset controls are withdrawn while complete recovery verification is being
+implemented. Removed entry points are named below so maintainers do not mistake old
+documentation for a supported user workflow.
 
 ### exportDatabase
-Exports the entire database as JSON (data only, no photos).
+Serializes a defined subset of database records as JSON. It currently includes dogs,
+litters, expenses, breeder settings, and per-dog vaccinations, medical records,
+weight entries, and genetic tests.
 
 ```typescript
 exportDatabase(): Promise<string>
 ```
 
-**Returns:** JSON string of all database contents.
+**Returns:** A JSON string containing that subset.
 
-**Note:** This does not include photo files. Use `exportBackupWithPhotos` for complete backups.
+**Limitations:** This function omits photos, managed documents, contract files,
+communication logs, and other domains not named above. Its output is a partial
+export, not a verified backup or round-trip recovery artifact.
 
-### importDatabase
-Imports a database backup (JSON format).
+### Removed legacy entry points
 
-```typescript
-importDatabase(data: string): Promise<boolean>
-```
-
-**Parameters:**
-- `data`: JSON string from exportDatabase
-
-**Returns:** true if successful, false if parsing failed.
-
-**Note:** Photo files must be restored separately. Use `importBackupWithPhotos` for complete restore.
-
-### clearDatabase
-Deletes all data from the database.
-
-```typescript
-clearDatabase(): Promise<void>
-```
-
-**Warning:** This is irreversible! Does not delete photo files.
+`importDatabase` and `clearDatabase` are no longer exported by the current database
+module. There is no supported record import or factory-reset function. References to
+those names in historical documentation must not be reintroduced as callable APIs.
 
 ---
 
-## Full Backup with Photos (`lib/backupUtils.ts`)
+## Partial ZIP Export (`lib/backupUtils.ts`)
 
-### exportBackupWithPhotos
-Creates a ZIP archive containing database and all photos.
+### exportPartialDataWithPhotos
+Creates a ZIP archive containing the partial JSON produced by `exportDatabase()` and
+every enumerated top-level file found in the application-data `photos` directory.
 
 ```typescript
-exportBackupWithPhotos(databaseJson: string): Promise<boolean>
+exportPartialDataWithPhotos(databaseJson: string): Promise<boolean>
 ```
 
 **Parameters:**
 - `databaseJson`: JSON string from `exportDatabase()`
 
-**Returns:** true if ZIP file was saved successfully, false if user cancelled.
+**Returns:** true if ZIP file was saved successfully, false if the user cancelled.
+Rejects before the save dialog if the photo directory cannot be enumerated or any
+managed photo cannot be read. No unreadable photo is silently omitted from a reported
+success, and `metadata.json.photoCount` is derived from the files actually added.
 
 **ZIP Structure:**
 ```
-backup.zip
-├── metadata.json      # Backup version, date, photo count
-├── database.json      # Full database export
+respectabullz-partial-export-YYYY-MM-DD.zip
+├── metadata.json      # Export version, date, photo count
+├── database.json      # Partial database export
 └── photos/
     ├── photo1.jpg
     ├── photo2.png
     └── ...
 ```
 
-**Storage:** ZIP file is saved to user-selected location via file dialog.
+**Storage and interruption behavior:** The ZIP is written directly to the exact file
+granted by the native save dialog. It does not use a sibling temporary file and atomic
+rename because that sibling path is outside the dialog grant. An interrupted or failed
+write can therefore leave an incomplete target. The application does not manage
+retention, encryption, deletion, or cloud-provider lifecycle after export.
 
-### importBackupWithPhotos
-Restores database and photos from a ZIP backup.
+**Limitations:** Managed documents, generated contracts, logs, externally stored
+files, and database domains omitted by `exportDatabase()` are not included. The ZIP
+is therefore a non-recoverable partial export, not a complete, atomic, or verified
+backup.
 
-```typescript
-importBackupWithPhotos(): Promise<{ success: boolean; databaseJson?: string; photoCount?: number; error?: string }>
-```
-
-**Returns:**
-- `success`: true if restore completed
-- `databaseJson`: Extracted database JSON (if successful)
-- `photoCount`: Number of photos restored
-- `error`: Error message if failed
-
-**Side Effects:**
-- Extracts all photos to `%APPDATA%/com.respectabullz.app/photos/`
-- Database JSON must be imported separately using `importDatabase()`
-
-### getBackupInfo
+### getPartialExportInfo
 Gets information about current photo storage.
 
 ```typescript
-getBackupInfo(): Promise<{ photoCount: number; photosSize: number }>
+getPartialExportInfo(): Promise<{ photoCount: number; photosSize: number }>
 ```
 
-**Returns:** Photo count and total size in bytes.
+Rejects if the managed photo inventory cannot be enumerated or completely read;
+callers must not represent an inspection failure as an empty inventory.
+
+**Returns:** Photo count and total size in bytes for the photo scope inspected by
+the exporter. It does not describe the completeness of an export.
+
+For the user-visible format, omissions, and recovery boundary, see
+[BACKUP_FORMAT.md](BACKUP_FORMAT.md) and [RELIABILITY.md](RELIABILITY.md).
 
 ---
 
@@ -976,7 +975,7 @@ useDeleteEntity()       // Delete
 | CommunicationLog | useCommunicationLogs | - | useCreateCommunicationLog | useUpdateCommunicationLog | useDeleteCommunicationLog |
 | ExternalStud | useExternalStuds | - | useCreateExternalStud | useUpdateExternalStud | useDeleteExternalStud |
 | GeneticTest | useGeneticTests | - | useCreateGeneticTest | useUpdateGeneticTest | useDeleteGeneticTest |
-| Backup | useBackupInfo | - | useExportBackupWithPhotos | - | - |
+| PartialExport | usePartialExportInfo | - | useExportPartialDataWithPhotos | - | - |
 
 ### Mutation Hook Features
 
@@ -1295,6 +1294,12 @@ seedPredefinedTags(tags: typeof PREDEFINED_DOCUMENT_TAGS): Promise<void>
 
 ### Documents
 
+User-facing create, edit, and delete mutations cross the renderer/Rust boundary
+through `src/lib/documentWorkflow.ts`. The Rust commands own one SQLx connection and
+transaction and coordinate staged or quarantined files with record/tag/entity-link
+changes. This is scoped compensation, not a claim that SQLite and the filesystem
+share a transaction.
+
 #### getDocuments
 Retrieves all documents.
 
@@ -1321,25 +1326,27 @@ getDocumentWithRelations(id: string): Promise<DocumentWithRelations | null>
 **Returns:** Document with tags array populated.
 
 #### createDocument
-Creates a new document record.
+Stages and validates a selected source file, then creates the document record, tag
+links, and one dog/litter/expense link through one Rust command.
 
 ```typescript
 createDocument(input: CreateDocumentInput): Promise<Document>
 ```
 
 **Parameters:**
-- `input.filename`: Unique stored filename
-- `input.originalName`: Original filename from user
-- `input.filePath`: Relative path in app data directory
-- `input.mimeType`: MIME type (e.g., "application/pdf")
-- `input.fileSize`: File size in bytes
+- `input.sourcePath`: Native-dialog-selected source path
+- `input.entityType`: `dog`, `litter`, or `expense`
+- `input.entityId`: Existing entity ID to link
 - `input.notes`: Optional notes
-- `input.tagIds`: Optional array of tag IDs to link
+- `input.tagIds`: Tag IDs to link
 
-**Returns:** Created Document object.
+**Validation and failure behavior:** Files are limited to 100 MB. The Rust command
+checks allowlisted extensions and signatures for PDF, PNG, JPEG, GIF, WebP, OOXML ZIP,
+and legacy OLE documents. Selection alone does not copy a permanent file. A failure
+before commit rolls back rows and removes or reports staging residue.
 
 #### updateDocument
-Updates document metadata (notes and tags).
+Updates document notes and replaces tags in one Rust-owned database transaction.
 
 ```typescript
 updateDocument(id: string, input: UpdateDocumentInput): Promise<Document | null>
@@ -1350,15 +1357,20 @@ updateDocument(id: string, input: UpdateDocumentInput): Promise<Document | null>
 - `input.tagIds`: Optional array of tag IDs (replaces existing tags)
 
 #### deleteDocument
-Deletes a document and its file from storage.
+Moves the managed file to a recoverable tombstone, deletes database metadata/links in
+one transaction, commits, then removes the tombstone.
 
 ```typescript
-deleteDocument(id: string): Promise<boolean>
+deleteDocument(id: string): Promise<DeleteDocumentResult>
 ```
 
-**Side Effects:** 
-- Deletes physical file from documents directory
-- Cascades delete to all junction tables (dog_documents, litter_documents, expense_documents, document_tag_links)
+**Returns:** `{ deleted, cleanupResidue? }`. If post-commit tombstone cleanup fails,
+the committed delete remains explicit and the residue path is reported for startup
+reconciliation. If the transaction fails, the row is preserved and the command tries
+to restore the file; restoration failure is surfaced with recoverable residue.
+If `COMMIT` was attempted but its result is ambiguous, the command does not guess or
+restore the file: it preserves the tombstone and reports its residue so startup can
+decide from durable database state.
 
 #### setDocumentTags
 Sets tags for a document (replaces existing tags).
@@ -1366,6 +1378,10 @@ Sets tags for a document (replaces existing tags).
 ```typescript
 setDocumentTags(documentId: string, tagIds: string[]): Promise<void>
 ```
+
+This wrapper invokes the one-transaction Rust tag replacement. Lower-level
+`addTagToDocument` and `removeTagFromDocument` helpers remain available for legacy
+callers but are not the demonstrated user-facing edit workflow.
 
 #### addTagToDocument
 Adds a tag to a document.
@@ -1512,44 +1528,39 @@ selectMultipleDocuments(): Promise<string[]>
 
 **Returns:** Array of selected file paths.
 
-### File Operations
+### Managed File Operations
 
-#### selectAndCopyDocument
-Selects a file and copies it to the documents directory.
+#### selectDocumentForUpload
+Selects and inspects a source file without modifying managed storage. Permanent copy
+occurs only inside `createDocument` after the user confirms the upload.
 
 ```typescript
-selectAndCopyDocument(): Promise<{
-  filename: string;
+selectDocumentForUpload(): Promise<{
+  sourcePath: string;
   originalName: string;
   mimeType: string;
   fileSize: number;
 } | null>
 ```
 
-**Returns:** Object with document metadata or null if cancelled.
-
-#### copyDocumentToDocsDir
-Copies a file to the app's documents directory.
-
-```typescript
-copyDocumentToDocsDir(sourcePath: string): Promise<{ filename: string; fileSize: number } | null>
-```
-
-**Returns:** Object with generated filename and file size.
-
-#### deleteDocumentFile
-Deletes a document file from storage.
-
-```typescript
-deleteDocumentFile(filename: string): Promise<boolean>
-```
-
 #### openDocumentWithSystem
-Opens a document with the system default application.
+Validates the stored filename, then invokes a Rust command that requires a matching
+database record and canonicalizes the managed path before using the Windows default
+application. The broad Tauri shell-open plugin permission is not used.
 
 ```typescript
 openDocumentWithSystem(filename: string): Promise<boolean>
 ```
+
+### Startup reconciliation
+
+After database integrity setup, startup reconciliation acquires `BEGIN IMMEDIATE` to
+serialize with managed-document writers. It removes uncommitted staging files,
+restores tombstones when the database row survived, removes tombstones after a
+committed delete, and quarantines unregistered files found in the managed final
+directory. Actual file-operation failures block the operational UI and present a retry
+path. Reaching the 10,000-entry scan limit logs a warning and allows startup when no
+failure was recorded; that result is explicitly truncated and not exhaustive.
 
 ### File Information
 

@@ -2,7 +2,7 @@
 
 > Breeder management desktop application for dog breeding operations.
 
-**Version**: 1.10.2
+**Version**: 1.10.3
 **Repository**: <https://github.com/LeftHandVoodoo/Respectabullz>
 
 ---
@@ -100,7 +100,7 @@ respectabullz/
 
 ### Development
 
-```bash
+```powershell
 npm run dev          # Start Vite dev server (frontend only)
 npm run tauri:dev    # Start Tauri dev mode (full app)
 npm run preview      # Preview production build
@@ -108,14 +108,14 @@ npm run preview      # Preview production build
 
 ### Build
 
-```bash
+```powershell
 npm run build        # Build frontend (tsc + vite build)
 npm run tauri:build  # Build complete Tauri app (NSIS installer)
 ```
 
 ### Testing
 
-```bash
+```powershell
 npm run test         # Run Vitest tests
 npm run test:ui      # Run tests with UI
 npm run test:coverage # Run tests with coverage report
@@ -123,13 +123,13 @@ npm run test:coverage # Run tests with coverage report
 
 ### Code Quality
 
-```bash
+```powershell
 npm run lint         # ESLint check
 ```
 
 ### Database
 
-```bash
+```powershell
 npm run db:generate  # Generate Prisma client
 npm run db:push      # Push schema to database
 npm run db:migrate   # Run migrations
@@ -138,7 +138,7 @@ npm run db:studio    # Open Prisma Studio
 
 ### Versioning
 
-```bash
+```powershell
 npm run version:bump   # Bump version across all files
 npm run version:check  # Check version consistency
 ```
@@ -193,20 +193,18 @@ Run tests before committing behavioral changes.
 
 From `.env.example`:
 
-```bash
+```dotenv
 # Database (Prisma schema reference only - not used at runtime)
 DATABASE_URL="file:./data/respectabullz.db"
 
 # App metadata
 VITE_APP_NAME="Respectabullz"
-VITE_APP_VERSION="1.10.2"
+VITE_APP_VERSION="1.10.3"
 
-# GitHub Bug Reporting (optional)
-VITE_GITHUB_TOKEN=""       # PAT with repo:issues scope
-VITE_GITHUB_REPO="LeftHandVoodoo/Respectabullz"
+# Bug reports use a fixed support page; never add a repository token or destination
 ```
 
-Note: The app uses SQLite via Tauri's SQL plugin at runtime. Prisma is only for schema management.
+Note: The app uses SQLite via Tauri's SQL plugin at runtime. Prisma is only for schema management. Bug reporting sanitizes and previews a local draft, copies it only after approval, and opens a fixed blank GitHub Issues/new page with no report data in the URL; it does not submit through a credentialed API.
 
 ---
 
@@ -224,7 +222,7 @@ Note: The app uses SQLite via Tauri's SQL plugin at runtime. Prisma is only for 
 | `src-tauri/Cargo.lock` | `respectabullz.version` |
 | `src-tauri/tauri.conf.json` | `version` |
 
-**Current Version**: 1.10.2
+**Current Version**: 1.10.3
 
 Use `npm run version:bump` to update all locations.
 
@@ -273,54 +271,32 @@ Dogs, Litters, Puppies, Clients, Sales, Health Records, Vaccinations, Expenses, 
 - `tauri-plugin-fs` - File system access
 - `tauri-plugin-dialog` - Native dialogs
 - `tauri-plugin-notification` - System notifications
-- `tauri-plugin-shell` - Shell commands
 - `tauri-plugin-sql` - SQLite database
 
----
-
-## Windows/WSL Notes
-
-This project is developed on Windows with WSL. Key considerations:
-
-- **Project Path**: `/mnt/c/respectabullz` (WSL) or `C:\respectabullz` (Windows)
-- **Line Endings**: Configured for LF (Unix-style)
-- **Tauri Build**: Runs native Windows commands from WSL
-- **npm**: Use npm directly, not through WSL wrapper for Tauri commands
+Broad shell-plugin access is removed. Narrow Rust commands handle canonical managed-
+document opens and the fixed support-page destination.
 
 ---
 
-## Claude-Flow Integration
+## Windows notes
 
-Claude-Flow daemon can be activated for this project:
-
-```bash
-# Check status
-claude-flow daemon status
-
-# Start daemon
-claude-flow daemon start
-
-# Memory operations
-claude-flow memory store <key> "content" --namespace respectabullz
-claude-flow memory search --query "term"
-
-# Dispatch workers
-claude-flow hooks worker dispatch --trigger <map|audit|optimize>
-```
-
-**Memory Location**: `.swarm/memory.db`
+- Use native Windows PowerShell commands for development and Tauri packaging.
+- Keep the repository's LF line-ending policy.
+- Resolve Node, npm, Cargo, Rustup, and toolchains from the developer's normal `PATH`;
+  do not hard-code a user profile or machine-specific toolchain directory.
+- `npm run tauri:dev` is the supported full-development command.
 
 ---
 
 ## Important Notes
 
-1. **Data Integrity**: v1.10.2 introduced atomic file writes and optimistic update rollback. All mutations now have proper error recovery.
+1. **Data Integrity**: Selected file writes and optimistic UI paths have rollback or compensation controls. Do not generalize those path-specific controls to all mutations or to database-plus-filesystem atomicity; see `docs/RELIABILITY.md`.
 
 2. **Photo Storage**: Dog and litter photos stored in `$APPDATA/com.respectabullz.app/` with asset protocol access.
 
 3. **PDF Libraries**: @react-pdf/renderer (~1.5MB) and pdfjs-dist are large dependencies. Vite config uses manual chunks to optimize loading.
 
-4. **No Backend Server**: This is a desktop app. All data is local SQLite. No network API except optional GitHub bug reporting.
+4. **No Backend Server**: This is a local-first desktop app. The credential-free bug-report flow copies a reviewed draft and can open a fixed blank GitHub page in the user's browser; it keeps report data out of the URL and does not submit through an application API.
 
 5. **Contract Templates**: JSON-based contract templates in `contracts/` directory. Generated documents saved to user-configured location.
 

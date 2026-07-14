@@ -19,9 +19,10 @@ export function CoverPage({ data, dogPhotoBase64, logoBase64 }: CoverPageProps) 
     <Page size="LETTER" style={sharedStyles.coverPage}>
       {/* Top decoration bar */}
       <View style={sharedStyles.coverDecoration} />
-      
-      {/* Main content */}
-      <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center' }}>
+
+      {/* Keep the entire cover in one compact normal-flow stack. Absolute
+          positioning is reserved for the decorative page-edge bars. */}
+      <View style={{ alignItems: 'center', width: '100%' }} wrap={false}>
         {/* Kennel logo */}
         {logoBase64 && (
           <Image src={logoBase64} style={sharedStyles.coverLogo} />
@@ -30,13 +31,14 @@ export function CoverPage({ data, dogPhotoBase64, logoBase64 }: CoverPageProps) 
         {/* Kennel name - styled to match app branding */}
         <Text style={{
           ...sharedStyles.brandTextLarge,
-          marginBottom: 8,
+          marginBottom: 4,
+          textAlign: 'center',
         }}>
           {breederSettings.kennelName || 'RESPECTABULLZ'}
         </Text>
         
         <Text style={{
-          fontSize: 14,
+          fontSize: 12,
           fontFamily: 'Helvetica',
           color: BRAND_COLORS.gray[500],
           letterSpacing: 3,
@@ -50,7 +52,7 @@ export function CoverPage({ data, dogPhotoBase64, logoBase64 }: CoverPageProps) 
           width: 100,
           height: 2,
           backgroundColor: BRAND_COLORS.gold,
-          marginVertical: 20,
+          marginVertical: 10,
         }} />
         
         {/* Dog photo */}
@@ -58,9 +60,9 @@ export function CoverPage({ data, dogPhotoBase64, logoBase64 }: CoverPageProps) 
           <Image src={dogPhotoBase64} style={sharedStyles.coverDogPhoto} />
         ) : (
           <View style={{
-            width: 200,
-            height: 200,
-            borderRadius: 100,
+            width: 150,
+            height: 150,
+            borderRadius: 75,
             backgroundColor: BRAND_COLORS.gray[200],
             justifyContent: 'center',
             alignItems: 'center',
@@ -68,7 +70,7 @@ export function CoverPage({ data, dogPhotoBase64, logoBase64 }: CoverPageProps) 
             borderColor: BRAND_COLORS.brown,
           }}>
             <Text style={{
-              fontSize: 48,
+              fontSize: 38,
               color: BRAND_COLORS.brown,
               fontFamily: 'Helvetica',
               fontWeight: 'bold',
@@ -98,43 +100,37 @@ export function CoverPage({ data, dogPhotoBase64, logoBase64 }: CoverPageProps) 
           )}
           {dog.registrationNumber && (
             <Text style={{
-              fontSize: 11,
+              fontSize: 9,
               color: BRAND_COLORS.brown,
               fontFamily: 'Helvetica',
               fontWeight: 'bold',
-              marginTop: 8,
+              marginTop: 2,
             }}>
               Reg: {dog.registrationNumber}
             </Text>
           )}
         </View>
-      </View>
-      
-      {/* Footer with breeder contact */}
-      <View style={{
-        position: 'absolute',
-        bottom: 40,
-        left: 0,
-        right: 0,
-        alignItems: 'center',
-      }}>
+
+        {/* Breeder contact remains in normal flow so it cannot overlap dog
+            metadata or force an invisible cover continuation. */}
         <View style={{
           width: 60,
           height: 1,
           backgroundColor: BRAND_COLORS.brown,
-          marginBottom: 15,
+          marginTop: 14,
+          marginBottom: 8,
         }} />
-        
+
         {breederSettings.breederName && (
           <Text style={{
             fontSize: 10,
             color: BRAND_COLORS.gray[600],
-            marginBottom: 4,
+            marginBottom: 3,
           }}>
             {breederSettings.breederName}
           </Text>
         )}
-        
+
         {breederSettings.phone && (
           <Text style={{
             fontSize: 9,
@@ -144,7 +140,7 @@ export function CoverPage({ data, dogPhotoBase64, logoBase64 }: CoverPageProps) 
             {breederSettings.phone}
           </Text>
         )}
-        
+
         {breederSettings.email && (
           <Text style={{
             fontSize: 9,
@@ -153,17 +149,17 @@ export function CoverPage({ data, dogPhotoBase64, logoBase64 }: CoverPageProps) 
             {breederSettings.email}
           </Text>
         )}
-        
+
         {/* Prepared date */}
         <Text style={{
           fontSize: 8,
           color: BRAND_COLORS.gray[400],
-          marginTop: 15,
+          marginTop: 8,
         }}>
           Prepared: {formatDate(new Date())}
         </Text>
       </View>
-      
+
       {/* Bottom decoration bar */}
       <View style={sharedStyles.coverDecorationBottom} />
     </Page>

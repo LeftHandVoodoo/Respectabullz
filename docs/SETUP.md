@@ -1,259 +1,261 @@
 # Respectabullz Setup Guide
 
-**Version 1.10.0**
+Last reviewed: 2026-07-14
 
-## System Requirements
+This guide covers source development on Windows. A verified public portfolio
+installer has not yet been established. Do not use the historical restore,
+clear/reset, or test-data removal controls with important records.
 
-### Minimum Requirements
+## Requirements
 
-- **OS**: Windows 10 (64-bit) or later
-- **RAM**: 4 GB
-- **Storage**: 500 MB free space
-- **Display**: 1024x768 resolution
-
-### Development Requirements
-
-- Node.js 18.x or higher
-- Rust 1.70 or higher
-- Visual Studio Build Tools 2019+ (Windows)
+- Windows 10 or later, 64-bit
 - Git
+- Node.js 22.x with npm 10.x (`.nvmrc` pins the local/CI Node release)
+- Rust stable toolchain
+- Microsoft Visual Studio C++ Build Tools required by Tauri
+- Microsoft Edge WebView2 Runtime
 
-## Installation
+Confirm the main tools in PowerShell:
 
-### For Users (Pre-built)
-
-1. Download the latest release from the Releases page
-2. Run the installer (`Respectabullz_x.x.x_x64-setup.exe`) - NSIS installer for Windows
-3. Follow the installation wizard
-4. Launch from Start Menu or Desktop shortcut
-5. On first launch, choose between starting with an empty database or loading sample data to explore features
-
-### For Developers
-
-#### 1. Install Prerequisites
-
-**Node.js:**
 ```powershell
-# Using winget
-winget install OpenJS.NodeJS.LTS
-
-# Or download from https://nodejs.org/
+node --version
+npm --version
+rustc --version
+cargo --version
 ```
 
-**Rust:**
+## Clone and install
+
 ```powershell
-# Download and run rustup-init.exe from https://rustup.rs
-# Or using winget:
-winget install Rustlang.Rustup
+git clone https://github.com/LeftHandVoodoo/Respectabullz.git
+Set-Location .\Respectabullz
+npm ci
 ```
 
-**Visual Studio Build Tools:**
-```powershell
-winget install Microsoft.VisualStudio.2022.BuildTools
-```
+`npm ci` uses the committed lockfile. Use it for reproducible review unless a
+dependency update is the task.
 
-During VS Build Tools installation, select:
-- "Desktop development with C++"
-- Windows 10/11 SDK
-
-#### 2. Clone Repository
+## Run the desktop application
 
 ```powershell
-git clone <repository-url>
-cd respectabullz
-```
-
-#### 3. Install Dependencies
-
-```powershell
-npm install
-```
-
-#### 4. Initialize Database
-
-```powershell
-# Generate Prisma client
-npm run db:generate
-
-# Create database with schema
-npm run db:push
-```
-
-#### 5. Start Development
-
-```powershell
-# Web development (faster iteration)
-npm run dev
-
-# Full Tauri development
 npm run tauri:dev
 ```
 
-## Configuration
+The first Tauri build can take several minutes while Rust dependencies compile.
 
-### Environment Variables
+For frontend-only iteration:
 
-Create a `.env` file in the project root (see `.env.example`):
-
-```env
-# Database (used by Prisma for schema reference only - not used at runtime)
-DATABASE_URL="file:./data/respectabullz.db"
-
-# App info
-VITE_APP_NAME="Respectabullz"
-VITE_APP_VERSION="1.9.3"
-
-# GitHub Bug Reporting (optional)
-# Create a PAT at https://github.com/settings/tokens with repo:issues scope
-VITE_GITHUB_TOKEN=""
-VITE_GITHUB_REPO="owner/repo"
+```powershell
+npm run dev
 ```
 
-**Bug Reporting Setup (optional):**
-- `VITE_GITHUB_TOKEN`: Personal access token with `repo:issues` scope
-- `VITE_GITHUB_REPO`: Repository in `owner/repo` format
-- When configured, a bug report button appears in the app header
+The Vite-only mode cannot validate native SQLite, filesystem, dialog, notification,
+shell, or packaging behavior. Do not treat it as an end-to-end test.
 
-### Database Location
+## Configuration
 
-By default, the database is stored in:
-- **Development**: `./prisma/data/respectabullz.db`
-- **Production**: `%APPDATA%/com.respectabullz.app/data/`
+No environment file is required for the normal runtime database path.
 
-### Data Directories
+Supported development values include:
 
-The app creates these directories automatically in `%APPDATA%/com.respectabullz.app/`:
-- `photos/` - Dog profile photos and litter photo galleries
-- `documents/` - Uploaded documents (PDFs, Word, Excel, images)
-- `attachments/` - Legacy attachments directory
-- `contracts/` - Generated contract documents (or custom directory via Settings)
-- `backups/` - Backup files
-- `data/` - SQLite database
+```dotenv
+VITE_APP_NAME="Respectabullz"
+VITE_LOG_LEVEL="debug"
+```
 
-**Photo Storage:**
-- Photos are stored with unique filenames (timestamp + random)
-- Database stores only filenames, not full paths
-- Photos are included in full backup ZIP files
+`DATABASE_URL="file:./data/respectabullz.db"` is used only by optional Prisma
+reference tooling. Runtime data is opened through `tauri-plugin-sql`.
 
-## Build for Production
+### Do not configure a GitHub token
 
-### Windows Installer
+Do not set `VITE_GITHUB_TOKEN` or place any repository credential in `.env`. Vite
+variables are renderer-visible and can be embedded in build artifacts. The historical
+direct GitHub API design is unsupported.
+
+The remediation reporter shows the full sanitized preview, then copies that reviewed
+draft and opens the fixed blank GitHub Issues/new page only after an explicit click.
+Report contents are not placed in the URL. Review the copied text again before pasting
+and submitting because automatic redaction cannot identify every sensitive domain
+detail. Use the private route in [SECURITY.md](../SECURITY.md) for a vulnerability.
+
+The checked-in `.env.example` accepts no GitHub token or repository destination. Its
+`VITE_APP_VERSION` value is a display mirror checked against canonical `VERSION`; it
+is not independently authoritative.
+
+## Local data locations
+
+The Tauri application-data directory on Windows contains or can contain:
+
+```text
+%APPDATA%\com.respectabullz.app\
+├── respectabullz.db
+├── photos\
+├── documents\
+├── contracts\
+└── logs\respectabullz.log
+```
+
+The exact base path is resolved by Tauri. A user-selected export target can live
+elsewhere. A custom contracts folder is authorized by the native folder dialog for the
+current app session only; reselect it after every restart. The application ignores a
+persisted legacy custom-path setting because the native grant does not survive restart.
+
+The database, files, logs, and current exports are plaintext unless Windows or the
+destination storage supplies encryption. Do not use real client records for
+development, screenshots, or issue reproduction.
+
+## Sample and demo data
+
+Production first launch offers only **Start Fresh** with an empty database and exposes
+no synthetic-data control. For controlled portfolio capture, run:
+
+```powershell
+npm run demo:dev
+```
+
+This development flavor uses the separate `com.respectabullz.demo` Tauri identity,
+application-data directory, asset scope, and inline capability. Both the interface
+and Rust command require that exact identity plus a debug build; ordinary
+`npm run tauri:dev` cannot expose or invoke the seed. The seed refuses to run when any
+user-created application record exists, uses fixed IDs/dates, reserved `.test`
+contacts, `202-555-01xx` phone numbers, and `DEMO-*` animal identifiers. Focused tests
+cover those boundaries.
+
+The demo has no automated teardown and is not exposed in production. Do not weaken
+the identity guards or treat fixture output as customer evidence. Use only
+rights-reviewed synthetic media.
+
+## Restore, export, and reset status
+
+- Restore is withdrawn and is not a supported operation.
+- Existing JSON and ZIP outputs are partial exports, not verified backups. The ZIP is
+  written directly to the exact native-dialog target and is not atomic; interruption
+  can leave an incomplete file.
+- There is no verified in-app factory reset.
+- External exports and custom directories remain outside application lifecycle
+  control.
+
+The remediation UI removes restore, **Clear All Data**, and **Remove Test Data**. Any
+older build that still exposes those controls should be treated as unsupported. See
+[Reliability](RELIABILITY.md),
+[Privacy](../PRIVACY.md), and the proposed [backup format](BACKUP_FORMAT.md).
+
+## Local checks
+
+Run the following from PowerShell:
+
+```powershell
+npm run lint
+npm run typecheck
+npm run test -- --run
+npm run build
+npm run version:check
+```
+
+`npm run version:check` is a drift-enforcing gate. It compares canonical `VERSION`
+with npm package and lock metadata, the Rust crate and lock entry, Tauri configuration,
+the generated frontend constant, and `.env.example` display metadata.
+
+The dated baseline, coverage command, advisory counts, and missing checks are in
+[`TEST_EVIDENCE.md`](case-study/TEST_EVIDENCE.md).
+
+## Build a local Windows bundle
 
 ```powershell
 npm run tauri:build
 ```
 
-Output location: `src-tauri/target/release/bundle/`
+This command can produce an NSIS installer locally. A successful local build does not
+make the artifact a verified release.
 
-Available formats:
-- `.exe` - NSIS installer (recommended for end users)
-- `.msi` - Windows Installer
-- Portable `.exe`
+Before publishing an installer, require:
 
-### Build Configuration
+- the exact tag and commit in all presentation material;
+- clean lint, type, tests, and critical-path evidence;
+- a controlled Windows build and clean-machine smoke test;
+- dependency and secret-scan triage;
+- SHA-256 checksum;
+- SBOM where practical; and
+- explicit signing status.
 
-Edit `src-tauri/tauri.conf.json` for:
-- App name and version
-- Window size and behavior
-- Bundle settings
-- Plugin permissions
+If unsigned, label the artifact as unsigned and explain that Windows SmartScreen may
+warn. A checksum provides integrity for the downloaded bytes; it does not establish
+publisher identity or software safety.
+
+## Optional Prisma reference tooling
+
+Prisma is not the runtime database layer. These commands are for schema/reference
+work only and can drift from runtime migrations:
+
+```powershell
+npm run db:generate
+npm run db:studio
+```
+
+Do not use `db:push` or `db:migrate` against valuable data unless the task explicitly
+requires it and the resulting runtime compatibility has been reviewed.
 
 ## Troubleshooting
 
-### Common Issues
+### Rust or linker errors
 
-**"Rust not found"**
 ```powershell
-# Ensure Rust is in PATH
-rustup show
-
-# Reinstall if needed
-rustup update
-```
-
-**"npm install fails"**
-```powershell
-# Clear npm cache
-npm cache clean --force
-
-# Delete node_modules and reinstall
-Remove-Item -Recurse node_modules
-npm install
-```
-
-**"Prisma generate fails"**
-```powershell
-# Ensure .env file exists with DATABASE_URL
-# Regenerate client
-npx prisma generate
-```
-
-**"Tauri build fails"**
-```powershell
-# Ensure VS Build Tools are installed
-# Check Rust toolchain
+rustup update stable
 rustup default stable
-rustup update
 ```
+
+Confirm Visual Studio Build Tools include the Desktop development with C++ workload.
+
+### Port 1420 is busy
+
+Find the owning process before terminating anything:
+
+```powershell
+Get-NetTCPConnection -LocalPort 1420 -ErrorAction SilentlyContinue |
+  Select-Object LocalAddress, LocalPort, State, OwningProcess
+```
+
+### Dependency install problems
+
+Preserve `package-lock.json`. Remove only generated dependencies, then reinstall:
+
+```powershell
+Remove-Item -LiteralPath .\node_modules -Recurse -Force
+npm ci
+```
+
+### Database errors
+
+Do not delete or replace the database as a first troubleshooting step. Copy the
+entire application-data directory to a safe location, record the exact app version
+and error, and reproduce with a synthetic database where possible.
+
+Restore is not available as a recovery shortcut.
 
 ### Logs
 
-- **Development**: Console output in terminal
-- **Production**: `%APPDATA%/com.respectabullz.app/logs/`
+Logs can be stored under the application's `logs` directory. Treat them as sensitive:
+review names, paths, error details, and contextual values before sharing.
 
-### Reset Application
+## Updating source
 
-To completely reset:
-
-1. Close the application
-2. Delete: `%APPDATA%/com.respectabullz.app/`
-3. Restart the application
-
-**Warning**: This deletes all data!
-
-## Updating
-
-### Development
+Before pulling changes, preserve the current commit and use synthetic data:
 
 ```powershell
-git pull
-npm install
-npm run db:generate
+git status --short --branch
+git pull --ff-only
+npm ci
 ```
 
-### Production (Upgrading from Previous Version)
+Automatic migration does not currently have complete transactional/restart evidence.
+Do not assert that an upgrade preserves every record and file until the supported
+migration matrix passes.
 
-**Users can upgrade directly without uninstalling:**
+## Related documentation
 
-1. **Download the new installer** (e.g., `Respectabullz_1.4.0_x64-setup.exe`)
-2. **Run the installer** - It will automatically detect your existing installation
-3. **Follow the installation wizard** - The installer will upgrade your existing installation
-4. **Your data is automatically preserved** - All data stored in `%APPDATA%/com.respectabullz.app/` remains intact:
-   - Database files (SQLite)
-   - Photos
-   - Contracts
-   - Attachments
-   - Backups
-   - Settings
-
-**Important Notes:**
-- ✅ **No uninstall required** - The NSIS installer handles upgrades automatically
-- ✅ **Data is safe** - User data is stored separately from the installation directory
-- ✅ **Database migrations run automatically** - Schema updates are handled on first launch after upgrade
-- ✅ **Settings preserved** - All preferences and configurations are maintained
-
-**After upgrading:**
-- Launch the application normally
-- The app will automatically run any necessary database migrations
-- All your data, photos, and settings will be available immediately
-
-## Support
-
-For issues:
-1. Check this setup guide
-2. Search existing GitHub issues
-3. Open new issue with:
-   - OS version
-   - Error messages
-   - Steps to reproduce
-
+- [Architecture](ARCHITECTURE.md)
+- [Reliability](RELIABILITY.md)
+- [Threat model](THREAT_MODEL.md)
+- [Privacy](../PRIVACY.md)
+- [Security](../SECURITY.md)
+- [Rights](../RIGHTS.md)

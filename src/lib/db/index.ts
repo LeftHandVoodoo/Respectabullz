@@ -2,7 +2,7 @@
 // Re-exports all database operations for backwards compatibility
 
 // Core connection and utilities
-export { getDatabase, closeDatabase, query, execute, transaction, isDatabaseInitialized, isDatabaseEmpty } from './connection';
+export { getDatabase, query, execute, isDatabaseInitialized } from './connection';
 export { setupDatabase, initializeDatabase, runMigrations, getSchemaVersion } from './migrations';
 export { generateId, dateToSql, sqlToDate, boolToSql, sqlToBool, nowIso } from './utils';
 export * from './legacy';

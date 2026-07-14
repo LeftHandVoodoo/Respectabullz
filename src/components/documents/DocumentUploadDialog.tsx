@@ -12,9 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { TagSelector } from './TagSelector';
-import { useToast } from '@/components/ui/use-toast';
-import { useCreateDocument, useLinkDocumentToDog, useLinkDocumentToLitter, useLinkDocumentToExpense } from '@/hooks/useDocuments';
-import { selectAndCopyDocument, formatFileSize, getFileTypeDisplayName } from '@/lib/documentUtils';
+import { useCreateDocument } from '@/hooks/useDocuments';
+import { selectDocumentForUpload, formatFileSize, getFileTypeDisplayName } from '@/lib/documentUtils';
 import type { EntityType } from './DocumentList';
 
 interface DocumentUploadDialogProps {
@@ -25,7 +24,7 @@ interface DocumentUploadDialogProps {
 }
 
 interface SelectedFile {
-  filename: string;
+  sourcePath: string;
   originalName: string;
   mimeType: string;
   fileSize: number;
@@ -43,16 +42,12 @@ export function DocumentUploadDialog({
   const [isSelecting, setIsSelecting] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
 
-  const { toast } = useToast();
   const createDocument = useCreateDocument();
-  const linkToDog = useLinkDocumentToDog();
-  const linkToLitter = useLinkDocumentToLitter();
-  const linkToExpense = useLinkDocumentToExpense();
 
   const handleSelectFile = async () => {
     setIsSelecting(true);
     try {
-      const result = await selectAndCopyDocument();
+      const result = await selectDocumentForUpload();
       if (result) {
         setSelectedFile(result);
       }
@@ -66,40 +61,19 @@ export function DocumentUploadDialog({
 
     setIsUploading(true);
     try {
-      // Create the document record
-      const doc = await createDocument.mutateAsync({
-        filename: selectedFile.filename,
-        originalName: selectedFile.originalName,
-        filePath: `documents/${selectedFile.filename}`,
-        mimeType: selectedFile.mimeType,
-        fileSize: selectedFile.fileSize,
+      await createDocument.mutateAsync({
+        sourcePath: selectedFile.sourcePath,
+        entityType,
+        entityId,
         notes: notes || undefined,
         tagIds: selectedTagIds,
       });
-
-      // Link to the entity
-      switch (entityType) {
-        case 'dog':
-          await linkToDog.mutateAsync({ documentId: doc.id, dogId: entityId });
-          break;
-        case 'litter':
-          await linkToLitter.mutateAsync({ documentId: doc.id, litterId: entityId });
-          break;
-        case 'expense':
-          await linkToExpense.mutateAsync({ documentId: doc.id, expenseId: entityId });
-          break;
-      }
 
       // Reset and close
       resetForm();
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to upload document:', error);
-      toast({
-        title: 'Upload failed',
-        description: error instanceof Error ? error.message : 'Failed to upload document. Please try again.',
-        variant: 'destructive',
-      });
     } finally {
       setIsUploading(false);
     }
@@ -147,7 +121,7 @@ export function DocumentUploadDialog({
                     Click to select a file
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    PDF, Word, Excel, JPG, PNG, GIF, WebP
+                    PDF, Word, Excel, JPG, PNG, GIF, WebP — up to 100 MB
                   </p>
                 </div>
               )}

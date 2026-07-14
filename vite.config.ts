@@ -21,8 +21,9 @@ export default defineConfig({
     target: ['es2021', 'chrome100', 'safari13'],
     minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
     sourcemap: !!process.env.TAURI_DEBUG,
-    // PDF renderer (~1.5MB) is inherently large; Excel (~938KB) now in own chunk
-    chunkSizeWarningLimit: 1500,
+    // PDF renderer (~1.58MB) is inherently large; Excel (~938KB) is isolated.
+    // Warn only when a chunk grows beyond those reviewed dependency boundaries.
+    chunkSizeWarningLimit: 1600,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -70,7 +71,6 @@ export default defineConfig({
             '@tauri-apps/plugin-dialog',
             '@tauri-apps/plugin-fs',
             '@tauri-apps/plugin-notification',
-            '@tauri-apps/plugin-shell',
             '@tauri-apps/plugin-sql',
           ],
         },

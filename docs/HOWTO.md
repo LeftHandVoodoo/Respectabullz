@@ -1,6 +1,6 @@
 # Respectabullz How-To Guide
 
-**Version 1.10.0**
+**Version 1.10.3**
 **Last Updated: January 1, 2026**
 
 This guide provides step-by-step instructions for common breeding operation workflows. For detailed feature documentation, see [USER_MANUAL.md](USER_MANUAL.md).
@@ -51,12 +51,16 @@ This guide provides step-by-step instructions for common breeding operation work
 1. In **Settings** → **Preferences**:
    - Choose **Weight Unit** (lbs or kg)
    - Enable **Notifications** for reminders
+   - If you choose a custom contracts folder, use **Choose Folder** again after every
+     app restart; the native folder grant lasts only for the current session
 
-**Step 3: Create Your First Backup**
-1. Go to **Settings** → **Data Management**
-2. Click **"Export Full Backup"**
-3. Save to a safe location (cloud storage recommended)
-4. **Set a reminder** to backup weekly
+**Step 3: Understand the Current Data-Safety Boundary**
+1. Go to **Settings** → **Data Management** and review the export descriptions.
+2. Treat both export formats as partial copies, not verified backups.
+3. Keep independent copies of the complete application-data directory and any
+   custom document or contract directories using a storage tool you control.
+4. Verify those independent copies separately. Respectabullz currently has no
+   supported restore/import or factory-reset workflow.
 
 ---
 
@@ -727,57 +731,45 @@ This guide provides step-by-step instructions for common breeding operation work
 
 ---
 
-## Backing Up Your Data
+## Exporting Partial Data
 
-### Creating a Full Backup
+Respectabullz currently provides two export options. Neither is a verified backup
+or supported round-trip transfer format.
 
-**Scenario:** Weekly backup routine.
+### Partial Data Export with Photos
 
-**Steps:**
-1. Go to **Settings** → **Data Management**
-2. Click **"Export Full Backup"**
-3. System creates ZIP file containing:
-   - Complete database
-   - All photos
-4. Choose save location
-5. **Best Practice**: Save to cloud storage (Google Drive, Dropbox, OneDrive)
-6. **Set reminder**: Backup weekly
+1. Go to **Settings** → **Data Management**.
+2. Under **Partial Data Export with Photos**, click **"Export Partial Data (ZIP)"**.
+3. Choose the destination for the ZIP file.
 
-**Backup File Shows:**
-- Photo count
-- Total size
-- Creation date
+The ZIP contains a partial JSON record export plus the managed photos found by the
+exporter. It omits managed documents, generated contracts, logs, externally stored
+files, and database domains not included by the JSON exporter. It is written directly
+to the selected native-dialog target rather than through an atomic sibling-temp rename;
+an interruption can leave an incomplete file.
 
-### Restoring from Backup
+### Partial Data Export
 
-**Scenario:** Restore data after computer issue.
+1. Go to **Settings** → **Data Management**.
+2. Under **Partial Data Export**, click **"Export Partial Data (JSON)"**.
+3. Choose the destination for the JSON file.
 
-**Steps:**
-1. Go to **Settings** → **Data Management**
-2. Click **"Restore Full Backup"**
-3. Select backup ZIP file
-4. **Warning**: This replaces all current data
-5. Confirm restore
-6. System restores:
-   - All database records
-   - All photos
+The JSON includes dogs, litters, expenses, breeder details, and per-dog
+vaccinations, medical records, weight entries, and genetic tests. It does not include
+photos or the omitted domains listed above.
 
-**Tip:** Test restore process periodically to ensure backups work.
+### Recovery status
 
-### Data-Only Backup (Quick Backup)
+The Settings page displays: **"Restore is temporarily unavailable while complete
+recovery verification is implemented."** No import/restore control or factory
+reset is currently supported. Do not rely on either partial export as the only copy
+of operational records.
 
-**Scenario:** Quick backup without photos.
-
-**Steps:**
-1. Go to **Settings** → **Data Management**
-2. Click **"Export Data Only"**
-3. JSON file created with all database records
-4. Use for:
-   - Quick backups
-   - Transferring data between installations
-   - Sharing data without photos
-
-**Note:** Photos not included. Use full backup for complete protection.
+For independent protection, close the app and use a trusted storage or backup tool
+to copy the complete app-data directory together with every configured external
+document or contract directory. Store and test those copies according to your own
+retention and recovery policy; the application cannot currently validate or restore
+them for you.
 
 ---
 
@@ -793,7 +785,8 @@ This guide provides step-by-step instructions for common breeding operation work
 1. Review **Follow-ups Due**
 2. Update **Litter Status** as needed
 3. Complete **Puppy Health Tasks**
-4. **Backup** your data
+4. Make and verify an **independent storage-level copy** of app data and every external
+   file location you used; do not treat the in-app partial exports as recovery
 
 ### Monthly Routine
 1. Review **Financial Reports**
@@ -857,7 +850,8 @@ This guide provides step-by-step instructions for common breeding operation work
 1. Ensure photos were uploaded through the app (not copied manually)
 2. Check that photo files exist in app data directory
 3. Try re-uploading the photo
-4. If using backup, ensure full backup was restored (not data-only)
+4. Check the original app-data and configured external directories; the app has no
+   supported restore path for reconstructing missing photos.
 
 ### Dashboard Not Showing Reminders
 **Problem:** Dashboard cards show zero or missing data.
@@ -887,7 +881,8 @@ This guide provides step-by-step instructions for common breeding operation work
 - **Check dashboard daily**: Stay on top of reminders
 - **Log communications**: Record every client interaction
 - **Update statuses**: Keep litter and sale statuses current
-- **Regular backups**: Set weekly backup reminder
+- **Independent copies**: Maintain and separately verify complete storage-level
+  copies; in-app exports are partial.
 - **Review reports**: Use analytics to make informed decisions
 
 ### Breeding Best Practices
@@ -899,8 +894,8 @@ This guide provides step-by-step instructions for common breeding operation work
 
 ---
 
-**Respectabullz How-To Guide v1.9.3**
-*Last Updated: December 29, 2025*
+**Respectabullz How-To Guide v1.10.3**
+*Last Updated: July 14, 2026*
 
 For detailed feature documentation, see [USER_MANUAL.md](USER_MANUAL.md).  
 For technical documentation, see [ARCHITECTURE.md](ARCHITECTURE.md) and [API.md](API.md).

@@ -132,7 +132,7 @@ export function HealthSection({
           ) : (
             <View>
               {sortedMedicalRecords.map((record) => (
-                <View key={record.id} style={sharedStyles.card}>
+                <View key={record.id} style={sharedStyles.card} wrap={false}>
                   <View style={{
                     flexDirection: 'row',
                     justifyContent: 'space-between',
@@ -199,7 +199,7 @@ export function HealthSection({
       
       {/* Genetic Tests */}
       {includeGeneticTests && (
-        <View>
+        <View wrap={false}>
           <Text style={sharedStyles.h3}>Genetic Testing</Text>
           
           {sortedGeneticTests.length === 0 ? (

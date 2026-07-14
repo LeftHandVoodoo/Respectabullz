@@ -3,6 +3,7 @@ import * as db from '@/lib/db/documents';
 import type { CreateDocumentInput, UpdateDocumentInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/errorTracking';
+import { documentWorkflowErrorMessage } from '@/lib/documentWorkflow';
 
 // ============================================
 // DOCUMENT QUERIES
@@ -129,8 +130,10 @@ export function useCreateDocument() {
 
   return useMutation({
     mutationFn: (input: CreateDocumentInput) => db.createDocument(input),
-    onSuccess: () => {
+    onSuccess: (_, input) => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['documents', input.entityType, input.entityId] });
+      queryClient.invalidateQueries({ queryKey: ['documents', 'count', input.entityType, input.entityId] });
       toast({
         title: 'Document uploaded',
         description: 'The document has been added successfully.',
@@ -139,7 +142,7 @@ export function useCreateDocument() {
     onError: (error) => {
       toast({
         title: 'Error',
-        description: 'Failed to upload document. Please try again.',
+        description: documentWorkflowErrorMessage(error, 'Failed to upload document. Please try again.'),
         variant: 'destructive',
       });
       logger.error('Failed to create document', error as Error);
@@ -167,7 +170,7 @@ export function useUpdateDocument() {
     onError: (error) => {
       toast({
         title: 'Error',
-        description: 'Failed to update document. Please try again.',
+        description: documentWorkflowErrorMessage(error, 'Failed to update document. Please try again.'),
         variant: 'destructive',
       });
       logger.error('Failed to update document', error as Error);
@@ -183,17 +186,24 @@ export function useDeleteDocument() {
 
   return useMutation({
     mutationFn: (id: string) => db.deleteDocument(id),
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
-      toast({
-        title: 'Document deleted',
-        description: 'The document has been removed successfully.',
-      });
+      if (result.cleanupResidue) {
+        toast({
+          title: 'Document deleted; cleanup deferred',
+          description: 'The record was removed, and a recoverable quarantined file will need cleanup.',
+        });
+      } else {
+        toast({
+          title: 'Document deleted',
+          description: 'The document has been removed successfully.',
+        });
+      }
     },
     onError: (error) => {
       toast({
         title: 'Error',
-        description: 'Failed to delete document. Please try again.',
+        description: documentWorkflowErrorMessage(error, 'Failed to delete document. Please try again.'),
         variant: 'destructive',
       });
       logger.error('Failed to delete document', error as Error);

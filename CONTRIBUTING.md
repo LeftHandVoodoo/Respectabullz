@@ -1,220 +1,137 @@
-# Contributing to Respectabullz
+# Respectabullz Development Guide
 
-## Development Setup
+Respectabullz is publicly visible for portfolio review but is not an open-source
+project. Public visibility is not an invitation to submit changes. Read
+[RIGHTS.md](RIGHTS.md) before reusing material or proposing work, and obtain
+written contribution terms from the repository owner before submitting code,
+documentation, assets, or contract language.
+
+## Development environment
+
+The supported development environment is Windows with PowerShell.
 
 ### Prerequisites
 
-- Node.js 18 or higher
-- Rust (install from https://rustup.rs)
+- Node.js 22.x (`.nvmrc` pins the local/CI Node release)
+- npm 10.x
+- Rust installed through [rustup](https://rustup.rs/)
 - Git
+- Microsoft C++ Build Tools and WebView2 prerequisites required by Tauri
 
-### Getting Started
+### Install and run
 
-```bash
-# Clone the repository
+```powershell
 git clone <repository-url>
-cd respectabullz
-
-# Install dependencies
-npm install
-
-# (Optional) Generate Prisma client for schema reference
-# Note: The app uses SQLite directly via Tauri, Prisma schema is for reference only
-npm run db:generate
-
-# Start development server
-npm run dev
-```
-
-### Running the Desktop App
-
-```bash
-# Start Tauri in development mode
+Set-Location Respectabullz
+npm ci
 npm run tauri:dev
 ```
 
-## Development Workflow
+`npm run dev` starts only the Vite frontend. Database and native file operations
+require the full Tauri process, so frontend-only mode is not an end-to-end app
+test.
 
-### Branch Naming
+Do not add a GitHub personal access token to this project. The bug-report flow is
+credential-free: it shows a sanitized draft for review, lets the user copy it,
+and can open the fixed blank GitHub Issues/new page. Report text is not placed in
+the URL; the user pastes and submits it manually.
 
-- `feature/` - New features
-- `fix/` - Bug fixes
-- `refactor/` - Code refactoring
-- `docs/` - Documentation updates
+## Working agreement
 
-Example: `feature/add-pedigree-tree`
+1. Read `AGENTS.md`, the root documentation, and the relevant source and tests.
+2. Keep changes small, focused, and consistent with the existing architecture.
+3. Add or update tests for changed behavior, including failure and cancellation
+   paths where relevant.
+4. Update user-facing documentation and `CHANGELOG.md` when behavior changes.
+5. Run the applicable checks and report the exact commands and results.
+6. Stage only files related to the change.
 
-### Commit Messages
+Use conventional commit subjects such as `feat:`, `fix:`, `test:`, `docs:`, and
+`chore:`. Do not commit generated coverage output, local databases, logs, secrets,
+or unrelated workspace changes.
 
-Use conventional commits:
+## Code conventions
 
-```
-type: short description
+- Keep TypeScript strict and avoid untyped escape hatches.
+- Use functional React components and focused hooks.
+- Follow the existing domain-oriented structure under `src/components/`,
+  `src/hooks/`, and `src/lib/`.
+- Use Tailwind and the existing shared UI primitives.
+- Use the centralized logger instead of adding production `console.*` calls.
+- Never log credentials, raw contract contents, health details, or unnecessary
+  personal information. Structured logging reduces ambiguity; it does not make
+  arbitrary data safe to record.
 
-[optional body]
-```
+## Required checks
 
-Types:
-- `feat:` - New feature
-- `fix:` - Bug fix
-- `refactor:` - Code refactoring
-- `docs:` - Documentation
-- `style:` - Formatting, no code change
-- `test:` - Adding tests
-- `chore:` - Maintenance
+Run the checks that apply to the change:
 
-Examples:
-```
-feat: add weight tracking chart
-fix: resolve date parsing issue in vaccination form
-docs: update API documentation
-```
-
-### Pull Request Process
-
-1. Create a feature branch
-2. Make changes with clear, focused commits
-3. Update documentation if needed
-4. Update CHANGELOG.md
-5. Ensure no linting errors
-6. Submit PR with clear description
-
-## Code Standards
-
-### TypeScript
-
-- Use strict mode
-- Define explicit types (avoid `any`)
-- Use interfaces for object shapes
-- Use enums or union types for fixed values
-
-### React
-
-- Functional components only
-- Use hooks for state and effects
-- Keep components focused and small
-- Extract reusable logic into custom hooks
-
-### Styling
-
-- Use Tailwind utility classes
-- Follow existing patterns in codebase
-- Use CSS variables for theme colors
-- Keep component-specific styles minimal
-
-### File Structure
-
-- One component per file
-- Name files after the component/hook
-- Group related files in directories
-- Keep imports organized
-
-## Logging
-
-Use the centralized logging service for all application logging:
-
-```typescript
-import { logger } from '@/lib/errorTracking';
-
-// Log levels (in order of severity)
-logger.debug('Detailed debugging information', { context: value });
-logger.info('General operational information');
-logger.warn('Warning about potential issues');
-logger.error('Error occurred', error, { additionalContext: data });
+```powershell
+npm run lint
+npm run version:check
+npm run check:demo-data
+npm run typecheck
+npm run test -- --run
+npm run build
+npm run test:coverage
+cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
-### Log Level Configuration
+Behavioral changes require focused regression tests in addition to the broad
+suite. A changing test count is not a quality target. The dated baseline and
+current limitations are recorded in
+[docs/case-study/TEST_EVIDENCE.md](docs/case-study/TEST_EVIDENCE.md).
 
-Log levels are controlled via environment variable:
+The required GitHub Actions workflow repeats these checks, adds a Windows Rust/Tauri
+build, secret-history and artifact scans, dependency evidence, and installer
+checksums. A configured workflow is not proof of a release; link the successful
+final-SHA run and retained artifacts when making a release claim.
 
-- **Development**: Defaults to `debug` (shows all logs)
-- **Production**: Defaults to `info` (hides debug logs)
-- Override with `VITE_LOG_LEVEL` in `.env`:
-  ```
-  VITE_LOG_LEVEL=debug  # or info, warn, error
-  ```
+For release candidates, also build the Windows Tauri artifact in a clean
+environment and exercise the installer and upgrade path with disposable data.
+No release claim should exceed the evidence actually collected.
 
-### Guidelines
+## Documentation map
 
-- **Do NOT** use raw `console.log/error/warn` in production code
-- **DO** use `logger.*` methods from `@/lib/errorTracking`
-- Use `logger.debug()` for development/debugging information
-- Use `logger.info()` for significant operational events
-- Use `logger.warn()` for potential issues that don't stop operation
-- Use `logger.error()` for errors, always pass the Error object when available
-- Include contextual data using the optional context parameter
-
-### Example
-
-```typescript
-// Bad
-console.log('User logged in');
-console.error('Failed to save:', error);
-
-// Good
-logger.info('User logged in', { userId: user.id });
-logger.error('Failed to save', error, { entityType: 'dog', id });
-```
-
-## Testing
-
-The project uses Vitest for automated testing:
-
-- **Test Framework**: Vitest
-- **Component Testing**: React Testing Library
-- **Test Location**: Place tests next to source files as `*.test.ts(x)` or in `__tests__/` directories
-- **Coverage**: Run `npm run test:coverage` to generate coverage reports
-- **Current Status**: 302 tests across 15 test files
-
-When adding new features or fixing bugs:
-- Add tests for new functionality
-- Update existing tests when behavior changes
-- Aim for meaningful coverage of critical paths
-
-## Documentation
-
-Update documentation when:
-
-- Adding new features
-- Changing API signatures
-- Modifying database schema
-- Updating configuration
-
-Key documentation files:
-- `README.md` - Project overview
-- `CHANGELOG.md` - Version history
-- `SECURITY.md` - Security policy and reporting
-- `docs/ARCHITECTURE.md` - System design
-- `docs/DATA_MODEL.md` - Database schema
-- `docs/API.md` - API reference
+- [README.md](README.md) — project status and presentation boundary
+- [SECURITY.md](SECURITY.md) — security posture and private reporting guidance
+- [PRIVACY.md](PRIVACY.md) — local data and export privacy boundary
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — system architecture
+- [docs/RELIABILITY.md](docs/RELIABILITY.md) — reliability claims and limitations
+- [docs/BACKUP_FORMAT.md](docs/BACKUP_FORMAT.md) — partial export format and
+  withdrawn recovery behavior
+- [docs/API.md](docs/API.md) — internal API reference
+- [docs/SETUP.md](docs/SETUP.md) — development setup
 
 ## Versioning
 
-This project uses Semantic Versioning:
+`VERSION` is the canonical semantic version. The bump helper updates npm package and
+lock metadata, Rust crate and lock metadata, Tauri configuration, the frontend version
+constant, and `.env.example` display metadata.
 
-- MAJOR: Breaking changes
-- MINOR: New features (backwards compatible)
-- PATCH: Bug fixes
+Run `npm run version:check` after a bump. It fails on invalid semantic versions or
+drift across the nine checked sources. Review the resulting diff before tagging.
 
-Version is tracked in:
-- `VERSION` (root file, single source of truth)
-- `src/lib/version.ts` (auto-generated from VERSION)
-- `package.json`
-- `src-tauri/tauri.conf.json`
-- `src-tauri/Cargo.toml`
+## Release gate
 
-**Note**: Use `npm run version:bump` script to update all version files consistently.
+A public release requires more than a successful frontend build:
 
-## Release Process
+- version fields and release notes agree;
+- lint, focused tests, the full test suite, and Rust tests pass;
+- the Windows Tauri installer builds and is exercised on a clean machine;
+- upgrade and data-migration paths are tested with disposable fixtures;
+- partial exports are not described as verified backups;
+- dependency findings are reviewed and recorded;
+- checksums and an SBOM are generated for published artifacts;
+- code-signing status is stated explicitly; and
+- release notes link to the evidence used for each material claim.
 
-1. Update version in all locations
-2. Update CHANGELOG.md with changes
-3. Create version commit: `git commit -m "1.0.0 Release"`
-4. Tag release: `git tag v1.0.0`
-5. Push: `git push && git push --tags`
-6. Build release: `npm run tauri:build`
+The application has no in-app updater. Releases are installed manually from the
+repository owner's published release channel.
 
-## Questions?
+## Security reports and questions
 
-For questions about contributing, please open a GitHub issue.
-
+Do not place vulnerabilities, personal records, logs containing sensitive data,
+or private contract material in a public issue. Follow the private reporting route
+described in [SECURITY.md](SECURITY.md). General project questions should also use
+a contact route approved by the repository owner.

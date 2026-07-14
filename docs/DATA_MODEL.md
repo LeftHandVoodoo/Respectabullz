@@ -1,12 +1,16 @@
 # Respectabullz Data Model
 
-**Version 1.10.0**
+**Version 1.10.3**
 
 ## Overview
 
 The database uses SQLite with a normalized relational schema, accessed via `tauri-plugin-sql`. All entities use timestamp-based IDs for primary keys and include audit timestamps. The database schema is defined in `src/lib/db/schema.sql` and managed through migrations in `src/lib/db/migrations.ts`.
 
-**Migration Note**: As of version 1.2.0, the application automatically migrates data from localStorage to SQLite on first launch. All existing data is preserved during migration.
+**Migration note:** Older releases attempted an automatic browser-storage-to-SQLite
+conversion. That importer is withdrawn in 1.10.3 because its multi-table writes were
+not atomic. When the legacy `respectabullz_db` key is present, startup stops before
+SQLite setup and preserves the browser payload unchanged. The only currently supported
+schema upgrade is the separately tested SQLite schema-v4-to-v5 path.
 
 ## Entity Relationship Diagram
 

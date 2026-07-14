@@ -1,254 +1,308 @@
-<p align="center">
+# Respectabullz
 
-  <img src="public/assets/Logo_Vintage.png" alt="Project Logo" width="220">
+**A local-first Windows desktop application for dog-breeding operations.**
 
-</p>
+Respectabullz brings animal and litter records, health workflows, inquiries, sales,
+documents, photos, expenses, and follow-up work into one desktop application. It is
+built with React, TypeScript, Tauri 2, and SQLite through `tauri-plugin-sql`.
 
-# Respectabullz - Breeder Management Application
+> **Portfolio-remediation status (2026-07-14):** this source is being prepared as an
+> inspectable product-engineering case study. It is not represented as production
+> proven, independently security assessed, or ready for recovery-dependent use. The
+> historical restore path is withdrawn, and the existing export formats are partial
+> data exports—not verified backups. See [Current safety status](#current-safety-status).
 
-**Version 1.10.2** - Latest Release
+[Case study](docs/case-study/CASE_STUDY.md) ·
+[Employer deck](docs/case-study/Respectabullz_Employer_Case_Study.pptx) ·
+[Synthetic customer packet](docs/case-study/synthetic-customer-packet.pdf) ·
+[Architecture](docs/ARCHITECTURE.md) ·
+[Reliability](docs/RELIABILITY.md) ·
+[Test evidence](docs/case-study/TEST_EVIDENCE.md) ·
+[Security](SECURITY.md) ·
+[Privacy](PRIVACY.md)
 
-A comprehensive desktop application for managing dog breeding operations, built with Tauri, React, TypeScript, and SQLite.
+Source version: **1.10.3**
 
-> **New in 1.10.2**: Atomic file writes for data integrity, optimistic update rollback for all mutations, improved error handling and validation. See [CHANGELOG.md](CHANGELOG.md) for details.
+![Respectabullz synthetic portfolio dashboard](docs/case-study/screenshots/hero-dashboard.jpg)
 
-## Features
+*Live Windows/Tauri capture from the isolated `com.respectabullz.demo` profile using
+deterministic synthetic records. It is not customer or production data.*
 
-### Core Management
-- **Dog Management**: Track individual dogs/puppies with full profiles, lineage, and status
-- **Photo Management**: Upload and display profile photos for dogs with rounded avatars, plus photo galleries for litters
-- **Litter Tracking**: Manage breeding litters with parent associations and puppy counts
-- **Health Records**: Vaccinations, weights, and medical records with reminders
-- **Heat Cycle Tracking**: Monitor breeding females' cycles with calendar views and predictions
-- **Transport Management**: Track shipping/transport with shipper details and costs
-- **Expense Tracking**: Comprehensive financial tracking with reports and CSV export
+## The operational problem
 
-### Puppy & Breeding Management
-- **Puppy Health Schedule**: Auto-generated 8-week development schedule with task tracking
-- **Pregnancy & Whelping**: Litter status pipeline, pregnancy confirmation tracking, and whelping checklists
-- **Waitlist & Reservations**: Track puppy reservations with pick order, deposits, and preferences
-- **Client Communication**: Log all client interactions with follow-up reminders
-- **Breeding Planning**: Heat cycle predictions, external stud database, and progesterone test logging
+Breeder operations often span disconnected spreadsheets, paper health records,
+photos, contracts, messages, and reminders. Respectabullz explores how one local
+system can:
 
-### Advanced Features
-- **Genetic Testing**: Track health testing with mating compatibility warnings
-- **Visual Pedigree**: 3-generation pedigree charts with export capabilities
-- **Registry Helpers**: Registration status tracking and litter registration export
-- **Reports & Analytics**: Breeding program insights, financials, and production metrics
-- **Customer Packet PDF Export**: Comprehensive printable packet with dog info, pedigree, health records, photos, and care instructions
-- **Document Management**: Upload and tag PDFs, Word docs, Excel files, and images with 13 predefined tags and custom tag support
-- **PDF Preview**: In-app PDF viewing with page navigation, zoom controls, and text selection
-- **Help & Documentation**: Built-in user manual and how-to guide accessible from Settings
+- connect related records instead of maintaining isolated forms;
+- turn operational state into visible tasks and follow-up work; and
+- generate familiar local documents and exports from structured records.
 
-### Business Features
-- **Contacts Management**: Track business contacts (vets, breeders, shippers, graphic designers) with multi-category tagging, social media links, and search/filter
-- **Client Management**: Track buyers and sales with contact information
-- **Client Inquiries**: Track client interests and inquiries before sales conversion
-- **Multi-Puppy Sales**: Support for selling multiple puppies in a single transaction
-- **Sales Pipeline**: Track interest status, payment status, shipping, and delivery
-- **Contract Generation**: Automated contract document generation from JSON template with auto-filled client, puppy, and breeder information
-- **Custom Contracts Directory**: Choose where completed contracts are saved (Settings > Preferences > Contracts Save Location)
-- **Full Backup System**: Export and import complete backups including database and all photos in ZIP format
+The intended user is a single operator on Windows. The repository does not claim
+measured customer adoption.
 
-### Getting Started Features
-- **First-Launch Dialog**: On first startup, choose between starting with an empty database or loading sample data to explore features
-- **Windows Installer**: NSIS installer for easy end-user distribution and installation
+## Workflow groups
 
-## Tech Stack
+- **Animal and litter records:** identity, status, pedigree, genetics, breeding,
+  births, and placement.
+- **Health operations:** vaccinations, medications, weights, appointments, and
+  medical records.
+- **Client and sales pipeline:** inquiries, waitlist, contacts, deposits, sales,
+  delivery, and transport.
+- **Documents and communication:** contracts, customer packets, uploaded files,
+  templates, and communication history.
+- **Operations and reporting:** tasks, expenses, dashboard summaries, and local
+  spreadsheet/PDF exports.
 
-- **Desktop**: Tauri 2.x (Rust-based, lightweight)
-- **Frontend**: React 18 + TypeScript + Vite
-- **UI**: shadcn/ui + Tailwind CSS
-- **Database**: SQLite via Prisma ORM
-- **Charts**: Recharts
-- **State Management**: TanStack Query
-- **Backup**: JSZip for ZIP archive creation
+These groups describe product scope, not a guarantee that every path has equivalent
+test coverage or failure recovery. The dated evidence is in
+[`TEST_EVIDENCE.md`](docs/case-study/TEST_EVIDENCE.md).
 
-## Brand Colors
+## Architecture at a glance
 
-- Beige: `#fbf1e5` - Light mode background
-- Brown: `#6e5e44` - Text, secondary accents
-- Blue: `#303845` - Primary actions, dark mode base
+```mermaid
+flowchart LR
+    U["Windows user"] --> R["React + TypeScript renderer"]
+    R --> Q["Domain hooks + TanStack Query"]
+    Q --> D["TypeScript database modules"]
+    D --> P["tauri-plugin-sql"]
+    P --> S["SQLite in application data"]
+    R --> N["Tauri native plugin boundary"]
+    N --> M["Managed photos, documents, contracts, and logs"]
+    N --> E["User-selected import/export paths"]
+```
 
-## Getting Started
+Most domain and UI logic lives in TypeScript. The Rust crate hosts Tauri and now owns
+the integrity-sensitive database setup/migration, managed-document, and fixed external
+support-link boundaries; it is not a separate service. Prisma files are
+schema/reference tooling and are not the runtime ORM. See
+[Architecture](docs/ARCHITECTURE.md) for data flow and trust boundaries.
 
-### For End Users
+## Engineering decisions and tradeoffs
 
-**No development tools required!** Simply download and install:
+| Constraint | Current decision | Benefit | Explicit tradeoff |
+| --- | --- | --- | --- |
+| Sensitive operational records | Local SQLite storage | Offline operation and direct user control | No built-in multi-device sync, centralized recovery, or multi-user authorization |
+| Document-heavy Windows workflow | Tauri file/dialog integrations | Familiar local files and native dialogs | Filesystem permissions and partial-failure handling require careful design |
+| Responsive edits | TanStack Query and optimistic updates | Fast interaction | Each mutation needs its own rollback and stale-state verification |
+| Mixed database and file state | Keep paths in SQLite and files in application data | Avoids storing large binaries in SQLite | Database and filesystem changes are not one transaction |
+| Recovery | Withdraw incomplete restore until a versioned format passes failure tests | Avoids presenting partial mutation as successful recovery | No supported in-app restore today |
+| AI-assisted development | Use AI for drafts and exploration with human review | Faster iteration | Ownership must be demonstrated with reproducible evidence and live understanding |
 
-1. Download the latest release from the [Releases page](https://github.com/LeftHandVoodoo/Respectabullz/releases)
-2. Run the installer (`Respectabullz_x.x.x_x64-setup.exe`)
-3. Follow the installation wizard
-4. Launch from Start Menu or Desktop shortcut
+## Current safety status
 
-**System Requirements:**
-- Windows 10 (64-bit) or later
-- 4 GB RAM
-- 500 MB free storage
+### Restore and exports
 
-### For Developers
+- **Restore is not a supported capability.** Any legacy build that still displays a
+  restore control must not be used for recovery.
+- Current JSON and ZIP exports cover only subsets of application state. They are
+  convenience exports, not complete or verified backups.
+- The partial ZIP writes directly to the exact file selected in the native save dialog;
+  it is non-atomic, so interruption can leave an incomplete target.
+- The ZIP export aborts before destination selection if managed photos cannot be
+  enumerated or read; it does not silently omit those files and report success.
+- A future recovery format is specified as a proposal in
+  [`BACKUP_FORMAT.md`](docs/BACKUP_FORMAT.md). It is not implemented.
 
-**Prerequisites:**
-- Node.js 18+
-- Rust (for Tauri)
-- npm or yarn
+### Clear/reset and test data
 
-**Installation:**
+- There is no verified in-app factory reset.
+- The production UI removes **Clear All Data**, **Remove Test Data**, and the former
+  first-launch sample-data choice. First launch offers only **Start Fresh** with an
+  empty database. A separate debug-only seed path is visible and callable only under
+  the exact isolated `com.respectabullz.demo` identity; it refuses to run when any
+  user-created application record exists instead of clearing existing data.
+  Fresh-schema predefined tags/categories are the only permitted rows. Older builds
+  that expose the former destructive controls are unsupported.
+- The former automatic import from the `respectabullz_db` browser-storage key is
+  withdrawn because its multi-table writes were not atomic. If that key is detected,
+  startup stops before SQLite setup and leaves the browser payload unchanged; preserve
+  the profile for a future transactional recovery workflow.
+- Deleting application data cannot recall copies previously exported to other
+  folders, cloud drives, email, or removable media.
 
-```bash
-# Install dependencies
-npm install
+### Bug reporting
 
-# Start development server (Vite only - for frontend development)
-npm run dev
+- Do **not** configure `VITE_GITHUB_TOKEN`. A repository credential must never be
+  bundled into renderer code or a Vite build.
+- The remediation flow prepares and sanitizes a complete preview locally, warns that
+  public GitHub issues are public, and only after an explicit click copies the reviewed
+  draft and opens the fixed blank GitHub Issues/new page. Report data is kept out of
+  the URL. It uses no application credential and does not attach logs, records,
+  photos, or documents automatically; the user pastes and submits the report.
+- Central logging and the report draft redact common credential, contact, path, UUID,
+  and sensitive context-key patterns and truncate long values. These rules are
+  defense in depth, not a guarantee that semantic personal information is recognized.
+  Remove any remaining sensitive details before submitting.
+- Log clear/export operations serialize with pending disk writes so they do not race
+  the current write queue; this is an ordering control, not a semantic-privacy proof.
+- Security vulnerabilities must be reported privately as described in
+  [SECURITY.md](SECURITY.md), not in a public issue.
 
-# Or start full Tauri development (recommended)
+## Quality evidence
+
+The reviewed baseline commit predated repository CI. The remediation tree now defines
+a required GitHub Actions workflow with frontend checks, Windows Rust/Tauri build and
+packaged startup smoke on an ephemeral hosted runner, secret-history scanning, npm/Rust
+dependency evidence, npm CycloneDX SBOM and installer artifacts, checksums, plus weekly
+Dependabot review. There is not yet a successful public run URL for a frozen final commit. The following is the
+dated local baseline for commit
+`fd21363beae044f0649a1e03f3bb6bcc2249f970`, not an assertion about future commits:
+
+- ESLint: passed.
+- TypeScript no-emit check: passed.
+- Vitest: 290 tests in 15 files passed.
+- Overall statement/line coverage: 10.93%; several critical migration and document
+  paths had 0% coverage.
+- Dependency scanning reported unresolved advisories.
+- No Windows installer smoke test, checksum, SBOM, signing verification, or required
+  public CI evidence was established by that baseline.
+
+The later remediation tree was installed with pinned Node 22.23.1/npm 10.9.8. The
+latest local pre-release checkpoint passed 354 frontend tests in 39
+files and 39 Rust tests. The exact tree also passed lint/type/version/
+demo guards, web and NSIS builds, artifact scans, production audit, source/history
+secret scans, workflow lint, and npm SBOM generation. Production npm audit reported 0
+findings; the informative full graph retained 7. A native smoke exposed a Tokio
+nested-runtime startup panic. After correction, a rebuilt executable remained alive for
+eight seconds with empty stderr. That local launch was not isolated: Windows/Tauri ignored
+process-level `APPDATA` overrides and opened the real profile's SQLite sidecars while the
+main database file remained unchanged. The exact final-SHA smoke is therefore delegated to
+the ephemeral CI runner. None of this is public CI or release evidence. The latest
+frontend coverage checkpoint reported 22.21% statements/lines, 62.73% branches, and
+27.85% functions.
+
+Commands, dates, scope, and missing gates are recorded in
+[`TEST_EVIDENCE.md`](docs/case-study/TEST_EVIDENCE.md). A raw test count is not used
+as a reliability claim.
+
+## Security and privacy model
+
+Core records and managed files are stored locally. That boundary has important
+limits:
+
+- the SQLite database, managed files, logs, and current exports are plaintext unless
+  the user applies operating-system or storage encryption;
+- user-selected exports leave application lifecycle control;
+- local logging can still contain error details or semantic context not recognized by
+  the implemented redaction rules;
+- Tauri capabilities and the CSP reduce some exposure but are not a security audit;
+  `http://asset.localhost` is allowed for Tauri `convertFileSrc` image URLs while
+  connection sources remain self-only;
+- Rust preloads the single supported SQLite pool, and the renderer cannot load or
+  close alternate pools. It still has select/execute authority against the application
+  database, so this is pool-lifecycle containment rather than a query sandbox;
+- unsigned Windows builds can trigger SmartScreen and do not prove publisher
+  identity; and
+- dependency advisories and permission scope require continuing review.
+
+Read [PRIVACY.md](PRIVACY.md), [SECURITY.md](SECURITY.md), and
+[`THREAT_MODEL.md`](docs/THREAT_MODEL.md) before using real records.
+
+## Run from source
+
+### Requirements
+
+- Windows 10 or later
+- Node.js 22.x and npm 10.x (`.nvmrc` pins the local/CI Node release)
+- Rust stable toolchain
+- Microsoft C++ Build Tools and WebView2 prerequisites required by Tauri
+
+### Development
+
+```powershell
+git clone https://github.com/LeftHandVoodoo/Respectabullz.git
+Set-Location .\Respectabullz
+npm ci
 npm run tauri:dev
 ```
 
-> **Note:** The app uses SQLite via `tauri-plugin-sql` at runtime. The Prisma schema exists for type reference but Prisma commands (`db:generate`, `db:push`) are not required for development. The database is created automatically on first launch.
+The Vite-only command (`npm run dev`) can render frontend code but cannot validate
+native SQLite, dialog, or filesystem behavior.
 
-**Optional Configuration:**
+Do not add a GitHub personal access token to `.env`. `DATABASE_URL` is used only by
+Prisma reference tooling; runtime storage is opened by `tauri-plugin-sql`.
 
-To enable in-app bug reporting to GitHub Issues, copy `.env.example` to `.env` and configure:
-- `VITE_GITHUB_TOKEN` - Personal access token with `repo:issues` scope
-- `VITE_GITHUB_REPO` - Repository in `owner/repo` format (e.g., `LeftHandVoodoo/Respectabullz`)
+### Local checks
 
-**Build for Production:**
-
-```bash
-# Build the Tauri application
-npm run tauri:build
-```
-
-## Project Structure
-
-```
-respectabullz/
-├── src-tauri/           # Tauri Rust backend
-├── src/
-│   ├── components/      # React components
-│   │   ├── ui/          # shadcn components
-│   │   ├── layout/      # App shell components
-│   │   ├── dogs/        # Dog-related components
-│   │   ├── litters/     # Litter components
-│   │   ├── health/      # Health tracking components
-│   │   ├── puppy-health/ # Puppy health task components
-│   │   ├── waitlist/    # Waitlist and reservation components
-│   │   ├── communication/ # Client communication logging
-│   │   ├── breeding/    # Breeding planning and external studs
-│   │   ├── genetics/    # Genetic testing and compatibility
-│   │   ├── pedigree/   # Pedigree chart components
-│   │   ├── registry/   # Registration tracking components
-│   │   ├── inquiries/   # Client interest/inquiry components
-│   │   ├── sales/       # Sale form components
-│   │   ├── contacts/    # Business contacts management
-│   │   └── ...
-│   ├── hooks/           # React Query hooks
-│   ├── lib/             # Utilities and database
-│   ├── pages/           # Route pages
-│   └── types/           # TypeScript types
-├── prisma/
-│   └── schema.prisma    # Database schema
-└── public/              # Static assets
-```
-
-## Database Schema
-
-The application uses a normalized SQLite database with the following main entities:
-
-### Core Entities
-- **Dog**: Individual dog profiles with lineage, profile photos, and genetic tests
-- **Litter**: Breeding litter records with photo galleries, status tracking, and pregnancy confirmation
-- **LitterPhoto**: Multiple photos per litter for documentation
-- **HeatCycle/HeatEvent**: Female heat tracking with progesterone tests and breeding events
-- **VaccinationRecord**: Vaccination history
-- **WeightEntry**: Weight tracking
-- **MedicalRecord**: General health records
-- **Transport**: Shipping/transport logs
-- **Expense**: Financial tracking
-- **Client**: Customer information
-- **ClientInterest**: Client inquiries and interest tracking
-- **Sale**: Sales records with multi-puppy support
-- **SalePuppy**: Junction table for puppies in sales
-- **PedigreeEntry**: Deep lineage tracking
-
-### Additional Entities
-- **PuppyHealthTask**: 8-week puppy development schedule tasks
-- **WaitlistEntry**: Puppy reservations with pick order and deposits
-- **CommunicationLog**: Client interaction tracking with follow-ups
-- **ExternalStud**: Outside breeding partner database
-- **GeneticTest**: Health testing records with compatibility checking
-- **HealthScheduleTemplate**: Configurable puppy health schedule templates
-- **DogPhoto**: Photo gallery entries for dogs
-- **Document**: Document files (PDFs, Word, Excel, images) with metadata
-- **DocumentTag**: Tagging system for documents (13 predefined + custom tags)
-- **DocumentTagLink**: Many-to-many relationship between documents and tags
-- **DogDocument**: Links documents to dogs
-- **LitterDocument**: Links documents to litters
-- **ExpenseDocument**: Links documents to expenses
-
-**File Storage**: 
-- Photos are stored in `%APPDATA%/com.respectabullz.app/photos/` with unique filenames
-- Documents are stored in `%APPDATA%/com.respectabullz.app/documents/` with unique filenames
-- Contracts are stored in `%APPDATA%/com.respectabullz.app/contracts/` by default, or in a user-selected custom directory
-- Database stores file paths, not binary data
-
-## Development
-
-```bash
-# Run in development mode
-npm run dev
-
-# Run Tauri in development
-npm run tauri:dev
-
-# Check for lint errors
+```powershell
 npm run lint
-
-# Open Prisma Studio (database viewer)
-npm run db:studio
+npm run typecheck
+npm run test -- --run
+npm run build
+npm run version:check
 ```
 
-### Testing
+`npm run version:check` now fails when the canonical `VERSION` value, package/lock
+metadata, Rust/Tauri metadata, frontend version, or `.env.example` display version
+drifts.
 
-```bash
-# Run tests
-npm run test
+## Current limitations
 
-# Run tests with UI
-npm run test:ui
+- Windows-focused, single-user, and local-first.
+- No cloud synchronization, mobile client, or multi-user authorization.
+- No supported restore or verified complete backup format.
+- No verified in-app factory reset.
+- Custom contract-folder permission lasts only for the current app session; the folder
+  must be reselected after restart and persisted legacy paths are ignored.
+- `npm run demo:dev` uses the separate `com.respectabullz.demo` identity and an inline
+  demo-only capability scope. Its deterministic seed refuses existing user-created
+  records and uses
+  reserved contacts plus `DEMO-*` animal identifiers. The seed is applied through one
+  Rust-owned `BEGIN IMMEDIATE` transaction, rechecks the user-created-record invariant under the
+  write lock, verifies foreign keys, and rolls back rejected fixtures. There is no
+  automated teardown, and this development fixture is not a production feature.
+- Local data, logs, and exports are plaintext unless separately encrypted.
+- The declared schema-v4→v5 migration now has one-transaction and failpoint tests, but
+  final Windows build/upgrade evidence is pending and older schema versions are
+  unsupported.
+- The managed-document create, tag/update, open, delete, and startup-reconciliation
+  path now uses staged file operations, one-connection SQL transactions, recoverable
+  tombstones/quarantine, canonical DB-backed opens, resource/type checks, and focused
+  Rust tests. Operational routes stay blocked with a retry screen on actual setup or
+  reconciliation failures. Scan-limit truncation only warns and is non-exhaustive.
+  This is not a blanket atomicity claim for every application file flow.
+- The required CI workflow is present, but no successful public run is yet linked to
+  the frozen displayed commit and branch-protection status is not evidenced here.
+- The production npm graph has 0 dated findings; 7 full-graph development findings are
+  triaged in the [dependency risk ledger](docs/case-study/DEPENDENCY_RISK.md). A pinned
+  Rust audit fell from 7 to 5 vulnerability entries after two patch updates and still
+  reports warning groups; target reachability and deferrals are recorded in that ledger.
+- The current Windows release process has no published SBOM or verified code-signing
+  evidence in this repository.
+- No claim of independent security certification, production adoption, or
+  production-grade reliability is made.
 
-# Run tests with coverage
-npm run test:coverage
-```
+## AI-assisted engineering
 
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| `npm run tauri:dev` fails | Ensure Rust is installed: `rustup --version`. Install from [rustup.rs](https://rustup.rs/) |
-| Port 1420 already in use | Stop any process using the port, or modify `devUrl` in `src-tauri/tauri.conf.json` |
-| Database not found errors | The database is created automatically on first launch in `%APPDATA%/com.respectabullz.app/` |
-| Build fails on Windows | Ensure Visual Studio Build Tools are installed (required for Rust on Windows) |
+This is an AI-assisted product-engineering repository, not an AI application: it has
+no model-serving, retrieval, evaluation, or inference feature. AI-assisted work must
+remain subject to human review, compilation, tests, negative cases, and manual
+Windows verification. The disclosure and ownership standard is documented in
+[`AI_ASSISTED_ENGINEERING.md`](docs/case-study/AI_ASSISTED_ENGINEERING.md).
 
 ## Documentation
 
-- [User Manual](docs/USER_MANUAL.md) - Complete user guide for all features
-- [How-To Guide](docs/HOWTO.md) - Step-by-step workflow instructions
-- [Architecture](docs/ARCHITECTURE.md) - System design and structure
-- [Data Model](docs/DATA_MODEL.md) - Database schema documentation
-- [API Reference](docs/API.md) - Internal API documentation
-- [Setup Guide](docs/SETUP.md) - Installation and configuration
-- [Versioning](docs/VERSIONING.md) - Version management and release process
-- [Contributing](CONTRIBUTING.md) - Development guidelines
-- [Changelog](CHANGELOG.md) - Version history
+- [Case study](docs/case-study/CASE_STUDY.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Reliability](docs/RELIABILITY.md)
+- [Future backup-format contract](docs/BACKUP_FORMAT.md)
+- [Threat model](docs/THREAT_MODEL.md)
+- [Test evidence](docs/case-study/TEST_EVIDENCE.md)
+- [Dependency risk ledger](docs/case-study/DEPENDENCY_RISK.md)
+- [AI-assisted engineering disclosure](docs/case-study/AI_ASSISTED_ENGINEERING.md)
+- [Setup guide](docs/SETUP.md)
+- [Data model](docs/DATA_MODEL.md)
+- [Internal API reference](docs/API.md)
+- [User manual](docs/USER_MANUAL.md)
+- [Changelog](CHANGELOG.md)
 
-## License
+Historical release notes and archived reports retain dated claims for provenance. The
+current safety status in this README, `SECURITY.md`, and `PRIVACY.md` takes precedence.
 
-Private - All rights reserved
+## Rights
 
-## Author
-
-LeftHandVoodoo
-
+Copyright © LeftHandVoodoo. All rights reserved. Public source visibility does not
+grant permission to copy, modify, redistribute, or use the code or bundled assets.
+See [RIGHTS.md](RIGHTS.md). Asset provenance is under review; do not reuse the logos,
+font, images, or contract templates outside this repository.

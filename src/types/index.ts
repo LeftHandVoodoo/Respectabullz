@@ -935,18 +935,17 @@ export interface ExpenseDocument {
 
 // Input types for document operations
 export interface CreateDocumentInput {
-  filename: string;
-  originalName: string;
-  filePath: string;
-  mimeType: string;
-  fileSize: number;
+  sourcePath: string;
+  entityType: 'dog' | 'litter' | 'expense';
+  entityId: string;
   notes?: string | null;
-  tagIds?: string[];
+  tagIds: string[];
 }
 
-export type UpdateDocumentInput = Partial<Omit<CreateDocumentInput, 'filename' | 'filePath' | 'mimeType' | 'fileSize'>> & {
-  tagIds?: string[];
-};
+export interface UpdateDocumentInput {
+  notes?: string | null;
+  tagIds: string[];
+}
 
 export interface CreateDocumentTagInput {
   name: string;
@@ -1094,11 +1093,9 @@ export interface BugReportPayload extends BugReportFormData {
   systemInfo: SystemInfo;
 }
 
-export interface GitHubIssueResponse {
-  id: number;
-  number: number;
-  html_url: string;
+export interface BugReportDraft {
   title: string;
-  state: string;
+  body: string;
+  issueUrl: string;
 }
 

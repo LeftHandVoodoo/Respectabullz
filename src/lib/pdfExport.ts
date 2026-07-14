@@ -49,6 +49,14 @@ export const sharedStyles = StyleSheet.create({
     paddingBottom: 50,
     paddingHorizontal: 40,
   },
+  pageBackground: {
+    position: 'absolute',
+    top: -35,
+    left: -40,
+    width: 612,
+    height: 792,
+    backgroundColor: BRAND_COLORS.white,
+  },
   pageLandscape: {
     fontFamily: 'Helvetica',
     fontSize: 10,
@@ -332,9 +340,10 @@ export const sharedStyles = StyleSheet.create({
   // Cover page specific
   coverPage: {
     backgroundColor: BRAND_COLORS.cream,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingTop: 30,
+    paddingBottom: 30,
+    paddingHorizontal: 36,
   },
   coverDecoration: {
     position: 'absolute',
@@ -353,10 +362,10 @@ export const sharedStyles = StyleSheet.create({
     backgroundColor: BRAND_COLORS.brown,
   },
   coverLogo: {
-    width: 150,
-    height: 150,
+    width: 100,
+    height: 100,
     objectFit: 'contain',
-    marginBottom: 20,
+    marginBottom: 8,
   },
   headerLogo: {
     width: 40,
@@ -387,10 +396,10 @@ export const sharedStyles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   brandTextLarge: {
-    fontSize: 32,
+    fontSize: 26,
     fontFamily: 'Helvetica-Bold',
     color: BRAND_COLORS.brown,
-    letterSpacing: 3,
+    letterSpacing: 2.5,
     textTransform: 'uppercase',
   },
   brandTextSmall: {
@@ -408,28 +417,28 @@ export const sharedStyles = StyleSheet.create({
     marginBottom: 40,
   },
   coverDogName: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: BRAND_COLORS.darkBrown,
     fontFamily: 'Helvetica',
     textAlign: 'center',
-    marginTop: 30,
-    marginBottom: 10,
+    marginTop: 14,
+    marginBottom: 4,
   },
   coverDogPhoto: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
     objectFit: 'cover',
     borderWidth: 4,
     borderColor: BRAND_COLORS.brown,
   },
   coverInfo: {
-    marginTop: 30,
+    marginTop: 8,
     alignItems: 'center',
   },
   coverInfoText: {
-    fontSize: 12,
+    fontSize: 9,
     color: BRAND_COLORS.gray[600],
     marginBottom: 4,
   },

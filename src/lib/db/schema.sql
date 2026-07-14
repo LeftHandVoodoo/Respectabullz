@@ -1,6 +1,6 @@
 -- Respectabullz Database Schema
 -- SQLite schema matching Prisma models
--- Version: 1.0.0
+-- Schema version: 5
 
 -- ============================================
 -- SCHEMA VERSION TRACKING
@@ -8,11 +8,11 @@
 
 CREATE TABLE IF NOT EXISTS _schema_version (
   id INTEGER PRIMARY KEY CHECK (id = 1),
-  version INTEGER NOT NULL DEFAULT 1,
+  version INTEGER NOT NULL DEFAULT 5,
   applied_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-INSERT OR IGNORE INTO _schema_version (id, version) VALUES (1, 1);
+INSERT OR IGNORE INTO _schema_version (id, version) VALUES (1, 5);
 
 -- ============================================
 -- CORE ENTITIES
@@ -542,6 +542,80 @@ CREATE TABLE IF NOT EXISTS expense_documents (
 
 CREATE INDEX IF NOT EXISTS idx_expense_documents_expense ON expense_documents(expense_id);
 CREATE INDEX IF NOT EXISTS idx_expense_documents_document ON expense_documents(document_id);
+
+INSERT OR IGNORE INTO document_tags (id, name, color, is_custom) VALUES
+  ('predefined-document-invoice', 'Invoice', '#3B82F6', 0),
+  ('predefined-document-receipt', 'Receipt', '#10B981', 0),
+  ('predefined-document-contract', 'Contract', '#8B5CF6', 0),
+  ('predefined-document-health-certificate', 'Health Certificate', '#EC4899', 0),
+  ('predefined-document-registration', 'Registration Papers', '#F59E0B', 0),
+  ('predefined-document-vet-record', 'Vet Record', '#EF4444', 0),
+  ('predefined-document-vaccination', 'Vaccination Record', '#06B6D4', 0),
+  ('predefined-document-genetic-test', 'Genetic Test Results', '#84CC16', 0),
+  ('predefined-document-microchip', 'Microchip Certificate', '#6366F1', 0),
+  ('predefined-document-photo', 'Photo/Image', '#14B8A6', 0),
+  ('predefined-document-shipping', 'Shipping/Transport', '#F97316', 0),
+  ('predefined-document-insurance', 'Insurance', '#0EA5E9', 0),
+  ('predefined-document-other', 'Other', '#6B7280', 0);
+
+-- ============================================
+-- CONTACT MANAGEMENT SYSTEM
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS contact_categories (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  color TEXT,
+  is_predefined INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_categories_name ON contact_categories(name);
+
+CREATE TABLE IF NOT EXISTS contacts (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  company_name TEXT,
+  phone_primary TEXT,
+  phone_secondary TEXT,
+  email TEXT,
+  address_line1 TEXT,
+  address_line2 TEXT,
+  city TEXT,
+  state TEXT,
+  postal_code TEXT,
+  facebook TEXT,
+  instagram TEXT,
+  tiktok TEXT,
+  twitter TEXT,
+  website TEXT,
+  notes TEXT,
+  business_card_document_id TEXT REFERENCES documents(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_contacts_name ON contacts(name);
+CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email);
+
+CREATE TABLE IF NOT EXISTS contact_category_links (
+  id TEXT PRIMARY KEY,
+  contact_id TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+  category_id TEXT NOT NULL REFERENCES contact_categories(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(contact_id, category_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_category_links_contact ON contact_category_links(contact_id);
+CREATE INDEX IF NOT EXISTS idx_contact_category_links_category ON contact_category_links(category_id);
+
+INSERT OR IGNORE INTO contact_categories (id, name, color, is_predefined) VALUES
+  ('predefined-contact-client', 'Client', '#3B82F6', 1),
+  ('predefined-contact-shipping', 'Shipping Company', '#F97316', 1),
+  ('predefined-contact-designer', 'Graphic Designer', '#8B5CF6', 1),
+  ('predefined-contact-breeder', 'Breeder', '#10B981', 1),
+  ('predefined-contact-vet', 'Vet', '#EF4444', 1);
 
 -- ============================================
 -- SETTINGS

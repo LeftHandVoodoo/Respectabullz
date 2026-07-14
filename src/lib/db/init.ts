@@ -2,26 +2,22 @@
 // Handles setup, migration, and first-launch checks
 
 import { setupDatabase, runMigrations } from './migrations';
-import { isDatabaseInitialized, isDatabaseEmpty } from './connection';
-import { hasLocalStorageData, migrateFromLocalStorage, clearLocalStorageData } from './migrate-from-localstorage';
+import { isDatabaseInitialized } from './connection';
+import { hasLegacyLocalStoragePayload } from './legacyStorage';
 import { isFirstLaunch } from './settings';
 import { logger } from '../errorTracking';
 
 export interface InitResult {
   success: boolean;
   migrated: boolean;
-  migratedCounts?: Record<string, number>;
   error?: string;
 }
 
 /**
  * Initialize the database on app startup
  * This should be called once when the app loads
- * @param onProgress - Optional callback for migration progress updates
  */
-export async function initializeAppDatabase(
-  onProgress?: (stage: string, current: number, total: number) => void
-): Promise<InitResult> {
+export async function initializeAppDatabase(): Promise<InitResult> {
   try {
     logger.info('Starting database initialization');
 
@@ -32,6 +28,21 @@ export async function initializeAppDatabase(
         success: false,
         migrated: false,
         error: 'Tauri environment not available - database requires Tauri runtime',
+      };
+    }
+
+    // The former browser-storage importer performed independent multi-table writes and could
+    // leave a partially imported database. Preserve the original payload unchanged and require a
+    // separately designed, transactional recovery workflow instead of attempting an automatic
+    // conversion during startup.
+    if (hasLegacyLocalStoragePayload()) {
+      const error =
+        'Legacy browser-storage data was detected. Automatic import is withdrawn because it is not transactional. Preserve this browser profile; no legacy data was changed.';
+      logger.warn('Legacy browser-storage data detected; startup blocked', { error });
+      return {
+        success: false,
+        migrated: false,
+        error,
       };
     }
 
@@ -65,42 +76,6 @@ export async function initializeAppDatabase(
         logger.error('Failed to run migrations', error as Error);
         const errorMessage = error instanceof Error ? error.message : String(error);
         throw new Error(`Migration failed: ${errorMessage}`);
-      }
-    }
-
-    // Step 2: Check if we need to migrate from localStorage
-    const dbEmpty = await isDatabaseEmpty();
-    const hasLocalData = hasLocalStorageData();
-
-    if (dbEmpty && hasLocalData) {
-      logger.info('Database is empty and localStorage has data, migrating');
-
-      const migrationResult = await migrateFromLocalStorage((stage, current, total) => {
-        logger.debug(`Migrating ${stage}`, { current, total });
-        if (onProgress) {
-          onProgress(stage, current, total);
-        }
-      });
-
-      if (migrationResult.success) {
-        logger.info('Migration successful', { migrated: migrationResult.migrated });
-
-        // Clear localStorage after successful migration
-        clearLocalStorageData();
-        logger.info('localStorage cleared');
-
-        return {
-          success: true,
-          migrated: true,
-          migratedCounts: migrationResult.migrated,
-        };
-      } else {
-        logger.error('Migration failed', undefined, { error: migrationResult.error });
-        return {
-          success: false,
-          migrated: false,
-          error: migrationResult.error,
-        };
       }
     }
 

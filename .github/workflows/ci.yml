@@ -1,0 +1,270 @@
+name: Required CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Required frontend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Use pinned Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Check release version consistency
+        run: npm run check:versions
+
+      - name: Check shipped demo-data safety
+        run: npm run check:demo-data
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Create evidence directory
+        run: mkdir -p artifacts
+
+      - name: Run tests
+        run: npm run test:ci -- --reporter=junit --outputFile=artifacts/vitest-junit.xml
+
+      - name: Enforce coverage baseline
+        run: npm run test:coverage
+
+      - name: Build web assets with a non-secret sentinel
+        env:
+          BUILD_SECRET_SENTINEL: RB009_BUILD_SECRET_SENTINEL_DO_NOT_BUNDLE_000000000000
+          VITE_GITHUB_TOKEN: RB009_BUILD_SECRET_SENTINEL_DO_NOT_BUNDLE_000000000000
+        run: npm run build:web
+
+      - name: Scan web artifacts for token material
+        env:
+          BUILD_SECRET_SENTINEL: RB009_BUILD_SECRET_SENTINEL_DO_NOT_BUNDLE_000000000000
+        run: npm run check:build-secrets -- dist
+
+      - name: Capture full npm advisory report
+        id: full_audit
+        continue-on-error: true
+        run: npm audit --json > artifacts/npm-audit-full.json
+
+      - name: Gate production advisories at high severity
+        id: production_audit
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high --json > artifacts/npm-audit-production.json
+
+      - name: Upload frontend evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: frontend-evidence
+          path: |
+            artifacts/
+            coverage/
+            dist/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Enforce production advisory result
+        if: steps.production_audit.outcome == 'failure'
+        run: |
+          echo "Production dependencies contain high or critical advisories."
+          exit 1
+
+  required-windows-tauri:
+    name: Required Windows build and smoke
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Use pinned Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Use pinned Rust toolchain
+        shell: pwsh
+        run: |
+          rustup toolchain install 1.91.0 --profile minimal --component rustfmt --component clippy
+          rustup override set 1.91.0
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Generate npm dependency SBOM (Rust SBOM deferred)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          npm sbom --sbom-format cyclonedx |
+            Set-Content -LiteralPath artifacts/npm-sbom.cdx.json -Encoding utf8
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+          $sbom = Get-Content -LiteralPath artifacts/npm-sbom.cdx.json -Raw |
+            ConvertFrom-Json
+          if ($sbom.bomFormat -ne 'CycloneDX') {
+            throw 'npm did not produce a CycloneDX dependency SBOM.'
+          }
+
+      - name: Check release version consistency
+        run: npm run check:versions
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+
+      - name: Lint Rust
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features --locked -- -D warnings
+
+      - name: Test Rust
+        run: cargo test --manifest-path src-tauri/Cargo.toml --all-features --locked
+
+      - name: Build Windows installer with a non-secret sentinel
+        env:
+          BUILD_SECRET_SENTINEL: RB009_BUILD_SECRET_SENTINEL_DO_NOT_BUNDLE_000000000000
+          VITE_GITHUB_TOKEN: RB009_BUILD_SECRET_SENTINEL_DO_NOT_BUNDLE_000000000000
+        run: npm run tauri:build
+
+      - name: Scan compiled application and installer artifacts
+        env:
+          BUILD_SECRET_SENTINEL: RB009_BUILD_SECRET_SENTINEL_DO_NOT_BUNDLE_000000000000
+        run: >-
+          npm run check:build-secrets --
+          dist
+          src-tauri/target/release/respectabullz.exe
+          src-tauri/target/release/bundle
+
+      - name: Smoke-launch packaged executable on ephemeral hosted runner
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          $executable = (Resolve-Path 'src-tauri/target/release/respectabullz.exe').Path
+          $stdout = Join-Path (Resolve-Path 'artifacts').Path 'smoke-stdout.log'
+          $stderr = Join-Path (Resolve-Path 'artifacts').Path 'smoke-stderr.log'
+          $evidence = Join-Path (Resolve-Path 'artifacts').Path 'smoke-result.txt'
+          $process = $null
+          try {
+            $process = Start-Process `
+              -FilePath $executable `
+              -PassThru `
+              -WindowStyle Hidden `
+              -RedirectStandardOutput $stdout `
+              -RedirectStandardError $stderr
+            Start-Sleep -Seconds 8
+            $process.Refresh()
+            if ($process.HasExited) {
+              throw "Packaged executable exited during startup with code $($process.ExitCode)."
+            }
+            "Packaged executable remained running for the 8-second startup window on the clean, ephemeral GitHub-hosted Windows runner." |
+              Set-Content -LiteralPath $evidence -Encoding utf8
+          } finally {
+            if ($process -and -not $process.HasExited) {
+              Stop-Process -Id $process.Id -Force
+              Wait-Process -Id $process.Id -Timeout 10 -ErrorAction SilentlyContinue
+            }
+          }
+
+      - name: Create installer checksums
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          $bundleRoot = (Resolve-Path 'src-tauri/target/release/bundle').Path
+          $checksumLines = @(Get-ChildItem -LiteralPath $bundleRoot -File -Recurse |
+            Sort-Object FullName |
+            ForEach-Object {
+              $relativePath = [System.IO.Path]::GetRelativePath($bundleRoot, $_.FullName)
+              $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              "$hash  $relativePath"
+            })
+          $sbomPath = (Resolve-Path 'artifacts/npm-sbom.cdx.json').Path
+          $sbomHash = (Get-FileHash -LiteralPath $sbomPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $checksumLines += "$sbomHash  npm-sbom.cdx.json"
+          $checksumLines |
+            Set-Content -LiteralPath artifacts/SHA256SUMS.txt -Encoding utf8
+
+      - name: Upload Windows installer evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: windows-tauri-installer
+          path: |
+            artifacts/
+            src-tauri/target/release/bundle/
+          if-no-files-found: warn
+          retention-days: 14
+
+  secret-history:
+    name: Secret history scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Scan Git history for secrets
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+
+  rust-advisories:
+    name: Rust advisory evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Use pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.91.0 --profile minimal
+          rustup override set 1.91.0
+
+      - name: Install pinned cargo-audit
+        run: cargo install cargo-audit --locked --version 0.22.2
+
+      - name: Capture Rust advisory report
+        continue-on-error: true
+        working-directory: src-tauri
+        run: |
+          mkdir -p ../artifacts
+          cargo audit --json > ../artifacts/cargo-audit.json
+
+      - name: Upload Rust advisory evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: rust-advisory-evidence
+          path: artifacts/cargo-audit.json
+          if-no-files-found: warn
+          retention-days: 14

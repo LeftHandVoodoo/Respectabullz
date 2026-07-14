@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Bug } from 'lucide-react';
+import { Bug, ExternalLink } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -22,8 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useSubmitBugReport } from '@/hooks/useBugReport';
-import { bugReportSeverity, type BugReportFormData } from '@/types';
+import { usePrepareBugReport } from '@/hooks/useBugReport';
+import { collectSystemInfo, createGitHubIssueDraft } from '@/lib/github';
+import { bugReportSeverity, type BugReportFormData, type BugReportPayload } from '@/types';
 
 interface BugReportDialogProps {
   open: boolean;
@@ -32,10 +33,10 @@ interface BugReportDialogProps {
 
 const bugReportSchema = z.object({
   title: z.string().min(1, 'Title is required').max(256, 'Title too long'),
-  description: z.string().min(10, 'Please provide a detailed description'),
-  stepsToReproduce: z.string().optional(),
-  expectedBehavior: z.string().optional(),
-  actualBehavior: z.string().optional(),
+  description: z.string().min(10, 'Please provide a detailed description').max(4000, 'Description is too long'),
+  stepsToReproduce: z.string().max(4000, 'Steps are too long').optional(),
+  expectedBehavior: z.string().max(4000, 'Expected behavior is too long').optional(),
+  actualBehavior: z.string().max(4000, 'Actual behavior is too long').optional(),
   severity: z.enum(bugReportSeverity),
 });
 
@@ -47,13 +48,15 @@ const severityLabels: Record<string, { label: string; description: string }> = {
 };
 
 export function BugReportDialog({ open, onOpenChange }: BugReportDialogProps) {
-  const submitBugReport = useSubmitBugReport();
+  const prepareBugReport = usePrepareBugReport();
+  const [systemInfo, setSystemInfo] = useState(() => collectSystemInfo());
 
   const {
     register,
     handleSubmit,
     reset,
     control,
+    watch,
     formState: { errors },
   } = useForm<BugReportFormData>({
     resolver: zodResolver(bugReportSchema),
@@ -70,11 +73,43 @@ export function BugReportDialog({ open, onOpenChange }: BugReportDialogProps) {
   useEffect(() => {
     if (!open) {
       reset();
+    } else {
+      setSystemInfo(collectSystemInfo());
     }
   }, [open, reset]);
 
+  const title = watch('title');
+  const description = watch('description');
+  const stepsToReproduce = watch('stepsToReproduce');
+  const expectedBehavior = watch('expectedBehavior');
+  const actualBehavior = watch('actualBehavior');
+  const severity = watch('severity');
+
+  const visibleDraft = useMemo(() => {
+    const payload: BugReportPayload = {
+      title: title || '',
+      description: description || '',
+      stepsToReproduce,
+      expectedBehavior,
+      actualBehavior,
+      severity: severity || 'medium',
+      systemInfo,
+    };
+
+    return createGitHubIssueDraft(payload);
+  }, [
+    actualBehavior,
+    description,
+    expectedBehavior,
+    severity,
+    stepsToReproduce,
+    systemInfo,
+    title,
+  ]);
+
   const onSubmit = async (data: BugReportFormData) => {
-    await submitBugReport.mutateAsync(data);
+    const draft = createGitHubIssueDraft({ ...data, systemInfo });
+    await prepareBugReport.mutateAsync(draft);
     onOpenChange(false);
   };
 
@@ -87,8 +122,8 @@ export function BugReportDialog({ open, onOpenChange }: BugReportDialogProps) {
             Report a Bug
           </DialogTitle>
           <DialogDescription>
-            Help us improve by reporting issues you encounter. Your system
-            information will be automatically included.
+            Prepare a sanitized report locally, then review and submit it yourself on GitHub.
+            Nothing is sent automatically.
           </DialogDescription>
         </DialogHeader>
 
@@ -189,9 +224,30 @@ export function BugReportDialog({ open, onOpenChange }: BugReportDialogProps) {
             )}
           </div>
 
-          <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
-            System information (app version, OS, timestamp) will be
-            automatically included in the report.
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-foreground">
+            <p className="font-semibold">GitHub issues are public.</p>
+            <p className="mt-1 text-muted-foreground">
+              Review the complete sanitized preview below. Continuing copies this exact report and
+              opens GitHub, but nothing is published until you submit it there. No app credential is
+              used. Remove any animal or client names, record details, or other information you do not
+              want to make public.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="bug-report-preview">Public issue preview</Label>
+            <Textarea
+              id="bug-report-preview"
+              aria-label="Public issue preview"
+              value={`Title: ${visibleDraft.title}\n\n${visibleDraft.body}`}
+              readOnly
+              rows={14}
+              className="font-mono text-xs"
+            />
+            <p className="text-xs text-muted-foreground">
+              Paths, common credential formats, contact details, and UUID-style identifiers are
+              redacted automatically. The preview is the final check before anything is copied.
+            </p>
           </div>
 
           <DialogFooter>
@@ -199,12 +255,13 @@ export function BugReportDialog({ open, onOpenChange }: BugReportDialogProps) {
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={submitBugReport.isPending}
+              disabled={prepareBugReport.isPending}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={submitBugReport.isPending}>
-              {submitBugReport.isPending ? 'Submitting...' : 'Submit Bug Report'}
+            <Button type="submit" disabled={prepareBugReport.isPending}>
+              <ExternalLink className="mr-2 h-4 w-4" />
+              {prepareBugReport.isPending ? 'Preparing...' : 'Copy Report & Open GitHub'}
             </Button>
           </DialogFooter>
         </form>

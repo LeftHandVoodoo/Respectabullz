@@ -7,25 +7,119 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+No unreleased changes.
+
+## [1.10.3] - 2026-07-14
+
 ### Security
 
-- **react-router-dom**: Upgraded to 6.30.3 to fix XSS vulnerability via open redirects (GHSA-2w69-qvjg-hvjx)
-- **lodash**: Upgraded to 4.17.23 to fix prototype pollution in `_.unset` and `_.omit` functions
-
-### Changed
-
-- **Dependencies**: Updated 26 packages to latest patch/minor versions
-  - rollup 4.53.3 → 4.56.0
-  - eslint 9.39.1 → 9.39.2
-  - react-pdf 10.2.0 → 10.3.0
-  - typescript-eslint 8.18.3 → 8.19.0
-  - @babel/* packages to 7.28.6
-  - caniuse-lite to 1.0.30001766
+- Removed the renderer-side GitHub credential and direct authenticated issue-creation
+  design. Bug reports are now sanitized, shown in full, copied locally, and paired
+  with a fixed blank GitHub support page; report content is not placed in the URL.
+- Narrowed the Tauri CSP and filesystem capabilities to the application data root
+  plus paths explicitly granted by native dialogs, and removed the general shell
+  plugin dependency.
+- Preloaded the single supported SQLite pool from trusted Tauri configuration and
+  removed renderer permission to load or close database pools; renderer SQL access
+  is limited to select/execute operations against that fixed pool.
+- Added a 100 MB document limit, content-signature validation, managed-path checks,
+  and native-dialog grant enforcement for document ingestion.
+- Added bounded structured-log redaction for common credential, path, contact, and
+  identifier patterns. Free-form semantic personal data still requires user review.
+- Applied non-breaking dependency updates and added automated npm/Rust advisory,
+  source/history secret, and built-artifact scans. Remaining findings are recorded
+  as dated risks rather than described as zero vulnerabilities.
+- Updated the active Rust runtime graph to patched `bytes` and `time` releases.
+  The dated dependency ledger still records five `cargo audit` vulnerability
+  entries in upstream Tauri notification/plist and optional SQLx MySQL paths.
 
 ### Added
 
-- **CLAUDE.md**: Added project-specific Claude Code configuration with tech stack, commands, conventions, and architecture documentation
-- **Claude Code Integration**: Added `.mcp.json` for MCP server configuration
+- Added a required Windows-aware CI workflow for locked installation, version and
+  demo-data guards, lint, type checking, frontend/Rust tests, coverage, web and NSIS
+  builds, artifact scanning, checksums, and advisory evidence.
+- Added real SQLite tests for fresh setup, the declared schema-v4-to-v5 upgrade,
+  rollback and retry, concurrent initialization, unsupported versions, and foreign
+  key violations.
+- Added Rust/SQLx document workflow commands with staging, quarantine, compensation,
+  bounded startup reconciliation, typed cleanup residue, and failure-injection tests.
+- Added an implementation-backed threat model, reliability and backup-format
+  proposals, privacy and rights documents, ADRs, case study, AI-assistance disclosure,
+  and dated test-evidence record.
+- Added deterministic synthetic seed fixtures that refuse to run when any user-created
+  application record exists; only fresh-schema predefined tags/categories are permitted.
+- Added a separate `com.respectabullz.demo` development identity, constrained demo
+  capabilities, deterministic identifier guards, and a rights-documented synthetic
+  dog portrait for portfolio demonstrations without using production app data.
+- Added live synthetic Windows/Tauri screenshots for the dashboard, dog and litter
+  records, inquiry/sales workflow, and containment screen. The isolated demo profile
+  was removed after capture.
+
+### Changed
+
+- Withdrew the incomplete restore/import and destructive clear/reset paths. Existing
+  JSON and ZIP outputs are now labeled partial exports and must not be treated as a
+  sole recovery copy.
+- Removed the dead first-launch sample-data action. The guarded synthetic seed remains
+  available only in debug builds using the exact isolated `com.respectabullz.demo`
+  identity; ordinary development and production identities cannot expose or invoke it.
+- Withdrew the automatic legacy browser-storage importer. Detection is now read-only
+  and blocks before SQLite setup while preserving the original payload for a future
+  separately designed transactional recovery workflow.
+- Moved schema initialization and the single supported v4-to-v5 migration to one
+  connection-level `BEGIN IMMEDIATE` SQLx transaction with explicit foreign-key
+  verification.
+- Made document creation, metadata/tag replacement, and deletion failure-aware across
+  SQLite and the managed filesystem.
+- Replaced personal-looking default records with blank settings and reserved synthetic
+  `.test` email addresses and `202-555-01xx` phone numbers.
+- Declared the public source as proprietary/all-rights-reserved and removed invitations
+  to reuse or contribute without permission.
+- Archived obsolete internal audit/self-appraisal documents and removed duplicate
+  contract artifacts and invalid legacy README images from the recruiter-facing root.
+- Moved the packaged-startup smoke gate to an ephemeral GitHub-hosted Windows runner.
+  Windows/Tauri does not honor simple `APPDATA` process overrides as a reliable local
+  isolation boundary, so local smoke evidence is explicitly labeled non-isolated.
+- Moved synthetic fixture application into one Rust-owned SQLite connection and
+  `BEGIN IMMEDIATE` transaction with an under-lock empty-database check, allowlisted
+  inserts, foreign-key verification, rollback tests, and release-build rejection.
+
+### Fixed
+
+- Corrected the bundled fillable-contract template path so fillable mode no longer
+  silently falls back because of a missing public asset.
+- Removed the old exported ZIP-import function that could write photos before database
+  recovery completed.
+- Replaced collision-prone temporary filenames in atomic file helpers.
+- Made partial ZIP photo enumeration and reads fail closed before the save dialog;
+  unreadable managed photos can no longer be silently omitted from a reported success,
+  and archive metadata counts the files actually included.
+- Removed a nested Tokio-runtime startup failure by making database integrity setup
+  asynchronous through Tauri instead of calling `block_on` inside its runtime.
+- Removed the non-transactional multi-table browser-storage import and its automatic
+  cleanup path so startup cannot silently leave a partial SQLite conversion.
+- Corrected Tauri application-data capability and asset scopes to use the
+  identifier-resolved `$APPDATA/**` root rather than appending an extra identifier,
+  and corrected the synthetic flight-transport state/number column mapping.
+- Removed machine-specific Rust profile paths from the Windows development launchers
+  and aligned the tracked assistant reference with native PowerShell workflows.
+- Corrected customer-packet sale lookup to use the `sale_puppies` junction table and
+  installed the browser `Buffer` runtime before loading the PDF renderer.
+- Reworked packet pagination into explicit health, genetics, and care pages; the
+  branded cover now remains one Letter page without overlapping contact metadata.
+- Added PDF regression coverage for page count, page dimensions, section framing,
+  and per-page header/content placement.
+
+### Known limitations
+
+- Backup restore and factory reset remain intentionally unavailable.
+- The Windows installer remains unsigned; checksum and unsigned-status evidence do not
+  replace Authenticode publisher identity.
+- Complete historical migration coverage, Windows forced-process-kill testing,
+  monetary storage migration, and broad archive/media hardening remain future work.
+- A public final-commit CI run, enforced branch protection, Authenticode signing,
+  automated demo-profile teardown, and resolution of the dated upstream Rust
+  advisories remain outside this local remediation pass.
 
 ## [1.10.2] - 2026-01-18
 
@@ -250,13 +344,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.9.1] - 2025-12-29
 
+> Historical release record: the renderer credential design described below was
+> removed in 1.10.3. Do not configure or reuse it.
+
 ### Added
 - **Bug Reporting**: In-app bug reporting that creates GitHub issues
   - Bug report button in header (visible when GitHub is configured)
   - Standard bug report form: title, description, steps to reproduce, expected/actual behavior, severity
   - Auto-collects system info: app version, platform, timestamp
   - Submits directly to GitHub Issues API with appropriate labels
-  - New environment variables: `VITE_GITHUB_TOKEN`, `VITE_GITHUB_REPO`
+  - Historical environment variables: `VITE_GITHUB_TOKEN`, `VITE_GITHUB_REPO`
 
 ### Changed
 - **Expense Export**: Upgraded from CSV to native Excel (.xlsx) format using ExcelJS
@@ -272,6 +369,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Now exports as proper .xlsx file with correct column structure
 
 ## [1.9.0] - 2025-12-24
+
+> Historical release record: later audit found that the ZIP/JSON path omitted managed
+> data and could partially mutate files. Restore is withdrawn in 1.10.3, and these
+> outputs are now described only as partial exports.
 
 ### Added
 - **Contact Company Name**: Added company name field to contacts
@@ -473,7 +574,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tauri command for directory selection integrated with settings system
 - Phone number auto-formatting: All phone number fields now automatically format to (xxx) xxx-xxxx as users type with real-time formatting
 - PhoneInput component: Reusable phone input component with US format default and cursor position preservation
-- Breeder settings auto-population: Breeder/Owner name, city, and state fields now auto-populate with default values (Johnny Bonilla, Martinsburg, WV)
+- Breeder settings auto-population: Breeder/Owner name, city, and state fields historically auto-populated with personal-looking defaults; current builds use blank settings
 
 ### Fixed
 - Inquiries: Fixed client and puppy not being associated when creating or updating inquiries
@@ -756,7 +857,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Windows NSIS installer configuration for easy end-user distribution
 - First-launch dialog allowing users to choose between empty database or sample data on initial startup
-- Audit report documenting project size, complexity, and senior/junior effort & cost estimates in `Audit_Results.md`
+- Historical audit report documenting project size, complexity, and effort/cost estimates in `docs/internal/history/Audit_Results.md`
 
 ## [1.0.0] - 2025-12-03
 
@@ -1022,8 +1123,8 @@ This marks the first stable production release of Respectabullz. All core featur
   - Puppy profile photos in litter puppies table
   - Photo utilities module (photoUtils.ts) for file handling
   - useLitterPhotos hook for managing litter photo state
-  - Full backup with photos (ZIP format)
-  - Creates complete backup including database JSON and all photo files
+  - Historically described as a full backup with photos (ZIP format)
+  - Historically described as complete; later audit found omitted database/file state
   - ZIP archive with compression for efficient storage
   - Import/restore functionality extracts photos and database together
   - Backup info display showing photo count and total size
@@ -1332,4 +1433,3 @@ This marks the first stable production release of Respectabullz. All core featur
 - Toast notifications for user feedback
 - Responsive design with mobile considerations
 - Project logo added to repository and README
-

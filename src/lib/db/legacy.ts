@@ -1,8 +1,6 @@
 // Legacy functions that need to be implemented for SQLite
 // These are placeholders that maintain API compatibility
 
-import { z } from 'zod';
-import { logger } from '@/lib/errorTracking';
 import type {
   PacketData,
   Dog,
@@ -10,30 +8,14 @@ import type {
   MatingCompatibilityResult,
   CommonGeneticTest,
 } from '@/types';
+import { invoke } from '@tauri-apps/api/core';
 
-// Zod schema for validating database import format
-const DatabaseImportSchema = z.object({
-  version: z.string(),
-  exportedAt: z.string().optional(),
-  data: z.object({
-    dogs: z.array(z.unknown()).optional(),
-    litters: z.array(z.unknown()).optional(),
-    clients: z.array(z.unknown()).optional(),
-    sales: z.array(z.unknown()).optional(),
-    breederSettings: z.unknown().optional(),
-    vaccinations: z.array(z.unknown()).optional(),
-    medicalRecords: z.array(z.unknown()).optional(),
-    weightEntries: z.array(z.unknown()).optional(),
-    geneticTests: z.array(z.unknown()).optional(),
-  }),
-});
 import { getDogs, getDogPhotos } from './dogs';
 import { getVaccinations, getMedicalRecords, getWeightEntries, getGeneticTests, getHealthScheduleTemplate, createPuppyHealthTask } from './health';
 import { getSale, getClient } from './sales';
 import { getExpenses } from './operations';
 import { getBreederSettings } from './settings';
-import { query, execute } from './connection';
-import { generateId, nowIso } from './utils';
+import { query } from './connection';
 import { getHeatCycles } from './breeding';
 import { getLitters, getLitter } from './litters';
 import type { Client, PuppyHealthTaskType } from '@/types';
@@ -118,10 +100,18 @@ export async function getPacketData(dogId: string): Promise<PacketData | null> {
   const dogPhotos = await getDogPhotos(dogId);
 
   // Get sale and client info
-  type SaleRow = { id: string; dog_id: string };
-  const sales = await query<SaleRow>('SELECT id, dog_id FROM sales WHERE dog_id = ?', [dogId]);
-  const firstSale: SaleRow | undefined = sales.length > 0 ? sales[0] : undefined;
-  const sale = firstSale ? await getSale(firstSale.id) : null;
+  type SaleLinkRow = { sale_id: string };
+  const sales = await query<SaleLinkRow>(
+    `SELECT sp.sale_id
+     FROM sale_puppies sp
+     INNER JOIN sales s ON s.id = sp.sale_id
+     WHERE sp.dog_id = ?
+     ORDER BY s.sale_date DESC, s.id DESC
+     LIMIT 1`,
+    [dogId]
+  );
+  const latestSale = sales[0];
+  const sale = latestSale ? await getSale(latestSale.sale_id) : null;
   const client: Client | null = sale && sale.clientId ? await getClient(sale.clientId) : null;
 
   // Get expenses
@@ -458,100 +448,57 @@ export async function exportDatabase(): Promise<string> {
 }
 
 /**
- * Import database from JSON backup
- * Note: This is a simplified implementation - full implementation would need
- * to handle merging/replacing data carefully
- */
-export async function importDatabase(data: string): Promise<boolean> {
-  try {
-    // Parse JSON first
-    let rawData: unknown;
-    try {
-      rawData = JSON.parse(data);
-    } catch (parseError) {
-      logger.error('Failed to parse import data as JSON', parseError instanceof Error ? parseError : undefined, {
-        context: 'importDatabase',
-        dataLength: data.length
-      });
-      return false;
-    }
-
-    // Validate with Zod schema
-    const parseResult = DatabaseImportSchema.safeParse(rawData);
-    if (!parseResult.success) {
-      const validationErrors = parseResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`);
-      logger.warn('Database import failed schema validation', {
-        context: 'importDatabase',
-        errors: validationErrors.join('; ')
-      });
-      return false;
-    }
-
-    const parsed = parseResult.data;
-    logger.info('Database import validated', { version: parsed.version });
-
-    // For now, just validate the format
-    // Full implementation would import each entity type
-    logger.warn('Full database import not yet implemented - use backup restore instead', {
-      context: 'importDatabase'
-    });
-    return false;
-  } catch (error) {
-    logger.error('Unexpected error during database import', error instanceof Error ? error : undefined, {
-      context: 'importDatabase'
-    });
-    return false;
-  }
-}
-
-/**
- * Clear all database data
- */
-export async function clearDatabase(): Promise<void> {
-  // Delete in reverse dependency order
-  await execute('DELETE FROM sale_puppies');
-  await execute('DELETE FROM sales');
-  await execute('DELETE FROM client_interests');
-  await execute('DELETE FROM waitlist_entries');
-  await execute('DELETE FROM communication_logs');
-  await execute('DELETE FROM clients');
-  await execute('DELETE FROM transports');
-  await execute('DELETE FROM expenses');
-  await execute('DELETE FROM expense_categories');
-  await execute('DELETE FROM puppy_health_tasks');
-  await execute('DELETE FROM health_schedule_templates');
-  await execute('DELETE FROM genetic_tests');
-  await execute('DELETE FROM medical_records');
-  await execute('DELETE FROM weight_entries');
-  await execute('DELETE FROM vaccination_records');
-  await execute('DELETE FROM heat_events');
-  await execute('DELETE FROM heat_cycles');
-  await execute('DELETE FROM external_studs');
-  await execute('DELETE FROM pedigree_entries');
-  await execute('DELETE FROM dog_photos');
-  await execute('DELETE FROM litter_photos');
-  await execute('DELETE FROM attachments');
-  await execute('DELETE FROM dogs');
-  await execute('DELETE FROM litters');
-  await execute('DELETE FROM settings');
-  
-  console.log('[DB] Database cleared');
-}
-
-/**
  * Seed database with comprehensive sample data for testing all app functionality
  */
 export async function seedDatabase(): Promise<void> {
-  // Check if data already exists
-  const existingDogs = await query<{ count: number }>('SELECT COUNT(*) as count FROM dogs');
-  if (existingDogs[0]?.count > 0) {
-    console.log('[Seed] Database already has data, clearing first...');
-    await clearDatabase();
+  const seedStatements: Array<{ sql: string; params: unknown[] }> = [];
+  // Collect the fixed fixture before handing it to the debug-only Rust command.
+  // Rust holds one SQLite connection for the empty check, inserts, verification,
+  // and commit so the plugin connection pool cannot split the transaction.
+  const execute = async (sql: string, params: unknown[] = []) => {
+    seedStatements.push({ sql, params });
+    return { lastInsertId: 0, rowsAffected: 0 };
+  };
+
+  try {
+  // Development seeding must never become a disguised reset operation. Check
+  // every application table and refuse to continue when any user-created row
+  // exists. Predefined tags/categories and schema metadata are the only
+  // expected rows in a fresh database.
+  const applicationTables = await query<{ name: string }>(
+    `SELECT name FROM sqlite_master
+     WHERE type = 'table'
+       AND name NOT LIKE 'sqlite_%'
+       AND name <> '_schema_version'`
+  );
+
+  for (const { name } of applicationTables) {
+    if (!/^[a-z][a-z0-9_]*$/i.test(name)) {
+      throw new Error(`Refusing to inspect unexpected table name: ${name}`);
+    }
+
+    const whereClause = name === 'document_tags'
+      ? ' WHERE is_custom = 1'
+      : name === 'contact_categories'
+        ? ' WHERE is_predefined = 0'
+        : '';
+    const rows = await query<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM "${name}"${whereClause}`
+    );
+
+    if ((rows[0]?.count ?? 0) > 0) {
+      throw new Error(
+        `Development sample data requires no user-created records; existing records were found in ${name}.`
+      );
+    }
   }
   
-  console.log('[Seed] Seeding database with comprehensive sample data...');
-  const now = nowIso();
-  const today = new Date();
+  console.log('[Seed] Seeding database with deterministic synthetic sample data...');
+  const referenceDate = new Date('2026-07-14T12:00:00.000Z');
+  const now = referenceDate.toISOString();
+  const today = new Date(referenceDate);
+  let seedId = 0;
+  const generateId = () => `demo-${String(++seedId).padStart(5, '0')}`;
   
   // Helper to execute with error logging
   const safeExecute = async (sql: string, params: unknown[], label: string) => {
@@ -568,12 +515,12 @@ export async function seedDatabase(): Promise<void> {
   // Helper to format date
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
   const daysAgo = (days: number) => {
-    const d = new Date();
+    const d = new Date(referenceDate);
     d.setDate(d.getDate() - days);
     return formatDate(d);
   };
   const daysFromNow = (days: number) => {
-    const d = new Date();
+    const d = new Date(referenceDate);
     d.setDate(d.getDate() + days);
     return formatDate(d);
   };
@@ -592,42 +539,42 @@ export async function seedDatabase(): Promise<void> {
   await execute(
     `INSERT INTO dogs (id, name, sex, breed, registration_number, date_of_birth, color, microchip_number, status, notes, registration_status, registration_type, registry_name, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [sireId, 'CH Respectabullz Iron Thunder', 'M', 'American Bully', 'ABKC-123456', '2021-03-15', 'Blue Tri', '985141234567890', 'active', 'Champion stud. Excellent structure and temperament. Multiple Best in Show wins.', 'registered', 'full', 'ABKC', now, now]
+    [sireId, 'CH Respectabullz Iron Thunder', 'M', 'American Bully', 'DEMO-REG-0001', '2021-03-15', 'Blue Tri', 'DEMO-CHIP-0001', 'active', 'Champion stud. Excellent structure and temperament. Multiple Best in Show wins.', 'registered', 'full', 'Demo Registry', now, now]
   );
   
   // Stud 2 - Younger male
   await execute(
     `INSERT INTO dogs (id, name, sex, breed, registration_number, date_of_birth, color, microchip_number, status, notes, registration_status, registration_type, registry_name, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [sire2Id, 'Respectabullz Titan', 'M', 'American Bully', 'ABKC-456789', '2022-07-20', 'Champagne Tri', '985144567890123', 'active', 'Up and coming stud. Son of Iron Thunder.', 'registered', 'full', 'ABKC', now, now]
+    [sire2Id, 'Respectabullz Titan', 'M', 'American Bully', 'DEMO-REG-0002', '2022-07-20', 'Champagne Tri', 'DEMO-CHIP-0002', 'active', 'Up and coming stud. Son of Iron Thunder.', 'registered', 'full', 'Demo Registry', now, now]
   );
   
   // Champion Dam 1
   await execute(
     `INSERT INTO dogs (id, name, sex, breed, registration_number, date_of_birth, color, microchip_number, status, notes, registration_status, registration_type, registry_name, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [damId, 'CH Respectabullz Diamond Queen', 'F', 'American Bully', 'ABKC-234567', '2020-08-22', 'Lilac Tri', '985142345678901', 'active', 'Champion dam. Produces exceptional puppies with great bone and structure.', 'registered', 'full', 'ABKC', now, now]
+    [damId, 'CH Respectabullz Diamond Queen', 'F', 'American Bully', 'DEMO-REG-0003', '2020-08-22', 'Lilac Tri', 'DEMO-CHIP-0003', 'active', 'Champion dam. Produces exceptional puppies with great bone and structure.', 'registered', 'full', 'Demo Registry', now, now]
   );
   
   // Dam 2 - Young female
   await execute(
     `INSERT INTO dogs (id, name, sex, breed, registration_number, date_of_birth, color, microchip_number, status, notes, registration_status, registration_type, registry_name, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [dam2Id, 'Respectabullz Ruby Rose', 'F', 'American Bully', 'ABKC-345678', '2022-05-10', 'Champagne', '985143456789012', 'active', 'Young prospect, excellent bone and structure. First litter planned.', 'registered', 'full', 'ABKC', now, now]
+    [dam2Id, 'Respectabullz Ruby Rose', 'F', 'American Bully', 'DEMO-REG-0004', '2022-05-10', 'Champagne', 'DEMO-CHIP-0004', 'active', 'Young prospect, excellent bone and structure. First litter planned.', 'registered', 'full', 'Demo Registry', now, now]
   );
   
   // Dam 3 - Currently pregnant
   await execute(
     `INSERT INTO dogs (id, name, sex, breed, registration_number, date_of_birth, color, microchip_number, status, notes, registration_status, registration_type, registry_name, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [dam3Id, 'Respectabullz Sapphire Star', 'F', 'American Bully', 'ABKC-567890', '2021-11-03', 'Blue Fawn', '985145678901234', 'active', 'Confirmed pregnant, due in 3 weeks.', 'registered', 'full', 'ABKC', now, now]
+    [dam3Id, 'Respectabullz Sapphire Star', 'F', 'American Bully', 'DEMO-REG-0005', '2021-11-03', 'Blue Fawn', 'DEMO-CHIP-0005', 'active', 'Confirmed pregnant, due in 3 weeks.', 'registered', 'full', 'Demo Registry', now, now]
   );
   
   // Retired Dam
   await execute(
     `INSERT INTO dogs (id, name, sex, breed, registration_number, date_of_birth, color, microchip_number, status, notes, registration_status, registration_type, registry_name, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [retiredDamId, 'CH Respectabullz Golden Legacy', 'F', 'American Bully', 'ABKC-111222', '2017-02-14', 'Fawn', '985141112223334', 'retired', 'Retired champion. Produced 4 champion offspring. Now enjoying retirement as beloved pet.', 'registered', 'full', 'ABKC', now, now]
+    [retiredDamId, 'CH Respectabullz Golden Legacy', 'F', 'American Bully', 'DEMO-REG-0006', '2017-02-14', 'Fawn', 'DEMO-CHIP-0006', 'retired', 'Retired champion. Produced 4 champion offspring. Now enjoying retirement as beloved pet.', 'registered', 'full', 'Demo Registry', now, now]
   );
 
   // ============================================
@@ -723,14 +670,14 @@ export async function seedDatabase(): Promise<void> {
   await execute(
     `INSERT INTO external_studs (id, name, breed, registration_number, color, owner_name, owner_phone, owner_email, stud_fee, notes, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [extStudId, 'GCH Bullywood King Kong', 'American Bully', 'ABKC-EXT-999', 'Chocolate Tri', 'Mike Williams', '555-222-3333', 'bullywood@email.com', 3500, 'Multiple Grand Champion. Produces excellent structure and color.', now, now]
+    [extStudId, 'GCH Demo Ridge Atlas', 'American Bully', 'DEMO-REG-0901', 'Chocolate Tri', 'Morgan Example', '202-555-0101', 'stud-one@example.test', 3500, 'Synthetic portfolio record. Multiple Grand Champion; produces excellent structure and color.', now, now]
   );
   
   const extStud2Id = generateId();
   await execute(
     `INSERT INTO external_studs (id, name, breed, registration_number, color, owner_name, owner_phone, owner_email, stud_fee, notes, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [extStud2Id, 'Bossy Kennels Maximus', 'American Bully', 'ABKC-EXT-888', 'Merle', 'Jessica Brown', '555-333-4444', 'bossykennels@email.com', 5000, 'Rare merle coloring. Health tested clear.', now, now]
+    [extStud2Id, 'Example Kennels Meridian', 'American Bully', 'DEMO-REG-0902', 'Merle', 'Riley Sample', '202-555-0102', 'stud-two@example.test', 5000, 'Synthetic portfolio record. Rare merle coloring; health tested clear.', now, now]
   );
 
   // ============================================
@@ -1163,22 +1110,22 @@ export async function seedDatabase(): Promise<void> {
   await execute(
     `INSERT INTO clients (id, name, phone, email, address_line1, city, state, postal_code, notes, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [client1Id, 'John Smith', '555-123-4567', 'john.smith@email.com', '123 Main Street', 'Austin', 'TX', '78701', 'Great client, repeat buyer. Purchased Phoenix from Litter B.', now, now]
+    [client1Id, 'Avery Example', '202-555-0110', 'avery@example.test', '100 Demo Lane', 'Austin', 'TX', '78701', 'Synthetic repeat-client record. Purchased Phoenix from Litter B.', now, now]
   );
   await execute(
     `INSERT INTO clients (id, name, phone, email, address_line1, city, state, postal_code, notes, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [client2Id, 'Sarah Johnson', '555-987-6543', 'sarah.j@email.com', '456 Oak Avenue', 'Dallas', 'TX', '75201', 'Interested in breeding quality female. On waitlist.', now, now]
+    [client2Id, 'Jordan Sample', '202-555-0111', 'jordan@example.test', '200 Example Avenue', 'Dallas', 'TX', '75201', 'Synthetic client interested in a breeding-quality female. On waitlist.', now, now]
   );
   await execute(
     `INSERT INTO clients (id, name, phone, email, address_line1, city, state, postal_code, notes, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [client3Id, 'Mike Williams', '555-456-7890', 'mike.w@email.com', '789 Pine Road', 'Houston', 'TX', '77001', 'Purchased Nova from Litter B. Very happy with puppy.', now, now]
+    [client3Id, 'Casey Demo', '202-555-0112', 'casey@example.test', '300 Fixture Road', 'Houston', 'TX', '77001', 'Synthetic client who purchased Nova from Litter B.', now, now]
   );
   await execute(
     `INSERT INTO clients (id, name, phone, email, city, state, notes, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [client4Id, 'Emily Davis', '555-321-0987', 'emily.d@email.com', 'San Antonio', 'TX', 'Inquiry about upcoming Litter C', now, now]
+    [client4Id, 'Taylor Fixture', '202-555-0113', 'taylor@example.test', 'San Antonio', 'TX', 'Synthetic inquiry about upcoming Litter C', now, now]
   );
 
   // ============================================
@@ -1242,7 +1189,7 @@ export async function seedDatabase(): Promise<void> {
   await execute(
     `INSERT INTO clients (id, name, phone, email, city, state, notes, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [generalWaitlistClientId, 'Robert Chen', '555-555-1234', 'rchen@email.com', 'Los Angeles', 'CA', 'Willing to travel for pickup', now, now]
+    [generalWaitlistClientId, 'Quinn Example', '202-555-0114', 'quinn@example.test', 'Los Angeles', 'CA', 'Synthetic client willing to travel for pickup', now, now]
   );
   await execute(
     `INSERT INTO waitlist_entries (id, client_id, position, sex_preference, color_preference, deposit_amount, deposit_date, status, notes, created_at, updated_at)
@@ -1633,7 +1580,7 @@ export async function seedDatabase(): Promise<void> {
   await execute(
     `INSERT INTO transports (id, dog_id, date, mode, shipper_business_name, contact_name, phone, email, origin_city, origin_state, destination_city, destination_state, tracking_number, cost, expense_id, notes, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [transportId, litterBPuppyIds[1], daysAgo(8), 'flight', 'Puppy Express', 'Amanda Torres', '555-888-9999', 'amanda@puppyexpress.com', 'Austin', 'TX', 'Houston', 'TX', 'PE-2024-1234', 450, transportExpenseId, 'Flight nanny delivery. Puppy arrived safely.', now, now]
+    [transportId, litterBPuppyIds[1], daysAgo(8), 'flight', 'Example Pet Transit', 'Parker Sample', '202-555-0120', 'flight@example.test', 'Austin', 'TX', 'Houston', 'TX', 'DEMO-TRANSIT-1234', 450, transportExpenseId, 'Synthetic flight-nanny delivery record. Puppy arrived safely.', now, now]
   );
   
   // Transport 2 - Ground transport (past transport for retired dam)
@@ -1649,7 +1596,7 @@ export async function seedDatabase(): Promise<void> {
   await execute(
     `INSERT INTO transports (id, dog_id, date, mode, shipper_business_name, contact_name, phone, email, origin_city, origin_state, destination_city, destination_state, tracking_number, cost, expense_id, notes, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [transport2Id, retiredDamId, daysAgo(300), 'ground', 'Ground Transport LLC', 'Mike Johnson', '555-777-8888', 'mike@groundtransport.com', 'Austin', 'TX', 'Dallas', 'TX', 'GT-2023-5678', 350, transport2ExpenseId, 'Completed ground transport', now, now]
+    [transport2Id, retiredDamId, daysAgo(300), 'ground', 'Demo Ground Transport', 'Reese Example', '202-555-0121', 'ground@example.test', 'Austin', 'TX', 'Dallas', 'TX', 'DEMO-GROUND-5678', 350, transport2ExpenseId, 'Synthetic completed ground-transport record', now, now]
   );
   
   // Transport 3 - Local pickup (no expense, just record)
@@ -1664,12 +1611,12 @@ export async function seedDatabase(): Promise<void> {
   // ============================================
   // Sire pedigree
   const sirePedigreeData = [
-    { gen: 1, pos: 'S', name: 'GCH Ironside Warriors King', reg: 'ABKC-P-001', color: 'Blue' },
-    { gen: 1, pos: 'D', name: 'CH Lady Blue Diamond', reg: 'ABKC-P-002', color: 'Blue Tri' },
-    { gen: 2, pos: 'SS', name: 'CH Steel Thunder', reg: 'ABKC-P-003', color: 'Blue' },
-    { gen: 2, pos: 'SD', name: 'Sapphire Queen', reg: 'ABKC-P-004', color: 'Lilac' },
-    { gen: 2, pos: 'DS', name: 'Diamond Back Ace', reg: 'ABKC-P-005', color: 'Blue Fawn' },
-    { gen: 2, pos: 'DD', name: 'Pretty Blue Lady', reg: 'ABKC-P-006', color: 'Blue Tri' },
+    { gen: 1, pos: 'S', name: 'GCH Ironside Warriors King', reg: 'DEMO-PED-0001', color: 'Blue' },
+    { gen: 1, pos: 'D', name: 'CH Lady Blue Diamond', reg: 'DEMO-PED-0002', color: 'Blue Tri' },
+    { gen: 2, pos: 'SS', name: 'CH Steel Thunder', reg: 'DEMO-PED-0003', color: 'Blue' },
+    { gen: 2, pos: 'SD', name: 'Sapphire Queen', reg: 'DEMO-PED-0004', color: 'Lilac' },
+    { gen: 2, pos: 'DS', name: 'Diamond Back Ace', reg: 'DEMO-PED-0005', color: 'Blue Fawn' },
+    { gen: 2, pos: 'DD', name: 'Pretty Blue Lady', reg: 'DEMO-PED-0006', color: 'Blue Tri' },
   ];
   
   for (const entry of sirePedigreeData) {
@@ -1682,12 +1629,12 @@ export async function seedDatabase(): Promise<void> {
   
   // Dam pedigree
   const damPedigreeData = [
-    { gen: 1, pos: 'S', name: 'CH Royal Blue Champion', reg: 'ABKC-P-101', color: 'Blue' },
-    { gen: 1, pos: 'D', name: 'GCH Diamond Princess', reg: 'ABKC-P-102', color: 'Lilac Tri' },
-    { gen: 2, pos: 'SS', name: 'CH Blue Thunder', reg: 'ABKC-P-103', color: 'Blue' },
-    { gen: 2, pos: 'SD', name: 'Royal Sapphire', reg: 'ABKC-P-104', color: 'Lilac' },
-    { gen: 2, pos: 'DS', name: 'Diamond King', reg: 'ABKC-P-105', color: 'Blue Fawn' },
-    { gen: 2, pos: 'DD', name: 'Princess Lilac', reg: 'ABKC-P-106', color: 'Lilac Tri' },
+    { gen: 1, pos: 'S', name: 'CH Royal Blue Champion', reg: 'DEMO-PED-0101', color: 'Blue' },
+    { gen: 1, pos: 'D', name: 'GCH Diamond Princess', reg: 'DEMO-PED-0102', color: 'Lilac Tri' },
+    { gen: 2, pos: 'SS', name: 'CH Blue Thunder', reg: 'DEMO-PED-0103', color: 'Blue' },
+    { gen: 2, pos: 'SD', name: 'Royal Sapphire', reg: 'DEMO-PED-0104', color: 'Lilac' },
+    { gen: 2, pos: 'DS', name: 'Diamond King', reg: 'DEMO-PED-0105', color: 'Blue Fawn' },
+    { gen: 2, pos: 'DD', name: 'Princess Lilac', reg: 'DEMO-PED-0106', color: 'Lilac Tri' },
   ];
   
   for (const entry of damPedigreeData) {
@@ -1700,8 +1647,8 @@ export async function seedDatabase(): Promise<void> {
   
   // Sire2 pedigree (partial - 2 generations)
   const sire2PedigreeData = [
-    { gen: 1, pos: 'S', name: 'CH Respectabullz Iron Thunder', reg: 'ABKC-123456', color: 'Blue Tri' },
-    { gen: 1, pos: 'D', name: 'CH Respectabullz Ruby Rose', reg: 'ABKC-345678', color: 'Champagne' },
+    { gen: 1, pos: 'S', name: 'CH Respectabullz Iron Thunder', reg: 'DEMO-REG-0001', color: 'Blue Tri' },
+    { gen: 1, pos: 'D', name: 'CH Respectabullz Ruby Rose', reg: 'DEMO-REG-0004', color: 'Champagne' },
   ];
   
   for (const entry of sire2PedigreeData) {
@@ -1748,7 +1695,7 @@ export async function seedDatabase(): Promise<void> {
   );
   await execute(
     `INSERT INTO settings (id, key, value, updated_at) VALUES (?, ?, ?, ?)`,
-    [generateId(), 'breeder_email', 'info@respectabullz.com', now]
+    [generateId(), 'breeder_email', 'demo.breeder@example.test', now]
   );
   await execute(
     `INSERT INTO settings (id, key, value, updated_at) VALUES (?, ?, ?, ?)`,
@@ -1762,6 +1709,8 @@ export async function seedDatabase(): Promise<void> {
     `INSERT INTO settings (id, key, value, updated_at) VALUES (?, ?, ?, ?)`,
     [generateId(), 'breeder_default_breed', 'American Bully', now]
   );
+
+  await invoke('apply_demo_seed', { statements: seedStatements });
 
   console.log('[Seed] ✅ Database seeded successfully with comprehensive sample data!');
   console.log('[Seed] Created:');
@@ -1783,5 +1732,13 @@ export async function seedDatabase(): Promise<void> {
   console.log('[Seed]   - Pedigree entries for multiple dogs (3 generations)');
   console.log('[Seed]   - Health schedule templates');
   console.log('[Seed]   - Breeder settings configured');
+  } catch (error) {
+    const detail = error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : 'Unknown database error';
+    throw new Error(`Synthetic demo seed was rolled back: ${detail}`);
+  }
 }
 

@@ -1,41 +1,20 @@
-// Backup utilities for exporting and importing data with photos
-// Creates ZIP archives containing database JSON and all photo files
+// Partial-export utilities for exporting the legacy record subset with photos.
+// These archives are not a supported recovery format.
 
 import JSZip from 'jszip';
-import { readFile, exists, mkdir, readDir, BaseDirectory } from '@tauri-apps/plugin-fs';
-import { atomicWriteFile, atomicWriteFileAbsolute } from '@/lib/fsUtils';
-import { save, open } from '@tauri-apps/plugin-dialog';
-import { z } from 'zod';
+import { readFile, writeFile, exists, readDir, BaseDirectory } from '@tauri-apps/plugin-fs';
+import { save } from '@tauri-apps/plugin-dialog';
 import { logger } from '@/lib/errorTracking';
 
 const PHOTOS_DIR = 'photos';
 const DB_FILENAME = 'database.json';
-const BACKUP_VERSION = '1.0';
+const PARTIAL_EXPORT_VERSION = '1.0';
 
-// Zod schema for validating backup metadata
-const BackupMetadataSchema = z.object({
-  version: z.string(),
-  createdAt: z.string(),
-  appVersion: z.string(),
-  photoCount: z.number(),
-});
-
-interface BackupMetadata {
+interface PartialExportMetadata {
   version: string;
   createdAt: string;
   appVersion: string;
   photoCount: number;
-}
-
-// Extended result type for detailed restore status
-interface ImportResult {
-  success: boolean;
-  databaseJson?: string;
-  photoCount?: number;
-  error?: string;
-  failedPhotos?: string[];
-  metadata?: BackupMetadata;
-  metadataValidationErrors?: string[];
 }
 
 /**
@@ -60,28 +39,31 @@ async function getPhotoFiles(): Promise<string[]> {
     return photoFiles;
   } catch (error) {
     logger.error('Failed to list photo files', error instanceof Error ? error : undefined);
-    return [];
+    throw new Error('Could not enumerate managed photos for the partial export.');
   }
 }
 
 /**
  * Read a photo file and return its data
  */
-async function readPhotoFile(filename: string): Promise<Uint8Array | null> {
+async function readPhotoFile(filename: string): Promise<Uint8Array> {
   try {
     const photoPath = `${PHOTOS_DIR}/${filename}`;
     const data = await readFile(photoPath, { baseDir: BaseDirectory.AppData });
     return data;
   } catch (error) {
     logger.error(`Failed to read photo file ${filename}`, error instanceof Error ? error : undefined);
-    return null;
+    throw new Error(`Could not read managed photo ${filename} for the partial export.`);
   }
 }
 
 /**
- * Export database and all photos as a ZIP file
+ * Export the legacy JSON record subset and every enumerated managed photo as a ZIP.
+ * Enumeration or read failures abort before the save dialog so omissions can never
+ * be represented as a successful export.
+ * This output cannot be restored by the application.
  */
-export async function exportBackupWithPhotos(databaseJson: string): Promise<boolean> {
+export async function exportPartialDataWithPhotos(databaseJson: string): Promise<boolean> {
   try {
     const zip = new JSZip();
     
@@ -91,12 +73,23 @@ export async function exportBackupWithPhotos(databaseJson: string): Promise<bool
     // Get list of photos
     const photoFiles = await getPhotoFiles();
     
-    // Create metadata
-    const metadata: BackupMetadata = {
-      version: BACKUP_VERSION,
+    // Read every enumerated photo before constructing metadata or requesting a
+    // destination. A single failure aborts the export rather than silently omitting
+    // a file while still reporting success.
+    const includedPhotos: Array<{ filename: string; data: Uint8Array }> = [];
+    for (const filename of photoFiles) {
+      includedPhotos.push({
+        filename,
+        data: await readPhotoFile(filename),
+      });
+    }
+
+    // Create metadata from the files that will actually be included.
+    const metadata: PartialExportMetadata = {
+      version: PARTIAL_EXPORT_VERSION,
       createdAt: new Date().toISOString(),
       appVersion: VERSION,
-      photoCount: photoFiles.length,
+      photoCount: includedPhotos.length,
     };
     
     // Add metadata
@@ -107,29 +100,23 @@ export async function exportBackupWithPhotos(databaseJson: string): Promise<bool
     
     // Add photos folder
     const photosFolder = zip.folder('photos');
-    if (photosFolder) {
-      for (const filename of photoFiles) {
-        const photoData = await readPhotoFile(filename);
-        if (photoData) {
-          photosFolder.file(filename, photoData);
-        }
-      }
+    if (!photosFolder) {
+      throw new Error('Could not initialize the photos folder in the partial export.');
+    }
+    for (const photo of includedPhotos) {
+      photosFolder.file(photo.filename, photo.data);
     }
     
-    // Generate ZIP blob
-    const zipBlob = await zip.generateAsync({ 
-      type: 'blob',
+    // Generate bytes directly for the native filesystem API.
+    const zipData = await zip.generateAsync({
+      type: 'uint8array',
       compression: 'DEFLATE',
       compressionOptions: { level: 6 }
     });
     
-    // Convert blob to Uint8Array for Tauri
-    const arrayBuffer = await zipBlob.arrayBuffer();
-    const zipData = new Uint8Array(arrayBuffer);
-    
     // Open save dialog
     const savePath = await save({
-      defaultPath: `respectabullz-backup-${new Date().toISOString().split('T')[0]}.zip`,
+      defaultPath: `respectabullz-partial-export-${new Date().toISOString().split('T')[0]}.zip`,
       filters: [{
         name: 'ZIP Archive',
         extensions: ['zip']
@@ -140,130 +127,15 @@ export async function exportBackupWithPhotos(databaseJson: string): Promise<bool
       return false;
     }
 
-    // Write the ZIP file atomically (write to temp then rename)
-    await atomicWriteFileAbsolute(savePath, zipData);
+    // The native save dialog grants the exact selected file, not a sibling
+    // temporary path. This partial export is written to that explicit target;
+    // it is not represented as an atomic recovery artifact.
+    await writeFile(savePath, zipData);
 
     return true;
   } catch (error) {
-    logger.error('Failed to create backup', error instanceof Error ? error : undefined);
+    logger.error('Failed to create partial export', error instanceof Error ? error : undefined);
     throw error;
-  }
-}
-
-/**
- * Import database and photos from a ZIP backup file
- */
-export async function importBackupWithPhotos(): Promise<ImportResult> {
-  try {
-    // Open file dialog to select backup
-    const selectedPath = await open({
-      multiple: false,
-      filters: [{
-        name: 'ZIP Archive',
-        extensions: ['zip']
-      }]
-    });
-
-    if (!selectedPath || typeof selectedPath !== 'string') {
-      return { success: false, error: 'cancelled' };
-    }
-
-    // Read the ZIP file
-    const zipData = await readFile(selectedPath);
-
-    // Load the ZIP
-    const zip = await JSZip.loadAsync(zipData);
-
-    // Validate and parse metadata
-    let metadata: BackupMetadata | undefined;
-    const metadataValidationErrors: string[] = [];
-    const metadataFile = zip.file('metadata.json');
-    if (metadataFile) {
-      const metadataText = await metadataFile.async('string');
-      try {
-        const rawMetadata = JSON.parse(metadataText);
-        const parseResult = BackupMetadataSchema.safeParse(rawMetadata);
-        if (parseResult.success) {
-          metadata = parseResult.data;
-          logger.info('Backup metadata validated', { metadata });
-        } else {
-          const validationErrors = parseResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`);
-          metadataValidationErrors.push(...validationErrors);
-          logger.warn('Backup metadata failed validation', {
-            errors: validationErrors.join('; '),
-          });
-          // Continue without metadata - we can still try to restore
-        }
-      } catch (e) {
-        const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-        metadataValidationErrors.push(`Failed to parse metadata: ${errorMessage}`);
-        logger.error('Failed to parse backup metadata', e instanceof Error ? e : undefined);
-        // Continue without metadata
-      }
-    }
-
-    // Extract database
-    const dbFile = zip.file(DB_FILENAME);
-    if (!dbFile) {
-      return { success: false, error: 'Invalid backup: missing database.json' };
-    }
-
-    const databaseJson = await dbFile.async('string');
-
-    // Ensure photos directory exists
-    const photosDirExists = await exists(PHOTOS_DIR, { baseDir: BaseDirectory.AppData });
-    if (!photosDirExists) {
-      await mkdir(PHOTOS_DIR, { recursive: true, baseDir: BaseDirectory.AppData });
-    }
-
-    // Extract photos with detailed tracking
-    const photosFolder = zip.folder('photos');
-    let photoCount = 0;
-    const failedPhotos: string[] = [];
-
-    if (photosFolder) {
-      const photoEntries: { name: string; file: JSZip.JSZipObject }[] = [];
-
-      photosFolder.forEach((relativePath, file) => {
-        if (!file.dir) {
-          photoEntries.push({ name: relativePath, file });
-        }
-      });
-
-      for (const { name, file } of photoEntries) {
-        try {
-          const photoData = await file.async('uint8array');
-          const photoPath = `${PHOTOS_DIR}/${name}`;
-          // Use atomic write to prevent partial file corruption
-          await atomicWriteFile(photoPath, photoData, { baseDir: BaseDirectory.AppData });
-          photoCount++;
-        } catch (error) {
-          failedPhotos.push(name);
-          logger.error(`Failed to restore photo ${name}`, error instanceof Error ? error : undefined);
-        }
-      }
-    }
-
-    // Determine success status based on photo restoration
-    const allPhotosRestored = failedPhotos.length === 0;
-
-    return {
-      success: allPhotosRestored,
-      databaseJson,
-      photoCount,
-      failedPhotos: failedPhotos.length > 0 ? failedPhotos : undefined,
-      metadata,
-      metadataValidationErrors: metadataValidationErrors.length > 0 ? metadataValidationErrors : undefined,
-      error: failedPhotos.length > 0
-        ? `${failedPhotos.length} photo(s) failed to restore`
-        : undefined,
-    };
-  } catch (error) {
-    logger.error('Failed to import backup', error instanceof Error ? error : undefined);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
   }
 }
 
@@ -275,18 +147,16 @@ export function isTauriEnvironment(): boolean {
 }
 
 /**
- * Get backup info (photo count, etc.) for display
+ * Get photo inventory information for the partial-export display.
  */
-export async function getBackupInfo(): Promise<{ photoCount: number; photosSize: number }> {
+export async function getPartialExportInfo(): Promise<{ photoCount: number; photosSize: number }> {
   try {
     const photoFiles = await getPhotoFiles();
     let totalSize = 0;
     
     for (const filename of photoFiles) {
       const data = await readPhotoFile(filename);
-      if (data) {
-        totalSize += data.length;
-      }
+      totalSize += data.length;
     }
     
     return {
@@ -294,8 +164,8 @@ export async function getBackupInfo(): Promise<{ photoCount: number; photosSize:
       photosSize: totalSize,
     };
   } catch (error) {
-    logger.error('Failed to get backup info', error instanceof Error ? error : undefined);
-    return { photoCount: 0, photosSize: 0 };
+    logger.error('Failed to get partial-export photo info', error instanceof Error ? error : undefined);
+    throw error;
   }
 }
 

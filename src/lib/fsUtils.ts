@@ -8,12 +8,21 @@
 
 import { writeFile, rename, remove, BaseDirectory } from '@tauri-apps/plugin-fs';
 
+let atomicWriteSequence = 0;
+
+function uniqueTempPath(path: string): string {
+  atomicWriteSequence += 1;
+  const randomPart = globalThis.crypto?.randomUUID?.()
+    ?? Math.random().toString(36).slice(2);
+  return `${path}.tmp-${Date.now()}-${atomicWriteSequence}-${randomPart}`;
+}
+
 /**
  * Atomically write data to a file using write-to-temp-then-rename pattern.
  * This prevents data corruption if the write is interrupted (e.g., power loss, crash).
  *
  * The process:
- * 1. Write data to a temporary file (path.tmp)
+ * 1. Write data to a unique temporary file next to the target
  * 2. Rename the temp file to the target path (atomic on most filesystems)
  * 3. On failure, clean up the temp file
  *
@@ -26,7 +35,7 @@ export async function atomicWriteFile(
   data: Uint8Array | string,
   options?: { baseDir?: BaseDirectory }
 ): Promise<void> {
-  const tempPath = `${path}.tmp`;
+  const tempPath = uniqueTempPath(path);
   const dataToWrite = typeof data === 'string'
     ? new TextEncoder().encode(data)
     : data;
@@ -59,7 +68,7 @@ export async function atomicWriteFileAbsolute(
   absolutePath: string,
   data: Uint8Array | string
 ): Promise<void> {
-  const tempPath = `${absolutePath}.tmp`;
+  const tempPath = uniqueTempPath(absolutePath);
   const dataToWrite = typeof data === 'string'
     ? new TextEncoder().encode(data)
     : data;

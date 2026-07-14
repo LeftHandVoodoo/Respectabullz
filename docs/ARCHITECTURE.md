@@ -1,378 +1,276 @@
 # Respectabullz Architecture
 
-**Version 1.10.2**
+Last reviewed: 2026-07-14 against commit
+`fd21363beae044f0649a1e03f3bb6bcc2249f970`
 
-## Overview
+## Accurate technical description
 
-Respectabullz is a desktop application for dog breeder management, built with a modern tech stack optimized for local-first operation on Windows.
+Respectabullz is a React and TypeScript desktop application packaged with Tauri 2.
+It uses SQLite through `tauri-plugin-sql`, scoped filesystem/dialog/notification
+plugins, and narrow Rust commands for database integrity, managed documents, and the
+fixed support-page destination. The broad shell plugin/permission is not enabled.
 
-## System Architecture
+Most domain/UI logic remains in TypeScript, while the Rust crate now owns the Tauri
+host plus integrity-sensitive setup/migration and managed-document boundaries. It is
+not a separate API server. Prisma files are development/schema reference material;
+Prisma is not the runtime ORM.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Tauri Shell                               │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │                    React Frontend                          │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐   │  │
-│  │  │   Pages     │  │ Components  │  │  State (Query)  │   │  │
-│  │  └─────────────┘  └─────────────┘  └─────────────────┘   │  │
-│  │         │                │                  │             │  │
-│  │         └────────────────┼──────────────────┘             │  │
-│  │                          ▼                                │  │
-│  │              ┌─────────────────────┐                      │  │
-│  │              │    Data Hooks       │                      │  │
-│  │              │  (TanStack Query)   │                      │  │
-│  │              └─────────────────────┘                      │  │
-│  │                          │                                │  │
-│  │                          ▼                                │  │
-│  │              ┌─────────────────────┐                      │  │
-│  │              │   Database Layer    │                      │  │
-│  │              │  (lib/db/*.ts)      │                      │  │
-│  │              │  Modular structure  │                      │  │
-│  │              └─────────────────────┘                      │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-│                              ▼                                   │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │                   Rust Backend                             │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐   │  │
-│  │  │   Plugins   │  │  File I/O   │  │  Notifications  │   │  │
-│  │  └─────────────┘  └─────────────┘  └─────────────────┘   │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-│                              ▼                                   │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │                    SQLite Database                         │  │
-│  │         (via tauri-plugin-sql with native SQLite)          │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+## System context
+
+```mermaid
+flowchart LR
+    Person["Single Windows user"] --> App["Respectabullz desktop process"]
+    App --> DB
+    App --> Photos
+    App --> Docs
+    App --> Contracts
+    App --> Logs
+    App --> Selected["User-selected import/export paths"]
+    App -. "explicit user action" .-> Browser["Default browser / GitHub"]
+
+    subgraph Storage["Local application-data boundary"]
+        DB["SQLite database"]
+        Photos["Managed photos"]
+        Docs["Managed documents"]
+        Contracts["Generated contracts"]
+        Logs["Diagnostic log"]
+    end
 ```
 
-## Layer Responsibilities
+Core workflows do not require an application backend. Browser, cloud-folder, and
+export destinations are external boundaries. Opening or copying content to them is
+not the same as keeping data inside the local application boundary.
 
-### 1. Tauri Shell (src-tauri/)
-- **Purpose**: Native OS integration, window management, system resources
-- **Responsibilities**:
-  - Application lifecycle management
-  - Native file dialogs
-  - System notifications
-  - File system access
-  - OS-level security
+## Runtime components
 
-### 2. React Frontend (src/)
-- **Purpose**: User interface and interaction
-- **Responsibilities**:
-  - Rendering UI components
-  - Form handling and validation
-  - Client-side routing
-  - Theme management
-  - User feedback (toasts, dialogs)
+```mermaid
+flowchart TB
+    UI["Pages and React components"] --> Hooks["Domain hooks and TanStack Query"]
+    Hooks --> Modules["TypeScript domain/database modules"]
+    Modules --> SQLPlugin["tauri-plugin-sql"]
+    SQLPlugin --> SQLite["respectabullz.db"]
 
-### 3. State Management (TanStack Query)
-- **Purpose**: Server state synchronization and caching
-- **Responsibilities**:
-  - Data fetching and caching
-  - Optimistic updates
-  - Background refetching
-  - Query invalidation
-
-### 4. Database Layer (lib/db/)
-- **Purpose**: Data persistence abstraction with modular architecture
-- **Structure**:
-  - `connection.ts` - SQLite connection management via tauri-plugin-sql (uses promise-based locking to prevent duplicate connections)
-  - `migrations.ts` - Schema versioning and database initialization
-  - `utils.ts` - ID generation, date/type conversions
-  - `dogs.ts` - Dog, DogPhoto, PedigreeEntry operations
-  - `litters.ts` - Litter, LitterPhoto operations
-  - `health.ts` - Vaccinations, Weight, Medical, Genetic Tests, Puppy Health Tasks
-  - `breeding.ts` - Heat Cycles, Heat Events, External Studs
-  - `sales.ts` - Clients, Sales, Client Interests, Waitlist
-  - `operations.ts` - Expenses, Transports, Communication Logs
-  - `documents.ts` - Document Management, Tags, Entity Linking
-  - `settings.ts` - Settings, Breeder Settings
-  - `dashboard.ts` - Dashboard Stats, Activity Feed
-  - `init.ts` - Database initialization and migration orchestration
-  - `legacy.ts` - Compatibility stubs for functions pending full implementation
-  - `index.ts` - Centralized re-exports for backwards compatibility
-- **Supporting Utilities**:
-  - `src/lib/fsUtils.ts` - Atomic file write helpers using write-to-temp-then-rename pattern
-- **Responsibilities**:
-  - CRUD operations for all entities
-  - Data validation and type conversion
-  - Relationship management
-  - Automatic migration from localStorage to SQLite
-  - Import/export functionality
-
-### 5. SQLite Database (tauri-plugin-sql)
-- **Purpose**: Persistent data storage with native SQLite
-- **Responsibilities**:
-  - Data integrity (foreign keys, constraints)
-  - Transaction management
-  - Index optimization
-  - Automatic schema migrations
-  - Data persistence across app restarts
-
-## Directory Structure
-
-```
-respectabullz/
-├── docs/                    # Documentation
-│   ├── ARCHITECTURE.md      # This file
-│   ├── DATA_MODEL.md        # Database schema docs
-│   └── API.md               # Internal API docs
-├── prisma/
-│   └── schema.prisma        # Database schema definition
-├── public/                  # Static assets
-├── src/
-│   ├── components/          # React components
-│   │   ├── ui/              # Reusable UI primitives (shadcn)
-│   │   │   ├── form-dialog.tsx      # Reusable form dialog wrapper
-│   │   │   ├── confirm-dialog.tsx   # Confirmation dialog component
-│   │   │   └── virtual-table.tsx   # Virtualized table component
-│   │   ├── layout/          # App shell components
-│   │   ├── dogs/            # Dog-specific components
-│   │   ├── litters/         # Litter components
-│   │   ├── health/          # Health tracking components
-│   │   ├── puppy-health/   # Puppy health task components
-│   │   ├── waitlist/       # Waitlist and reservation components
-│   │   ├── communication/  # Client communication logging
-│   │   ├── breeding/       # Breeding planning and external studs
-│   │   ├── genetics/       # Genetic testing and compatibility
-│   │   ├── pedigree/      # Pedigree chart components
-│   │   ├── registry/      # Registration tracking components
-│   │   ├── packet/        # Customer packet PDF export components
-│   │   │   ├── PacketExportDialog.tsx  # Export dialog with section selection
-│   │   │   ├── generatePacketPdf.tsx   # Lazy-loaded PDF generation (code-split)
-│   │   │   └── templates/              # PDF template components
-│   │   │       ├── PacketDocument.tsx  # Main document orchestrator
-│   │   │       ├── CoverPage.tsx       # Cover page template
-│   │   │       ├── DogInfoSection.tsx  # Dog information section
-│   │   │       ├── PedigreeSection.tsx # Pedigree chart (landscape)
-│   │   │       ├── HealthSection.tsx   # Health records section
-│   │   │       ├── WeightChartSection.tsx # Weight tracking section
-│   │   │       ├── FinancialSection.tsx # Financial information section
-│   │   │       ├── CareInstructionsSection.tsx # Care guide section
-│   │   │       └── PhotoGallerySection.tsx # Photo gallery section
-│   │   ├── heat-cycles/     # Heat cycle components
-│   │   ├── transport/       # Transport components
-│   │   ├── expenses/        # Expense components
-│   │   │   ├── ExpenseFormDialog.tsx   # Expense create/edit form
-│   │   │   ├── ExpensesChart.tsx       # Expenses over time chart
-│   │   │   ├── ExpensesFilters.tsx     # Search and filter controls
-│   │   │   ├── ExpensesTable.tsx       # Expense list with sorting
-│   │   │   └── DogExpensesList.tsx     # Dog-specific expense view
-│   │   ├── inquiries/       # Client interest/inquiry components
-│   │   ├── sales/           # Sale form and contract components
-│   │   ├── clients/         # Client components
-│   │   └── contacts/        # Business contacts management
-│   ├── hooks/               # Custom React hooks
-│   │   ├── useDogs.ts       # Dog CRUD operations
-│   │   ├── useLitters.ts    # Litter operations
-│   │   ├── useHealth.ts     # Vaccinations, weights, medical
-│   │   ├── usePuppyHealthTasks.ts # Puppy health task operations
-│   │   ├── useWaitlist.ts  # Waitlist operations
-│   │   ├── useCommunicationLogs.ts # Communication logging
-│   │   ├── useExternalStuds.ts # External stud operations
-│   │   ├── useGeneticTests.ts # Genetic test operations
-│   │   └── pdfExport.ts        # PDF generation utilities and styles
-│   │   ├── useHeatCycles.ts # Heat cycle operations
-│   │   ├── useTransport.ts  # Transport operations
-│   │   ├── useExpenses.ts   # Expense operations
-│   │   ├── useClients.ts    # Client/sale operations
-│   │   ├── useClientInterests.ts # Client interest/inquiry operations
-│   │   ├── useBreederSettings.ts # Breeder/kennel settings
-│   │   ├── useContract.ts   # Contract document generation
-│   │   ├── useDashboard.ts  # Dashboard stats
-│   │   ├── useContacts.ts   # Business contacts operations
-│   │   └── useSettings.ts   # App settings
-│   ├── lib/                 # Utilities and services
-│   │   ├── db.ts            # Database client
-│   │   ├── utils.ts         # Helper functions
-│   │   ├── version.ts       # Version constant
-│   │   ├── contractUtils.ts # Contract generation utilities
-│   │   ├── contractFormatting.ts # Shared contract formatting helpers
-│   │   ├── photoUtils.ts    # Photo upload and display utilities
-│   │   ├── backupUtils.ts   # Full backup with photos (ZIP)
-│   │   ├── pdfExport.ts     # PDF generation utilities and styles
-│   │   ├── errorTracking.ts # Centralized error logging service
-│   │   └── notifications.ts # Notification utilities
-│   ├── pages/               # Route page components
-│   ├── types/               # TypeScript type definitions
-│   ├── App.tsx              # Root component with routing
-│   ├── main.tsx             # Application entry point
-│   └── index.css            # Global styles and theme
-├── src-tauri/               # Rust/Tauri backend
-│   ├── src/
-│   │   ├── lib.rs           # Plugin initialization and Tauri commands (select_directory)
-│   │   └── main.rs          # Entry point
-│   ├── Cargo.toml           # Rust dependencies
-│   └── tauri.conf.json      # Tauri configuration
-└── [config files]           # Various configuration files
+    UI --> NativeUtils["TypeScript native-integration utilities"]
+    NativeUtils --> Tauri["Tauri plugin/capability boundary"]
+    Tauri --> Managed["AppData files"]
+    Tauri --> DialogPaths["Dialog-selected external paths"]
 ```
 
-## Data Flow
+### React renderer
 
-### Read Operation
+`src/` contains the user interface, form logic, domain hooks, database modules, and
+native-integration utilities. React Hook Form and Zod are used in selected forms and
+boundaries; this does not prove that every input or imported file is schema-validated.
+
+TanStack Query manages fetched state, caching, invalidation, and optimistic updates.
+Optimistic behavior must be tested per mutation because a cache rollback does not
+roll back a database or filesystem side effect.
+
+### Database access
+
+Tauri's SQL plugin preloads only `sqlite:respectabullz.db` from trusted application
+configuration. `src/lib/db/connection.ts` retrieves that existing pool with
+`Database.get`; production and synthetic-demo capabilities grant select/execute but
+not renderer-controlled pool load/close. This prevents alternate SQLite pool creation
+through the renderer but is not a query sandbox: renderer code still issues hand-written
+parameterized SQL against the fixed application database. Domain modules cover animals,
+litters, health, breeding, clients, sales, operations, documents, settings, and
+dashboard queries.
+
+Fresh setup and the declared schema-v4→v5 migration are owned by the typed Tauri
+command in `src-tauri/src/database_integrity.rs`. It acquires one SQLx connection,
+sets a per-connection busy timeout, starts `BEGIN IMMEDIATE`, enables and verifies
+foreign keys, runs setup/migration and schema-version update, checks required tables
+and `foreign_key_check`, and commits or rolls back. `src/lib/db/schema.sql` is embedded
+for schema setup. Other historical schema versions are explicitly unsupported.
+
+The former automatic `respectabullz_db` browser-storage importer is also unsupported.
+Startup performs a read-only key check before SQLite setup; detection, or inability to
+inspect browser storage, blocks the operational shell and leaves the payload untouched.
+This is containment, not a recovery feature.
+
+Seven real-SQLite tests cover fresh setup, v4→v5, a no-op second run, two-connection
+startup serialization, injected-failure rollback and retry, unsupported baseline
+rejection, and a foreign-key violation. Final packaged Windows upgrade verification is
+still pending. This scoped migration result does not prove global application
+foreign-key enforcement.
+
+The application shell is not rendered until database integrity setup and document
+reconciliation return successfully. A setup/reconciliation failure shows a blocking
+retry screen instead of operational routes. Reconciliation takes the same
+`BEGIN IMMEDIATE` write reservation used by document mutations. Its 10,000-entry scan
+limit can produce a warning and allow startup only when no actual failure was recorded;
+such a result is truncated rather than exhaustive.
+
+`prisma/schema.prisma` and other schema descriptions are reference material and may
+drift; they must not be presented as the runtime source of truth. See
+[Reliability](RELIABILITY.md).
+
+### Tauri host and plugins
+
+`src-tauri/` configures the desktop window and registers plugins. Renderer-visible
+capabilities control access to native filesystem, dialog, notification, and SQL
+operations. Broad Tauri shell-open permission and plugin initialization were removed;
+managed documents open through a Rust command that requires a database-backed filename
+and canonical path inside the managed directory. A configured permission or CSP is a
+boundary, not proof that every native call is safe.
+
+The CSP permits inline styles and image loading from self, data/asset sources, and
+`http://asset.localhost`, which Tauri's `convertFileSrc` uses for scoped local assets.
+Connection sources remain self-only. Permission and asset-origin scope remain part of
+the remediation threat model.
+
+## Storage model
+
+Tauri's application-data directory contains or can contain:
+
+- `respectabullz.db` — SQLite records;
+- `photos/` — application-managed animal/litter images;
+- `documents/` — copied application-managed documents;
+- `contracts/` — contracts saved to the default managed location; and
+- `logs/respectabullz.log` — local diagnostics.
+
+Some settings allow a user-selected external contract or export destination. Those
+files are outside the managed storage boundary. SQLite generally stores paths or
+filenames for associated files rather than their binary contents.
+
+The database, managed files, logs, and current exports are plaintext unless the host
+or destination supplies encryption.
+
+## Data flows
+
+### Read
+
+1. A page calls a domain hook.
+2. The hook calls a TypeScript database function.
+3. The function sends a parameterized query through `tauri-plugin-sql`.
+4. Returned rows are mapped to TypeScript objects.
+5. TanStack Query caches the result and React renders it.
+
+### Database-only write
+
+1. A form or action validates the fields covered by that UI boundary.
+2. A mutation calls a domain database function.
+3. SQL changes the relevant rows.
+4. Query data is invalidated or an optimistic cache is reconciled.
+5. The UI reports the result.
+
+Each path still needs negative tests for constraint failures, malformed state, and
+query/cache reconciliation.
+
+### Database plus file write
+
+Document, photo, contract, and export workflows cross two independent systems:
+SQLite and the filesystem. There is no shared transaction between them.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant R as Renderer
+    participant F as Filesystem
+    participant D as SQLite
+    U->>R: Select or generate file
+    R->>F: Copy/write file
+    R->>D: Insert/update path and metadata
+    alt second step fails
+        R-->>U: Must report failure and compensate
+    else both steps succeed
+        R-->>U: Confirm committed result
+    end
 ```
-User Action → Page Component → Data Hook (useQuery)
-                                    ↓
-                              Check Cache
-                                    ↓
-                            Cache Hit? → Return Data
-                                    ↓ No
-                              db.ts function
-                                    ↓
-                              localStorage/SQLite
-                                    ↓
-                              Return Data → Update Cache → Render
-```
 
-### Write Operation
-```
-User Action → Form Submit → Data Hook (useMutation)
-                                    ↓
-                              db.ts function
-                                    ↓
-                              localStorage/SQLite
-                                    ↓
-                              Success → Invalidate Queries → Refetch → Render
-                                    ↓
-                              Show Toast Notification
-```
+The managed-document path now provides scoped compensation: file selection does not
+write permanent storage; one Rust command validates and stages the file while one SQLx
+connection/transaction creates the document, tags, and entity link; edit replaces
+notes/tags in one transaction; and delete uses a recoverable tombstone. Startup
+reconciliation removes abandoned staging, restores or removes tombstones according to
+database state, and quarantines unregistered final files. A commit-result ambiguity on
+delete preserves the tombstone for that durable-state decision instead of guessing.
+Actual reconciliation failures block startup; scan-limit truncation warns and permits
+startup only when no failure was recorded, so the scan is not represented as exhaustive.
 
-## Key Design Decisions
+This does not make SQLite and the filesystem one atomic system. File cleanup can still
+leave an explicitly reported residue, and photo, contract, export, and other file
+workflows retain their own narrower guarantees. Individual write-to-temp/rename helpers
+reduce interrupted-write risk only for their documented destination.
 
-### 1. Local-First Architecture
-- All data stored locally in SQLite/localStorage
-- No external network dependencies
-- Instant response times
-- Full offline capability
+The partial ZIP exporter is an explicit exception: the native save grant covers the
+exact selected file, not a sibling temporary path, so the exporter writes directly and
+is non-atomic. Custom contract-folder grants are session-scoped and must be reselected
+after restart; persisted legacy paths are ignored by generation.
 
-### 2. Component-Based UI
-- shadcn/ui for consistent, accessible components
-- Tailwind CSS for utility-first styling
-- Radix UI primitives for complex interactions
+## Recovery boundary
 
-### 3. Form Handling
-- React Hook Form for form state management
-- Zod for schema validation
-- Consistent dialog-based forms across entities
-- Multi-step forms for complex workflows (e.g., contract generation)
+The historical restore path is withdrawn. It could write photos before database
+import succeeded, and the export did not cover all application state. Existing JSON
+and ZIP outputs are therefore partial exports, not verified backups.
 
-### 4. State Management
-- TanStack Query for server state
-- React Context for theme/settings
-- No global state management library (kept simple)
+The proposed staged format and acceptance matrix are in
+[`BACKUP_FORMAT.md`](BACKUP_FORMAT.md). No format version is currently supported for
+restore.
 
-### 5. Type Safety
-- TypeScript throughout
-- Prisma for type-safe database operations
-- Shared types between frontend and database
+There is also no verified in-app factory reset. A complete reset requires enumerating
+every database table and managed file category, handling failures, and distinguishing
+managed data from external copies.
 
-### 6. Atomic File Operations
-- All critical file writes use write-to-temp-then-rename pattern (`fsUtils.ts`)
-- Prevents data corruption from interrupted writes (power loss, crash)
-- Applied to: backups, contracts, photos, documents, log files
-- Pattern: write to `path.tmp`, then atomically rename to `path`
+## Network and reporting boundary
 
-## Security Considerations
+Core operation has no application server. The historical code path for direct GitHub
+issue creation with a Vite-bundled token is unsupported and must not be configured.
+The portfolio-safe reporting design is:
 
-### Data Protection
-- All data stored locally on user's machine
-- No data transmitted to external servers
-- File paths stored instead of file contents (for attachments, photos, and documents)
-- Photos stored in `{appDataDir}/photos/` with unique filenames
-- Documents stored in `{appDataDir}/documents/` with unique filenames
-- Contracts stored in `{appDataDir}/contracts/` by default, or in user-selected custom directory
-- Full backups include all photos and documents in ZIP format for portability
+1. prepare sanitized report text locally;
+2. show the exact content to the user;
+3. after explicit approval, copy that exact text and open only the fixed blank GitHub
+   Issues/new page, with no report data in the URL; and
+4. require the user to paste and submit it under their own GitHub session.
 
-### Input Validation
-- Zod schemas validate all user input
-- SQL injection prevented by Prisma's parameterized queries
-- XSS prevented by React's default escaping
+The preview remains the final semantic privacy check. Never place a repository token
+or configurable support destination in renderer-visible configuration.
 
-### Permissions
-- Tauri plugins configured with minimal required permissions
-- File system access scoped to app data directory
+## Trust boundaries and assumptions
 
-## Performance Considerations
+The architecture trusts:
 
-### Caching
-- TanStack Query caches all fetched data
-- 5-minute stale time for data freshness
-- Background refetching on window focus
+- the signed-in Windows user to control local access;
+- the operating system and Tauri runtime;
+- installed npm and Rust dependencies;
+- SQLite and filesystem behavior within their documented contracts; and
+- users to review content before external submission or export.
 
-### Lazy Loading & Code Splitting
-- All pages except Dashboard use React.lazy() for code splitting
-- Suspense boundary with skeleton loading fallback for smooth page transitions
-- Vite manual chunks for vendor libraries:
-  - `vendor-react`: React, ReactDOM, React Router (165 kB)
-  - `vendor-radix`: All Radix UI components (164 kB)
-  - `vendor-recharts`: Recharts library (411 kB, loaded only for Reports/Expenses)
-  - `vendor-pdf-renderer`: @react-pdf/renderer (1,489 kB, loaded only when generating PDFs)
-  - `vendor-pdf-viewer`: react-pdf and pdfjs-dist (462 kB, loaded only for document viewing)
-- Initial bundle reduced from 4,291 kB to 320 kB (93% reduction)
-- Virtual scrolling implemented for large lists using @tanstack/react-virtual
+It does not defend against an attacker who already controls the Windows account or
+device. It must still defend against malformed imported files, path manipulation,
+resource exhaustion, partial failure, stale/corrupt databases, accidental destructive
+actions, and renderer compromise within the granted capabilities.
 
-### Database Optimization
-- Indexes on frequently queried fields
-- Relationships normalized to prevent data duplication
+See the [threat model](THREAT_MODEL.md) and [privacy statement](../PRIVACY.md).
 
-## Deployment & Upgrades
+## Deployment boundary
 
-### Installer Configuration
-- **NSIS Installer**: Windows installer built with NSIS (Nullsoft Scriptable Install System)
-- **Upgrade Support**: Installer automatically detects existing installations using identifier `com.respectabullz.app`
-- **In-Place Upgrades**: Users can upgrade directly without uninstalling previous versions
-- **Data Preservation**: All user data stored in `%APPDATA%/com.respectabullz.app/` is preserved during upgrades
-  - Database files (SQLite)
-  - Photos directory (`photos/`)
-  - Documents directory (`documents/`)
-  - Contracts directory (`contracts/` or user-selected custom directory)
-  - Attachments directory
-  - Backups directory
-  - Settings and preferences
+The configured Windows bundle target is NSIS. A local `tauri build` output is not a
+verified public release. Distribution requires a controlled build, dated test and
+advisory evidence, a SHA-256 checksum, an SBOM where practical, explicit signing
+status, and a clean-machine smoke test for the exact tag and commit.
 
-### Database Migrations
-- **Automatic Migration**: Schema migrations run automatically on first launch after upgrade
-- **Version Tracking**: Database schema version tracked in `_schema_version` table
-- **Migration System**: Located in `src/lib/db/migrations.ts`
-- **Backward Compatibility**: Migrations designed to preserve existing data
+The repository defines a required frontend/Windows/security-evidence CI workflow, but
+no successful final-SHA public run is linked yet. No current document claims a signed
+or clean-machine-verified installer.
 
-### Upgrade Process
-1. User downloads new installer (e.g., `Respectabullz_1.4.0_x64-setup.exe`)
-2. Installer detects existing installation
-3. Application files updated in-place
-4. User data in AppData directory remains untouched
-5. On first launch, app checks schema version and runs migrations if needed
-6. All data, photos, and settings preserved automatically
+## Deliberate exclusions
 
-## Future Considerations
+- cloud synchronization;
+- browser or mobile clients;
+- multi-user permissions;
+- application-level authentication;
+- hosted API services;
+- encrypted fields or encrypted backup archives; and
+- model inference, retrieval, or other AI runtime features.
 
-### Completed Improvements (as of 1.10.2)
-- ✅ PDF generation for contracts (dual Word + PDF output since 1.6.0)
-- ✅ PDF viewer with page navigation and zoom controls (since 1.5.0)
-- ✅ Code splitting with 93% bundle size reduction (since 1.8.1)
-- ✅ Lazy-load PDF renderer for on-demand loading (since 1.9.4)
-- ✅ Structured logging with environment-based log levels (since 1.9.4)
-- ✅ Security hardening with CSP and restricted file access (since 1.10.0)
-- ✅ Data integrity validation with zod schemas (since 1.10.0)
-- ✅ UUID v4 filenames for collision prevention (since 1.10.0)
-- ✅ Atomic file writes for data corruption prevention (since 1.10.2)
-- ✅ Database singleton with promise-based locking (since 1.10.2)
-- ✅ Optimistic update rollback in mutation hooks (since 1.10.2)
+## Architecture decisions
 
-### Planned Improvements
-1. Full Prisma integration with Tauri IPC
-2. Photo image optimization and thumbnail generation
-3. Calendar integration with external calendars
-4. Multi-device sync (optional cloud backup)
-5. Contract template editor UI
-6. Photo/document deletion cleanup (orphaned files)
-7. Office document rendering in document viewer
+- [ADR 0001: Local-first Windows desktop](adr/0001-local-first-desktop.md)
+- [ADR 0002: Withdraw unsafe restore](adr/0002-withdraw-unsafe-restore.md)
 
-### Scalability
-- Current architecture supports ~10,000 dogs
-- Virtual scrolling implemented for large lists (auto-enables for lists > 50 items)
-- Consider SQLite WAL mode for concurrent access if needed
-
+Future architectural claims must link to implemented code and dated evidence. This
+document should be revised whenever storage, permissions, external connections,
+migration support, or release boundaries change.

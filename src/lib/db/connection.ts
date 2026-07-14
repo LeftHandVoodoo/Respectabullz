@@ -7,8 +7,8 @@ import { logger } from '../errorTracking';
 // Database singleton instance
 let db: Database | null = null;
 
-// Promise-based lock to prevent duplicate connection attempts
-// This ensures only one Database.load() call is in flight at a time
+// Promise-based lock to prevent duplicate connection verification attempts.
+// Rust preloads the only supported pool before the renderer starts.
 let dbPromise: Promise<Database> | null = null;
 
 // Database path - will be in app data directory
@@ -16,13 +16,13 @@ let dbPromise: Promise<Database> | null = null;
 const DB_NAME = 'sqlite:respectabullz.db';
 
 /**
- * Get or create the database connection
+ * Get the fixed, Rust-preloaded database connection
  * This is a singleton - only one connection is maintained
  *
  * Uses a promise-based lock to prevent race conditions where multiple
- * concurrent calls to getDatabase() could create duplicate connections.
- * The first caller initiates the connection, and subsequent callers
- * await the same promise.
+ * concurrent calls to getDatabase() could duplicate startup verification.
+ * The first caller retrieves and verifies the fixed pool, and subsequent
+ * callers await the same promise.
  */
 export async function getDatabase(): Promise<Database> {
   // Fast path: return cached connection
@@ -38,17 +38,14 @@ export async function getDatabase(): Promise<Database> {
   // Initiate new connection with promise-based lock
   dbPromise = (async () => {
     try {
-      logger.debug('Attempting to load database', { name: DB_NAME });
-      const database = await Database.load(DB_NAME);
+      logger.debug('Retrieving preloaded database', { name: DB_NAME });
+      const database = Database.get(DB_NAME);
+
       logger.info('Successfully connected to SQLite database');
 
-      // Test the connection with a simple query
-      try {
-        await database.select('SELECT 1 as test');
-        logger.debug('Database connection verified');
-      } catch (testError) {
-        logger.warn('Connection test failed', { error: testError });
-      }
+      // Fail closed if the fixed pool was not preloaded by the Rust plugin.
+      await database.select('SELECT 1 as test');
+      logger.debug('Database connection verified');
 
       // Store in singleton before returning
       db = database;
@@ -79,7 +76,7 @@ export async function getDatabase(): Promise<Database> {
       }
       logger.debug('Extracted error message', { errorMessage });
 
-      throw new Error(`Database connection failed: ${errorMessage}. Please ensure Tauri is running and SQL plugin is properly configured.`);
+      throw new Error(`Database connection failed: ${errorMessage}. Please ensure Tauri is running and the fixed SQL pool was preloaded.`);
     } finally {
       // Clear promise lock so retry is possible on failure
       dbPromise = null;
@@ -87,21 +84,6 @@ export async function getDatabase(): Promise<Database> {
   })();
 
   return dbPromise;
-}
-
-/**
- * Close the database connection
- * Call this when the app is shutting down
- */
-export async function closeDatabase(): Promise<void> {
-  // Clear promise lock first to prevent new connection attempts during close
-  dbPromise = null;
-
-  if (db) {
-    await db.close();
-    db = null;
-    logger.info('Database connection closed');
-  }
 }
 
 /**
@@ -137,47 +119,6 @@ export async function execute(
 }
 
 /**
- * Execute multiple SQL statements in a transaction
- * If any statement fails, all changes are rolled back
- */
-export async function transaction<T>(
-  callback: (tx: TransactionContext) => Promise<T>
-): Promise<T> {
-  const database = await getDatabase();
-  
-  await database.execute('BEGIN TRANSACTION');
-  
-  try {
-    const result = await callback({
-      query: async <R = Record<string, unknown>>(sql: string, params: unknown[] = []) => {
-        return database.select<R[]>(sql, params);
-      },
-      execute: async (sql: string, params: unknown[] = []) => {
-        const result = await database.execute(sql, params);
-        return {
-          lastInsertId: result.lastInsertId ?? 0,
-          rowsAffected: result.rowsAffected,
-        };
-      },
-    });
-    
-    await database.execute('COMMIT');
-    return result;
-  } catch (error) {
-    await database.execute('ROLLBACK');
-    throw error;
-  }
-}
-
-/**
- * Transaction context passed to transaction callbacks
- */
-export interface TransactionContext {
-  query: <T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T[]>;
-  execute: (sql: string, params?: unknown[]) => Promise<{ lastInsertId: number; rowsAffected: number }>;
-}
-
-/**
  * Check if the database has been initialized
  */
 export async function isDatabaseInitialized(): Promise<boolean> {
@@ -194,23 +135,6 @@ export async function isDatabaseInitialized(): Promise<boolean> {
     // If database doesn't exist or connection fails, it's not initialized
     logger.debug('Database not initialized (expected on first run)', { error: error instanceof Error ? error.message : String(error) });
     return false;
-  }
-}
-
-/**
- * Check if the database has any data
- */
-export async function isDatabaseEmpty(): Promise<boolean> {
-  try {
-    const database = await getDatabase();
-    const result = await database.select<Array<{ count: number }>>(
-      'SELECT COUNT(*) as count FROM dogs'
-    );
-    return (result[0]?.count ?? 0) === 0;
-  } catch (error) {
-    // If query fails, assume database is empty
-    logger.debug('Could not check if database is empty', { error: error instanceof Error ? error.message : String(error) });
-    return true;
   }
 }
 

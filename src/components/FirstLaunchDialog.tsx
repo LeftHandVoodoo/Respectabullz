@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Dog, Database, Sparkles, Loader2 } from 'lucide-react';
+import { useState, useEffect, type ReactNode } from 'react';
+import { Dog, Database, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -10,49 +10,50 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { Progress } from '@/components/ui/progress';
 import { initializeAppDatabase, checkFirstLaunch } from '@/lib/db/init';
+import { logger } from '@/lib/errorTracking';
 
 const FIRST_LAUNCH_KEY = 'respectabullz_first_launch_complete';
 
-export function FirstLaunchDialog() {
+interface FirstLaunchDialogProps {
+  children: ReactNode;
+}
+
+type BootstrapStatus = 'initializing' | 'ready' | 'error';
+
+export function FirstLaunchDialog({ children }: FirstLaunchDialogProps) {
   const [open, setOpen] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
-  const [migrationProgress, setMigrationProgress] = useState<string>('');
+  const [bootstrapStatus, setBootstrapStatus] = useState<BootstrapStatus>('initializing');
+  const [bootstrapError, setBootstrapError] = useState('');
+  const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
     // Initialize database on mount
     // Add a small delay to ensure Tauri is fully initialized
     const initDatabase = async () => {
-      setIsInitializing(true);
+      setBootstrapStatus('initializing');
+      setBootstrapError('');
       
       // Small delay to ensure Tauri plugins are ready
       await new Promise(resolve => setTimeout(resolve, 100));
       
       try {
-        const result = await initializeAppDatabase((stage, current, total) => {
-          setMigrationProgress(`Migrating ${stage}: ${current} of ${total}...`);
-        });
+        const result = await initializeAppDatabase();
         
         if (!result.success) {
           const errorMsg = result.error || 'Unknown error occurred';
-          console.error('[FirstLaunch] Database initialization failed:', errorMsg);
+          logger.error('First-launch database initialization failed', undefined, {
+            error: errorMsg,
+          });
           toast({
             title: 'Database initialization failed',
             description: `${errorMsg}. Please check the console for details and restart the application.`,
             variant: 'destructive',
           });
-          setIsInitializing(false);
+          setBootstrapError(errorMsg);
+          setBootstrapStatus('error');
           return;
-        }
-        
-        if (result.migrated && result.migratedCounts) {
-          const totalMigrated = Object.values(result.migratedCounts).reduce((a, b) => a + b, 0);
-          toast({
-            title: 'Data migrated successfully',
-            description: `Migrated ${totalMigrated} records from localStorage to SQLite.`,
-          });
         }
         
         // Check if this is the first launch (no breeder settings)
@@ -63,23 +64,25 @@ export function FirstLaunchDialog() {
           setOpen(true);
         }
         
-        // Initialization complete - hide the loading dialog
-        setIsInitializing(false);
+        setBootstrapStatus('ready');
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        const errorStack = error instanceof Error ? error.stack : undefined;
-        console.error('[FirstLaunch] Database initialization error:', errorMsg, errorStack);
+        logger.error(
+          'First-launch database initialization error',
+          error instanceof Error ? error : undefined,
+        );
         toast({
           title: 'Initialization error',
           description: `${errorMsg}. Please check the console for details and restart the application.`,
           variant: 'destructive',
         });
-        setIsInitializing(false);
+        setBootstrapError(errorMsg);
+        setBootstrapStatus('error');
       }
     };
     
     initDatabase();
-  }, [toast]);
+  }, [bootstrapAttempt, toast]);
 
   const handleStartFresh = () => {
     localStorage.setItem(FIRST_LAUNCH_KEY, 'true');
@@ -90,19 +93,8 @@ export function FirstLaunchDialog() {
     });
   };
 
-  const handleLoadSampleData = () => {
-    // Sample data seeding for SQLite is not yet implemented
-    // Users can add data manually through the application
-    toast({
-      title: 'Sample data coming soon',
-      description: 'Sample data seeding for SQLite is being developed. Please start by adding your own dogs and litters.',
-    });
-    localStorage.setItem(FIRST_LAUNCH_KEY, 'true');
-    setOpen(false);
-  };
-
   // Show initialization screen while database is being set up
-  if (isInitializing) {
+  if (bootstrapStatus === 'initializing') {
     return (
       <Dialog open={true} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-md">
@@ -111,80 +103,88 @@ export function FirstLaunchDialog() {
               <Loader2 className="h-8 w-8 animate-spin text-brand-blue" />
             </div>
             <DialogTitle className="text-xl">Initializing Database</DialogTitle>
-            <DialogDescription>
-              {migrationProgress || 'Setting up your database...'}
-            </DialogDescription>
+            <DialogDescription>Setting up and verifying your database...</DialogDescription>
           </DialogHeader>
-          {migrationProgress && (
-            <div className="py-4">
-              <Progress value={50} className="w-full" />
-            </div>
-          )}
         </DialogContent>
       </Dialog>
     );
   }
 
-  if (!open) return null;
+  if (bootstrapStatus === 'error') {
+    return (
+      <Dialog open onOpenChange={() => {}}>
+        <DialogContent
+          className="sm:max-w-md"
+          onPointerDownOutside={(event) => event.preventDefault()}
+          onEscapeKeyDown={(event) => event.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Database integrity check failed</DialogTitle>
+            <DialogDescription>
+              Respectabullz did not open the workspace because database setup or document
+              reconciliation could not finish safely. No operational screens are available until
+              this check succeeds.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+            {bootstrapError || 'The database could not be initialized safely.'}
+          </p>
+          <DialogFooter>
+            <Button onClick={() => setBootstrapAttempt((attempt) => attempt + 1)}>
+              Retry integrity check
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent 
-        className="sm:max-w-lg"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-      >
-        <DialogHeader className="text-center sm:text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-blue/10">
-            <Dog className="h-8 w-8 text-brand-blue" />
+    <>
+      {children}
+      <Dialog open={open} onOpenChange={() => {}}>
+        <DialogContent
+          className="sm:max-w-lg"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <DialogHeader className="text-center sm:text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-blue/10">
+              <Dog className="h-8 w-8 text-brand-blue" />
+            </div>
+            <DialogTitle className="text-2xl font-display">
+              Welcome to Respectabullz
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              Your professional breeder management system is ready to go.
+              How would you like to get started?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-6">
+            <Button
+              variant="outline"
+              className="h-auto flex-col items-start gap-2 p-4 text-left"
+              onClick={handleStartFresh}
+            >
+              <div className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-brand-brown" />
+                <span className="font-semibold">Start Fresh</span>
+              </div>
+              <span className="text-sm text-muted-foreground">
+                Begin with an empty database. Perfect if you're ready to add your own dogs and litters.
+              </span>
+            </Button>
           </div>
-          <DialogTitle className="text-2xl font-display">
-            Welcome to Respectabullz
-          </DialogTitle>
-          <DialogDescription className="text-base">
-            Your professional breeder management system is ready to go.
-            How would you like to get started?
-          </DialogDescription>
-        </DialogHeader>
 
-        <div className="grid gap-4 py-6">
-          <Button
-            variant="outline"
-            className="h-auto flex-col items-start gap-2 p-4 text-left"
-            onClick={handleStartFresh}
-          >
-            <div className="flex items-center gap-2">
-              <Database className="h-5 w-5 text-brand-brown" />
-              <span className="font-semibold">Start Fresh</span>
-            </div>
-            <span className="text-sm text-muted-foreground">
-              Begin with an empty database. Perfect if you're ready to add your own dogs and litters.
-            </span>
-          </Button>
-
-          <Button
-            variant="outline"
-            className="h-auto flex-col items-start gap-2 p-4 text-left"
-            onClick={handleLoadSampleData}
-          >
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-brand-blue" />
-              <span className="font-semibold">Load Sample Data</span>
-            </div>
-            <span className="text-sm text-muted-foreground">
-              Explore with demo data including dogs, litters, health records, and more.
-              You can clear this later in Settings.
-            </span>
-          </Button>
-        </div>
-
-        <DialogFooter className="sm:justify-center">
-          <p className="text-xs text-muted-foreground text-center">
-            You can always add sample data later from Settings → Seed Test Data
-          </p>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter className="sm:justify-center">
+            <p className="text-xs text-muted-foreground text-center">
+              Development builds may provide a separate guarded synthetic-data tool.
+            </p>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

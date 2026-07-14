@@ -1,131 +1,185 @@
 # Security Policy
 
-## Supported Versions
+Respectabullz is a local-first Windows desktop project under active portfolio
+remediation. This policy describes the current reporting route, evidence boundaries,
+and known limitations. It is not a security certification or warranty.
 
-We release patches for security vulnerabilities. Which versions are eligible for receiving such patches depends on the CVSS v3.0 Rating:
+## Supported scope
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.10.x  | :white_check_mark: |
-| < 1.10  | :x:                |
+Security remediation is focused on the current default-branch source. Previously
+published binaries and older `1.10.x` builds are not represented as independently
+assessed or production-safe. A release is not considered a verified portfolio
+artifact unless its tag, commit, checksum, dependency results, signing status, and
+clean-machine smoke evidence are published together.
 
-## Security Features
+## Report a vulnerability privately
 
-### Application Security (v1.10.0+)
+Use GitHub's private security-advisory form:
 
-Respectabullz implements multiple layers of security:
+<https://github.com/LeftHandVoodoo/Respectabullz/security/advisories/new>
 
-#### Content Security Policy (CSP)
-- Enabled CSP in Tauri configuration
-- Restricts resource loading to prevent XSS attacks
-- Policy: `default-src 'self'; img-src 'self' data: asset: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; connect-src 'self' https:`
+Do not open a public issue containing exploit details, credentials, personal records,
+database files, logs, photos, contracts, or other sensitive material.
 
-#### File System Access Restrictions
-- Asset protocol scope restricted to app-specific directory: `$APPDATA/com.respectabullz.app/**`
-- Filesystem capabilities limited to:
-  - `$APPDATA/com.respectabullz.app/**` (app data)
-  - `$DOCUMENT/**` (user documents)
-  - `$PICTURE/**` (user pictures)
-  - `$DOWNLOAD/**` (downloads)
-  - `$DESKTOP/**` (desktop)
-- No wildcard access to entire filesystem
+Please include only the minimum information needed to reproduce the issue:
 
-#### Path Traversal Protection
-- Filename validation before file operations (`isValidStoredFilename()`)
-- Blocks path traversal sequences (`..`, `/`, `\`)
-- Validates UUID v4 or legacy timestamp filename formats
-- Restricts to allowed file extensions only
-- Applied before `shellOpen()` operations
+- affected version, tag, or commit;
+- operating-system version;
+- affected component and prerequisites;
+- reproduction steps using synthetic data;
+- observed and expected behavior;
+- plausible impact; and
+- a minimal proof of concept with secrets and personal information removed.
 
-#### Capability Restrictions
-- Shell plugin limited to `shell:allow-open` only
-- SQL plugin scoped to: `load`, `execute`, `select`, `close`
-- No overly permissive wildcards in capabilities
+No fixed response or remediation timeline is promised. Receipt, severity, and next
+steps will be communicated through the private advisory when possible.
 
-#### Data Integrity
-- Backup metadata validated with Zod schemas
-- JSON parsing wrapped in error handling
-- File write operations verified post-write
-- Photo restore operations track and report failures
+## Current assessment status
 
-#### Filename Security
-- UUID v4 filenames for photos and documents (prevents collisions and predictable paths)
-- Legacy timestamp format still supported for backward compatibility
-- Filename validation enforces allowed patterns
+The repository has undergone self-review and local automated checks. It has not been
+independently penetration tested or certified.
 
-## Reporting a Vulnerability
+On 2026-07-14, local checks against commit
+`fd21363beae044f0649a1e03f3bb6bcc2249f970` found:
 
-If you discover a security vulnerability, please follow these steps:
+- ESLint, TypeScript compilation, and 290 Vitest tests passing;
+- low overall automated coverage, including 0% coverage in critical migration and
+  document paths;
+- 24 npm advisory findings across all dependencies (3 critical, 9 high, 11 moderate,
+  and 1 low); and
+- 10 npm advisory findings in production dependencies (4 high and 6 moderate).
 
-1. **Do NOT** open a public GitHub issue
-2. Email security details to: [Your security email or GitHub security advisory]
-3. Include:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-   - Suggested fix (if any)
+Advisory counts are time-sensitive signals, not exploitability conclusions. They
+must be triaged for reachability, affected runtime, upgrade risk, and compensating
+controls. See [test evidence](docs/case-study/TEST_EVIDENCE.md) for exact commands and
+missing gates.
 
-### Response Timeline
+The remediation tree defines a required GitHub Actions workflow with frontend,
+Windows Rust/Tauri build and packaged smoke on an ephemeral hosted runner, secret-history, dependency-evidence,
+npm CycloneDX SBOM, installer-artifact, and checksum jobs, plus weekly Dependabot review.
+No successful public run is yet linked to a frozen final commit; the locally generated
+SBOM is not a published release artifact, and there is no code-signing verification or
+independent security report at this time.
 
-- **Initial Response**: Within 48 hours
-- **Status Update**: Within 7 days
-- **Fix Timeline**: Depends on severity (see CVSS rating)
+## Security-relevant architecture
 
-### Severity Levels
+- Core records use local SQLite through `tauri-plugin-sql`.
+- Photos, documents, contracts, and logs can be stored in application data; users can
+  also select external export destinations.
+- A Tauri capability boundary and content security policy are configured. Their
+  current breadth remains under review and should not be interpreted as least-
+  privilege proof.
+- TypeScript modules issue parameterized SQL in many paths, but validation and
+  authorization properties must be evaluated per operation.
+- The application is single-user and has no application-level authentication or
+  multi-user authorization model.
+- Local database, managed files, logs, and current exports are plaintext unless the
+  host or storage layer provides encryption.
 
-We use CVSS v3.0 to assess vulnerability severity:
+The full boundary and attacker model is documented in
+[`THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
-- **Critical (9.0-10.0)**: Immediate fix, hotfix release
-- **High (7.0-8.9)**: Fix in next patch release
-- **Medium (4.0-6.9)**: Fix in next minor or patch release
-- **Low (0.1-3.9)**: Fix in next planned release
+## Withdrawn or unsupported security-sensitive features
 
-## Security Best Practices for Contributors
+### Restore
 
-When contributing code:
+The historical restore path is withdrawn. It could mutate files before database
+import completed and did not prove complete recovery. Restore must remain disabled in
+any recruiter-visible build until the proposed format and failure matrix pass. The
+current export formats are partial exports, not verified backups.
 
-1. **Never commit secrets**: API keys, tokens, passwords, or credentials
-2. **Validate user input**: Always validate and sanitize user-provided data
-3. **Use parameterized queries**: For any database operations
-4. **Follow principle of least privilege**: Request only necessary permissions
-5. **Validate file paths**: Check for path traversal before file operations
-6. **Use structured logging**: Never log sensitive data (passwords, tokens, PII)
-7. **Review security implications**: Consider security impact of new features
+### Destructive reset
 
-### Code Review Checklist
+There is no verified in-app factory reset. Legacy clear/test-data removal paths do
+not prove removal of every table and managed file and must not claim that all data was
+deleted.
 
-- [ ] No hardcoded secrets or credentials
-- [ ] User input validated and sanitized
-- [ ] File operations validate paths
-- [ ] Error messages don't leak sensitive information
-- [ ] Logging doesn't expose sensitive data
-- [ ] Permissions requested are minimal and necessary
-- [ ] Security-related changes documented
+### GitHub credentials
 
-## Security Audit Status
+A GitHub personal access token must not be placed in any `VITE_` variable, renderer
+bundle, source file, documentation example, or distributed artifact. Older source
+contained a renderer-side direct GitHub API design; that design is unsupported. The
+remediation flow now prepares a sanitized full preview locally, requires user review,
+copies that exact draft, and opens the fixed blank GitHub Issues/new page without a
+bundled repository credential or direct API request. Report contents are not placed in
+the URL. It attaches no logs, database records, photos, or documents automatically;
+the user pastes and submits the report manually.
 
-As of 2026-01-01:
-- ✅ All Critical issues resolved (C-1, C-2)
-- ✅ All High issues resolved (H-1 through H-5)
-- ✅ All Medium issues resolved (M-1 through M-8)
-- ✅ All Low issues resolved (L-1 through L-4)
-- ✅ 0 known security vulnerabilities
+If a token was ever embedded in a build, revoke or rotate it and rebuild from a clean
+environment. Deleting the local file alone does not invalidate the credential.
 
-See [ISSUE_AUDIT.md](ISSUE_AUDIT.md) for detailed security audit results.
+The latest local pre-release checkpoint passed 354 frontend tests in
+39 files and 39 Rust tests. The exact tree also passed lint/type/
+version/demo guards, web and NSIS builds, artifact scans, production audit,
+source/history secret scans, workflow lint, and npm SBOM generation. Production npm
+audit reported 0 findings; the informative full graph retained 7. Pinned Rust audit
+retained 5 vulnerability entries plus warning groups after two transitive patch
+updates; target reachability and deferrals are in the dependency risk ledger. A native smoke caught
+a Tokio nested-runtime startup panic. After correction, the rebuilt executable remained
+alive for eight seconds with empty stderr, but Windows/Tauri ignored the attempted local
+`APPDATA` override and opened the real profile's SQLite sidecars. No records were deleted;
+the main database file mtime was unchanged. Exact final-SHA smoke evidence is therefore
+required from the ephemeral hosted CI runner.
 
-## Data Privacy
+## Known residual risks
 
-- **Local Storage Only**: All data stored locally on user's machine
-- **No External Transmission**: No data sent to external servers
-- **No Telemetry**: No usage tracking or analytics
-- **Backup Encryption**: Users are responsible for encrypting backup files if needed
+- The declared schema-v4→v5 path is transaction- and failpoint-tested against real
+  SQLite, but a packaged Windows upgrade is still pending, older schemas are rejected,
+  and the setup connection's foreign-key setting is not global pooled-connection proof.
+- Managed-document create, tag/update, delete, open, and startup reconciliation now
+  use a staged/tombstone/quarantine protocol around `BEGIN IMMEDIATE` SQL transactions.
+  Actual reconciliation failures block operational routes behind a retry screen;
+  scan-limit truncation warns and is non-exhaustive. Ambiguous delete commits preserve
+  the tombstone for startup to resolve from durable row state.
+  Other database/filesystem workflows remain path-specific and may still partially
+  complete because SQLite and the filesystem do not share a transaction.
+- Managed-document intake enforces a 100 MB cap and signature checks for supported
+  formats. Archive, image, PDF, and Office parsing still need broader adversarial and
+  decompression/resource-limit evidence, including for other file workflows.
+- The partial ZIP export writes directly to the exact dialog-granted target and is
+  non-atomic; interruption can leave an incomplete file. Photo enumeration/read errors
+  abort before destination selection rather than silently omitting managed photos.
+  Custom contract-folder grants last only for the current session and must be
+  reselected after restart.
+- Central logging redacts sensitive context-key families and common credentials,
+  paths, email/phone values, and UUIDs, and truncates long values before console,
+  memory, or disk output. Focused tests cover those patterns, but semantic personal
+  information outside the rules can still appear and must be reviewed before sharing.
+  Log clear/export serialize with pending writes to avoid queue-order races.
+- The CSP permits inline styles and `http://asset.localhost` image loading for Tauri
+  `convertFileSrc`; connection sources are self-only. The SQL plugin preloads only
+  `sqlite:respectabullz.db`, and renderer capabilities omit pool load/close authority.
+  Renderer compromise can still issue select/execute operations against that fixed
+  database, so capability and asset-origin scope still need least-privilege review.
+- Dependency advisories remain unresolved. They have a dated local reachability and
+  deferral triage in the risk ledger, but no final-SHA public scan evidence yet.
+- Unsigned Windows artifacts do not establish publisher identity and may trigger
+  SmartScreen.
+- A local attacker with access to the Windows account or application-data directory
+  can read or alter plaintext application data.
 
-## Dependencies
+## Security expectations for changes
 
-We regularly audit dependencies for vulnerabilities:
+Security-sensitive changes should include:
 
-- Run `npm audit` to check for known vulnerabilities
-- Update dependencies regularly
-- Review security advisories for critical dependencies
+- explicit trust boundaries and misuse cases;
+- positive, negative, and failure-path tests;
+- path, size, type, and resource limits for untrusted files;
+- rollback or compensation behavior for cross-database/filesystem work;
+- no credentials in renderer-visible configuration;
+- dependency and secret scans with dated results;
+- review of Tauri capabilities and CSP changes; and
+- documentation of accepted residual risk.
 
-Current status: ✅ 0 vulnerabilities (as of 2026-01-01)
+Passing a scanner or test suite is evidence for a defined scope only. Do not describe
+self-review as an independent audit, a checksum as authenticity, a signature as proof
+of safety, or an advisory count as complete vulnerability knowledge.
+
+## Related documents
+
+- [Privacy](PRIVACY.md)
+- [Threat model](docs/THREAT_MODEL.md)
+- [Reliability](docs/RELIABILITY.md)
+- [Future backup-format contract](docs/BACKUP_FORMAT.md)
+- [Test evidence](docs/case-study/TEST_EVIDENCE.md)
+- [Dependency risk ledger](docs/case-study/DEPENDENCY_RISK.md)

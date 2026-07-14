@@ -20,11 +20,11 @@ const BREEDER_SETTING_KEYS = {
 // Default values for breeder settings
 const DEFAULT_BREEDER_SETTINGS: BreederSettings = {
   kennelName: 'Respectabullz',
-  breederName: 'Johnny Bonilla',
+  breederName: '',
   addressLine1: '',
   addressLine2: '',
-  city: 'Martinsburg',
-  state: 'WV',
+  city: '',
+  state: '',
   postalCode: '',
   phone: '',
   email: '',
@@ -58,7 +58,8 @@ export function useBreederSettings() {
   };
 
   // Check if required breeder settings are configured
-  // breederName, city, and state have defaults, so only check addressLine1 and phone
+  // Do not ship real-looking personal defaults. Required identity/location
+  // fields must be entered deliberately by the user.
   const isConfigured = Boolean(
     breederSettings.breederName &&
     breederSettings.city &&

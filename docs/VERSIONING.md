@@ -14,20 +14,28 @@ MAJOR.MINOR.PATCH
 
 ## Version Locations
 
-Version is tracked in multiple files and must stay synchronized:
+`VERSION` is canonical. Release work must keep the following mirrors synchronized:
 
 | File | Purpose |
 |------|---------|
-| `src/lib/version.ts` | Single source of truth (exported constant) |
+| `VERSION` | Canonical semantic version |
 | `package.json` | npm package version |
-| `src-tauri/tauri.conf.json` | Tauri app version |
+| `package-lock.json` | Root lockfile version and root package entry |
 | `src-tauri/Cargo.toml` | Rust crate version |
+| `src-tauri/Cargo.lock` | Locked `respectabullz` package version |
+| `src-tauri/tauri.conf.json` | Tauri app version |
+| `src/lib/version.ts` | Generated frontend display mirror |
+| `.env.example` | Frontend display-version example |
+
+The bump helper updates all of these mirrors. The separate checker compares nine
+version values because `package-lock.json` contains both a top-level version and a
+root-package version.
 
 ## Updating Version
 
 Use the version bump script:
 
-```bash
+```powershell
 # Bump patch version (0.1.0 -> 0.1.1)
 node scripts/bump-version.js patch
 
@@ -40,14 +48,17 @@ node scripts/bump-version.js major
 # Set specific version
 node scripts/bump-version.js 1.2.3
 
-# Check current version
-node scripts/bump-version.js
+# Check semantic-version validity and mirror consistency
+npm run version:check
 ```
+
+`npm run version:check` exits nonzero for an invalid canonical version, a missing
+version source, or drift in any checked mirror.
 
 ## Release Checklist
 
 1. **Update Version**
-   ```bash
+   ```powershell
    node scripts/bump-version.js [type]
    ```
 
@@ -56,25 +67,33 @@ node scripts/bump-version.js
    - List all changes under Added/Changed/Fixed/Removed
 
 3. **Commit**
-   ```bash
-   git add .
+   ```powershell
+   git add VERSION package.json package-lock.json src/lib/version.ts src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json .env.example CHANGELOG.md
    git commit -m "1.2.3 Release description"
    ```
 
 4. **Tag**
-   ```bash
+   ```powershell
    git tag v1.2.3
    git push && git push --tags
    ```
 
-5. **Build**
-   ```bash
+5. **Verify and build**
+   ```powershell
+   npm ci
+   npm run lint
+   npm run test -- --run
+   npm run build
+   cargo test --manifest-path src-tauri/Cargo.toml
    npm run tauri:build
    ```
 
 6. **Create GitHub Release**
-   - Upload installers
-   - Copy changelog section to release notes
+   - Exercise the installer and supported upgrade path with disposable data
+   - Generate and publish artifact checksums and an SBOM
+   - State code-signing status explicitly
+   - Upload only artifacts produced by the verified build
+   - Copy the applicable changelog section and evidence links to release notes
 
 ## Pre-release Versions
 
@@ -88,29 +107,50 @@ For testing releases:
 
 ## Current Version
 
-**1.10.2** (2026-01-18) - Current Release
+**1.10.3** (2026-07-14) - Current source version
 
-Patch release - Data Integrity & Robustness:
-- Atomic file writes for backups, contracts, photos, documents, and logs
-- Optimistic update rollback for all mutation hooks
-- Fixed race conditions in database connection and log rotation
-- Added Zod validation to database imports
-- Windows reserved name validation for user paths
-- Improved error handling and logging throughout
+The version number above identifies the current source metadata; it is not by
+itself release or assurance evidence. Current containment boundaries supersede the
+historical summaries below:
+
+- restore/import is withdrawn and no factory reset is exposed;
+- ZIP and JSON exports are partial, not verified backups; the current ZIP writes
+  directly to the exact selected target and is non-atomic;
+- custom contract-folder authority is session-scoped and must be reselected after
+  restart;
+- legacy browser-storage payloads block startup unchanged; automatic import is
+  withdrawn pending a transactional recovery design;
+- sample-data tools require both a debug build and the exact isolated
+  `com.respectabullz.demo` identity;
+- the app has no in-app updater; and
+- current verification results and limitations are recorded in
+  [TEST_EVIDENCE.md](case-study/TEST_EVIDENCE.md).
+
+Version 1.10.3 contains the portfolio-remediation containment release: unsafe
+restore/reset surfaces are withdrawn, the supported migration and managed-document
+paths are failure-aware, the frontend credential design is removed, Windows-aware CI
+is defined, and a separately addressed development demo fixture is available.
+
+Historical 1.10.2 release notes described selected file-write, rollback,
+connection, validation, path, and logging changes. Those notes did not establish
+global atomicity, complete mutation rollback, or recoverability.
 
 ---
 
 **1.10.1** (2026-01-01)
 
 Patch release - UX Improvements:
-- Enhanced backup restore error handling with detailed user notifications
-- Shows failed photo list (up to 3 photos, then count of remaining)
+- Changed notifications in a legacy restore path that is now withdrawn
+- Historically showed a limited failed-photo list
 - PDF export now validates and warns about missing photos before generation
 - Replaced console.error calls with structured logger in backupUtils.ts
 
 ---
 
 ## Release History
+
+The entries below are historical release notes. They are retained for provenance,
+not as current security, reliability, compatibility, or test assurance.
 
 **1.10.0** (2026-01-01)
 
@@ -121,8 +161,10 @@ Minor release - Security Hardening:
 - Security: Added filename validation to prevent path traversal attacks
 - Data Integrity: Health schedule template JSON parse now throws on corruption
 - Data Integrity: localStorage migration validates with zod schema before migration
-- Data Integrity: Backup metadata validated with zod schema during restore
-- Data Integrity: Photo restore tracks and reports failed files
+- Data Integrity: Legacy export metadata received schema checks; this did not make
+  restore complete or transactional, and restore is now withdrawn
+- Data Integrity: The former photo restore path tracked some file failures; it is
+  no longer supported
 - Data Integrity: Contract file writes verify file existence after write
 - Photo Handling: Switched to UUID v4 for photo and document filenames
 - Photo Handling: Standardized photo URL path construction (forward slashes)
@@ -160,7 +202,10 @@ Patch release - Code Quality:
 **1.9.1** (2025-12-29)
 
 Patch release - Bug Reporting:
-- In-app bug reporting to GitHub Issues
+- Historical direct GitHub-reporting design; the current implementation is a
+  credential-free, sanitized, user-reviewed clipboard draft that opens a fixed blank
+  GitHub Issues/new page with no report data in the URL and does not submit
+  automatically
 - Expense export upgraded to native Excel (.xlsx) format
 - Fixed expense export column misalignment
 
@@ -237,12 +282,14 @@ Patch release - Bug fixes and new features:
 - **Custom Contracts Directory**: Users can choose where completed contracts are saved
   - Native folder picker dialog for selecting custom save location
   - Defaults to app data directory if no custom location set
-  - Custom directory path persists across app restarts
+  - Historical behavior persisted the path across restarts; current generation ignores
+    that legacy value and requires a fresh native folder grant each session
   - Integrated with Settings > Preferences > Contracts Save Location
 - **Phone Number Auto-formatting**: All phone fields automatically format to (xxx) xxx-xxxx as users type
   - Real-time formatting with cursor position preservation
   - Reusable PhoneInput component with US format default
-- **Breeder Settings Auto-population**: Default values for breeder name, city, and state
+- **Breeder Settings Auto-population**: Historical default values for breeder name,
+  city, and state; current shipped defaults are blank
 
 ### Bug Fixes
 - Inquiries: Fixed client and puppy not being associated when creating or updating inquiries
@@ -318,7 +365,8 @@ Patch release - Bug fixes:
 **1.0.1** (2025-12-04)
 
 Patch release - Improvements and fixes:
-- First-launch dialog allowing users to choose between empty database or sample data
+- Historical first-launch sample-data option; the current production build exposes no
+  sample-data control
 - Windows NSIS installer configuration for easy end-user distribution
 - Fixed all TypeScript compilation errors (98 errors resolved)
 
@@ -329,8 +377,9 @@ Major release - First stable version:
 - Comprehensive dog management with pedigree tracking
 - Full health and breeding management system
 - Client management and sales pipeline
-- Photo management and backup system
-- All core features production-ready
+- Historical photo-management and export feature set; current exports are partial
+- Historical "production-ready" wording, retained only as provenance and not as a
+  current assurance claim
 
 **0.9.2** (2025-12-03)
 
@@ -369,10 +418,19 @@ See [CHANGELOG.md](../CHANGELOG.md) for complete version history.
 
 When changing the database schema:
 
-1. Bump MINOR or MAJOR version
-2. Create migration in `prisma/migrations/`
-3. Document migration steps in changelog
-4. Test migration with existing data
+1. Define the supported starting schema versions and the expected target version.
+2. Implement the runtime migration in the Tauri/SQLite path. The Prisma schema is
+   a reference and is not the runtime migration engine.
+3. Keep schema creation and version transitions under the same owned database
+   connection and transaction boundary.
+4. Add real-SQLite tests for fresh creation, each supported upgrade, idempotent
+   reopen, failure rollback and retry, unsupported baselines, foreign-key
+   violations, and concurrent startup where applicable.
+5. Document the migration and compatibility boundary in the changelog and release
+   evidence.
+6. Choose the semantic version bump based on user-visible compatibility; a schema
+   change is not automatically a major version when a tested compatible migration
+   is provided.
 
 ## Breaking Changes
 

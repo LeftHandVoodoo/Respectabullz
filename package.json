@@ -1,15 +1,33 @@
 {
   "name": "respectabullz",
-  "version": "1.10.2",
+  "version": "1.10.3",
   "description": "Breeder management application for dog breeding operations",
   "private": true,
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LeftHandVoodoo/Respectabullz.git"
+  },
   "type": "module",
+  "packageManager": "npm@10.9.8",
+  "engines": {
+    "node": "22.x",
+    "npm": "10.x"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run build:web",
+    "build:web": "tsc -p tsconfig.json --noEmit && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
+    "demo:dev": "tauri dev --config src-tauri/tauri.demo.conf.json",
     "tauri:build": "tauri build",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
@@ -17,10 +35,14 @@
     "db:studio": "prisma studio",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest",
+    "test:ci": "vitest --run",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest --run --coverage",
+    "check:versions": "node scripts/check-versions.mjs",
+    "check:build-secrets": "node scripts/check-build-secrets.mjs",
+    "check:demo-data": "node scripts/check-demo-data.mjs",
     "version:bump": "node scripts/bump-version.js",
-    "version:check": "node scripts/bump-version.js"
+    "version:check": "npm run check:versions"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.1",
@@ -44,12 +66,12 @@
     "@tanstack/react-query": "^5.59.0",
     "@tanstack/react-virtual": "^3.13.12",
     "@tauri-apps/api": "^2.1.1",
-    "@tauri-apps/plugin-dialog": "^2.0.1",
+    "@tauri-apps/plugin-dialog": "2.4.2",
     "@tauri-apps/plugin-fs": "^2.0.1",
     "@tauri-apps/plugin-notification": "^2.0.1",
-    "@tauri-apps/plugin-shell": "^2.0.1",
     "@tauri-apps/plugin-sql": "^2.0.1",
     "@types/file-saver": "^2.0.7",
+    "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

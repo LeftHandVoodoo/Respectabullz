@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Moon, Sun, Download, Upload, Trash2, Database, Building2, Save, FileArchive, FileJson, FolderOpen } from 'lucide-react';
+import { getIdentifier } from '@tauri-apps/api/app';
+import { Moon, Sun, Download, Database, Building2, Save, FileArchive, FileJson, FolderOpen, FileDown, Eraser, ScrollText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,33 +31,32 @@ import {
   useSettings,
   useUpdateSetting,
   useExportDatabase,
-  useImportDatabase,
-  useClearDatabase,
-  useExportBackupWithPhotos,
-  useImportBackupWithPhotos,
-  useBackupInfo,
+  useExportPartialDataWithPhotos,
+  usePartialExportInfo,
   useSeedDatabase,
-  useUnseedDatabase,
 } from '@/hooks/useSettings';
 import { useBreederSettings } from '@/hooks/useBreederSettings';
 import { toast } from '@/components/ui/use-toast';
 import { VERSION } from '@/lib/version';
 import { formatBytes, isTauriEnvironment } from '@/lib/backupUtils';
+import { logger } from '@/lib/errorTracking';
+import {
+  getSessionContractsDirectory,
+  setSessionContractsDirectory,
+} from '@/lib/contractDestination';
 import type { BreederSettings } from '@/types';
 import { HelpSection } from '@/components/settings/HelpSection';
+
+const DEMO_APP_IDENTIFIER = 'com.respectabullz.demo';
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { data: settings } = useSettings();
   const updateSetting = useUpdateSetting();
   const exportDb = useExportDatabase();
-  const importDb = useImportDatabase();
-  const clearDb = useClearDatabase();
   const seedDb = useSeedDatabase();
-  const unseedDb = useUnseedDatabase();
-  const exportWithPhotos = useExportBackupWithPhotos();
-  const importWithPhotos = useImportBackupWithPhotos();
-  const { data: backupInfo } = useBackupInfo();
+  const exportWithPhotos = useExportPartialDataWithPhotos();
+  const { data: partialExportInfo } = usePartialExportInfo();
   const { breederSettings, updateBreederSettings, isPending: isBreederPending } = useBreederSettings();
   const isTauri = isTauriEnvironment();
 
@@ -64,11 +64,11 @@ export function SettingsPage() {
   const getInitialBreederForm = (settings?: BreederSettings): BreederSettings => {
     return {
       kennelName: settings?.kennelName || 'Respectabullz',
-      breederName: settings?.breederName || 'Johnny Bonilla',
+      breederName: settings?.breederName || '',
       addressLine1: settings?.addressLine1 || '',
       addressLine2: settings?.addressLine2 || '',
-      city: settings?.city || 'Martinsburg',
-      state: settings?.state || 'WV',
+      city: settings?.city || '',
+      state: settings?.state || '',
       postalCode: settings?.postalCode || '',
       phone: settings?.phone || '',
       email: settings?.email || '',
@@ -81,6 +81,12 @@ export function SettingsPage() {
   const [breederForm, setBreederForm] = useState<BreederSettings>(getInitialBreederForm(breederSettings));
   const [hasBreederChanges, setHasBreederChanges] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isExportingLogs, setIsExportingLogs] = useState(false);
+  const [isClearingLogs, setIsClearingLogs] = useState(false);
+  const [isSyntheticDemo, setIsSyntheticDemo] = useState(false);
+  const [contractsDirectory, setContractsDirectory] = useState(
+    getSessionContractsDirectory,
+  );
 
   // Sync form with settings when they load - but only once on initial load
   useEffect(() => {
@@ -90,10 +96,38 @@ export function SettingsPage() {
     }
   }, [breederSettings, isInitialized, hasBreederChanges]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!import.meta.env.DEV || !isTauri) {
+      setIsSyntheticDemo(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void getIdentifier()
+      .then((identifier) => {
+        if (!cancelled) {
+          setIsSyntheticDemo(identifier === DEMO_APP_IDENTIFIER);
+        }
+      })
+      .catch((error) => {
+        logger.warn('Could not verify the isolated synthetic demo identity', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        if (!cancelled) {
+          setIsSyntheticDemo(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isTauri]);
+
   const weightUnit = settings?.weightUnit || 'lbs';
   const notificationsEnabled = settings?.notificationsEnabled === 'true';
-  const contractsDirectory = settings?.contractsDirectory || '';
-
   const handleWeightUnitChange = (value: string) => {
     updateSetting.mutate({ key: 'weightUnit', value });
   };
@@ -113,21 +147,26 @@ export function SettingsPage() {
     }
 
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      const selectedDir = await invoke<string | null>('select_directory');
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const selectedDir = await open({
+        directory: true,
+        multiple: false,
+        title: 'Select Contracts Directory',
+      });
       
       if (selectedDir) {
-        updateSetting.mutate({ 
-          key: 'contractsDirectory', 
-          value: selectedDir 
-        });
+        setSessionContractsDirectory(selectedDir);
+        setContractsDirectory(selectedDir);
         toast({
           title: 'Directory Updated',
           description: `Contracts will now be saved to: ${selectedDir}`,
         });
       }
     } catch (error) {
-      console.error('Failed to select directory:', error);
+      logger.warn(
+        'Failed to select contracts directory',
+        { error: error instanceof Error ? error.message : String(error) },
+      );
       toast({
         title: 'Error',
         description: 'Failed to open directory picker.',
@@ -139,6 +178,50 @@ export function SettingsPage() {
   const handleBreederFieldChange = (field: keyof BreederSettings, value: string) => {
     setBreederForm(prev => ({ ...prev, [field]: value }));
     setHasBreederChanges(true);
+  };
+
+  const handleExportLogs = async () => {
+    setIsExportingLogs(true);
+    try {
+      const { exportLogs } = await import('@/lib/errorTracking');
+      const data = await exportLogs();
+      if (!data) {
+        toast({ title: 'No diagnostics available', description: 'No log entries are available to export.' });
+        return;
+      }
+
+      const blobBytes = new Uint8Array(data.byteLength);
+      blobBytes.set(data);
+      const url = URL.createObjectURL(new Blob([blobBytes.buffer], { type: 'text/plain' }));
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `respectabullz-diagnostics-${new Date().toISOString().split('T')[0]}.log`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      toast({
+        title: 'Diagnostics exported',
+        description: 'Review the local file before sharing it. Automated redaction cannot identify every semantic detail.',
+      });
+    } catch {
+      toast({ title: 'Export failed', description: 'Diagnostics could not be exported.', variant: 'destructive' });
+    } finally {
+      setIsExportingLogs(false);
+    }
+  };
+
+  const handleClearLogs = async () => {
+    setIsClearingLogs(true);
+    try {
+      const { clearLogFile } = await import('@/lib/errorTracking');
+      const cleared = await clearLogFile();
+      toast(cleared
+        ? { title: 'Diagnostics cleared', description: 'The application log was replaced with a clear marker.' }
+        : { title: 'Clear failed', description: 'The application log could not be cleared.', variant: 'destructive' });
+    } finally {
+      setIsClearingLogs(false);
+    }
   };
 
   const handleSaveBreederSettings = async () => {
@@ -156,20 +239,6 @@ export function SettingsPage() {
         variant: 'destructive',
       });
     }
-  };
-
-  const handleImport = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const text = await file.text();
-        importDb.mutate(text);
-      }
-    };
-    input.click();
   };
 
   return (
@@ -417,7 +486,7 @@ export function SettingsPage() {
             <div className="space-y-2 pt-4">
               <Label>Contracts Save Location</Label>
               <p className="text-sm text-muted-foreground mb-2">
-                Choose where completed contracts are saved
+                Choose where completed contracts are saved for this app session
               </p>
               <div className="flex items-center gap-2">
                 <Input
@@ -437,7 +506,7 @@ export function SettingsPage() {
               </div>
               {contractsDirectory && (
                 <p className="text-xs text-muted-foreground">
-                  Current: {contractsDirectory}
+                  Current session: {contractsDirectory}. Reselect this folder after restarting the app.
                 </p>
               )}
             </div>
@@ -453,82 +522,82 @@ export function SettingsPage() {
             Data Management
           </CardTitle>
           <CardDescription>
-            Backup, restore, or clear your data
+            Create partial data exports. Restore and factory reset are currently unavailable.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Full Backup with Photos (Recommended) */}
+          <div
+            role="status"
+            data-testid="recovery-unavailable"
+            className="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 text-sm"
+          >
+            <p className="font-medium">
+              Restore is temporarily unavailable while complete recovery verification is implemented.
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              No factory reset is currently available. The controls remain withdrawn until their
+              complete database and file behavior can be verified.
+            </p>
+          </div>
+
+          {/* Partial data export with photos */}
           {isTauri && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <FileArchive className="h-4 w-4 text-primary" />
-                <Label className="text-base font-medium">Full Backup (Recommended)</Label>
+                <Label className="text-base font-medium">Partial Data Export with Photos</Label>
                 <Badge variant="secondary" className="text-xs">ZIP</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Creates a complete backup including database and all photos.
-                {backupInfo && backupInfo.photoCount > 0 && (
+                Includes dogs, litters, expenses, breeder details, dog health records, genetic tests,
+                and every enumerated managed photo. If any managed photo cannot be listed or read,
+                the export fails instead of silently omitting it.
+                {partialExportInfo && partialExportInfo.photoCount > 0 && (
                   <span className="ml-1">
-                    ({backupInfo.photoCount} photos, {formatBytes(backupInfo.photosSize)})
+                    ({partialExportInfo.photoCount} photos, {formatBytes(partialExportInfo.photosSize)})
                   </span>
                 )}
               </p>
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  onClick={() => exportWithPhotos.mutate()}
-                  disabled={exportWithPhotos.isPending}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  {exportWithPhotos.isPending ? 'Creating backup...' : 'Export Full Backup'}
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={() => importWithPhotos.mutate()}
-                  disabled={importWithPhotos.isPending}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  {importWithPhotos.isPending ? 'Restoring...' : 'Restore Full Backup'}
-                </Button>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Excludes contacts, clients and sales, document records and files, heat-cycle and
+                transport records, waitlist and communication records, generated contracts, logs,
+                other application settings, and external export files.
+              </p>
+              <Button
+                onClick={() => exportWithPhotos.mutate()}
+                disabled={exportWithPhotos.isPending}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                {exportWithPhotos.isPending ? 'Creating export...' : 'Export Partial Data (ZIP)'}
+              </Button>
             </div>
           )}
 
-          {/* Data Only Backup */}
+          {/* Partial data-only export */}
           <div className="space-y-3 pt-4 border-t">
             <div className="flex items-center gap-2">
               <FileJson className="h-4 w-4 text-muted-foreground" />
-              <Label className="text-base font-medium">Data Only Backup</Label>
+              <Label className="text-base font-medium">Partial Data Export</Label>
               <Badge variant="outline" className="text-xs">JSON</Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Export only the database (no photos). Useful for quick backups or transferring data.
+              Exports the same limited record set without photos. This is not a complete backup and
+              cannot currently be restored by the application.
             </p>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="outline"
-                onClick={() => exportDb.mutate()}
-                disabled={exportDb.isPending}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                {exportDb.isPending ? 'Exporting...' : 'Export Data Only'}
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={handleImport}
-                disabled={importDb.isPending}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                {importDb.isPending ? 'Importing...' : 'Import Data Only'}
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              onClick={() => exportDb.mutate()}
+              disabled={exportDb.isPending}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {exportDb.isPending ? 'Exporting...' : 'Export Partial Data (JSON)'}
+            </Button>
           </div>
 
-          {/* Testing Tools */}
-          <div className="pt-4 border-t">
-            <h3 className="text-sm font-medium mb-2">Testing Tools</h3>
-            <div className="flex gap-2 mb-2">
+          {/* Available only to debug builds using the isolated synthetic-demo identity. */}
+          {isSyntheticDemo && (
+            <div className="pt-4 border-t">
+              <h3 className="text-sm font-medium mb-2">Development Testing Tool</h3>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -544,8 +613,7 @@ export function SettingsPage() {
                     <AlertDialogTitle>Seed Test Data?</AlertDialogTitle>
                     <AlertDialogDescription>
                       This will populate the database with comprehensive dummy test data.
-                      The database must be empty to seed test data. If you have existing data,
-                      please clear it first using "Clear All Data" in the Danger Zone.
+                      Operational dog data must be empty before test data can be added.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -559,57 +627,73 @@ export function SettingsPage() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-              <Button
-                onClick={() => unseedDb.mutate()}
-                disabled={unseedDb.isPending}
-                variant="outline"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                {unseedDb.isPending ? 'Removing...' : 'Remove Test Data'}
-              </Button>
+              <p className="text-sm text-muted-foreground mt-2">
+                Available only in the isolated synthetic demo development identity. There is no
+                automated test-data removal action.
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Seed or remove dummy test data for testing purposes. Database must be empty to seed.
-            </p>
-          </div>
+          )}
 
-          {/* Danger Zone */}
+          {/* Data deletion containment */}
           <div className="pt-4 border-t">
-            <h3 className="text-sm font-medium mb-2 text-destructive">Danger Zone</h3>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Clear All Data
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete all your data including dogs,
-                    litters, health records, expenses, clients, and photos. This action
-                    cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => clearDb.mutate()}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Yes, delete everything
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <p className="text-sm text-muted-foreground mt-2">
-              This will permanently delete all your data. Make sure to export a
-              backup first.
+            <h3 className="text-sm font-medium mb-2">Data deletion</h3>
+            <p className="text-sm text-muted-foreground">
+              Complete deletion is unavailable while application records, imported photos and
+              documents, generated files, logs, configuration, and external exports are being
+              inventoried and verified together.
             </p>
           </div>
         </CardContent>
       </Card>
+
+      {/* Diagnostics */}
+      {isTauri && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ScrollText className="h-5 w-5" />
+              Diagnostics
+            </CardTitle>
+            <CardDescription>
+              Logs stay on this device unless you explicitly export and share them.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Common credentials, paths, contact patterns, identifiers, and sensitive context
+              fields are redacted before logging. Review exported text because semantic personal
+              details may still remain.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={handleExportLogs} disabled={isExportingLogs}>
+                <FileDown className="mr-2 h-4 w-4" />
+                {isExportingLogs ? 'Exporting...' : 'Export Diagnostics'}
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" disabled={isClearingLogs}>
+                    <Eraser className="mr-2 h-4 w-4" />
+                    {isClearingLogs ? 'Clearing...' : 'Clear Diagnostics'}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear application diagnostics?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This replaces the managed application log with a clear marker. It does not
+                      remove exported copies or operating-system logs.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClearLogs}>Clear Diagnostics</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Help & Documentation */}
       <HelpSection />

@@ -12,7 +12,13 @@ import type {
   CreateDocumentTagInput,
   PREDEFINED_DOCUMENT_TAGS,
 } from '@/types';
-import { deleteDocumentFile } from '../documentUtils';
+import {
+  createManagedDocument,
+  deleteManagedDocument,
+  replaceManagedDocumentTags,
+  updateManagedDocument,
+  type DeleteDocumentResult,
+} from '../documentWorkflow';
 
 // ============================================
 // DOCUMENT TAGS
@@ -210,86 +216,28 @@ export async function getDocumentTags_ForDocument(documentId: string): Promise<D
  * Create a new document
  */
 export async function createDocument(input: CreateDocumentInput): Promise<Document> {
-  const id = generateId();
-  const now = nowIso();
-  
-  await execute(
-    `INSERT INTO documents (id, filename, original_name, file_path, mime_type, file_size, notes, uploaded_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, input.filename, input.originalName, input.filePath, input.mimeType, input.fileSize, input.notes ?? null, now, now]
-  );
-  
-  // Add tags if provided
-  if (input.tagIds && input.tagIds.length > 0) {
-    await setDocumentTags(id, input.tagIds);
-  }
-  
-  return {
-    id,
-    filename: input.filename,
-    originalName: input.originalName,
-    filePath: input.filePath,
-    mimeType: input.mimeType,
-    fileSize: input.fileSize,
-    notes: input.notes ?? null,
-    uploadedAt: new Date(now),
-    updatedAt: new Date(now),
-  };
+  return createManagedDocument(input);
 }
 
 /**
  * Update a document
  */
 export async function updateDocument(id: string, input: UpdateDocumentInput): Promise<Document | null> {
-  const existing = await getDocument(id);
-  if (!existing) return null;
-  
-  const now = nowIso();
-  
-  await execute(
-    `UPDATE documents SET notes = ?, updated_at = ? WHERE id = ?`,
-    [input.notes ?? existing.notes, now, id]
-  );
-  
-  // Update tags if provided
-  if (input.tagIds !== undefined) {
-    await setDocumentTags(id, input.tagIds);
-  }
-  
-  return getDocument(id);
+  return updateManagedDocument(id, input);
 }
 
 /**
  * Delete a document (also deletes the file)
  */
-export async function deleteDocument(id: string): Promise<boolean> {
-  const doc = await getDocument(id);
-  if (!doc) return false;
-  
-  // Delete the file from storage
-  await deleteDocumentFile(doc.filename);
-  
-  // Delete from database (cascades to junction tables)
-  await execute('DELETE FROM documents WHERE id = ?', [id]);
-  return true;
+export async function deleteDocument(id: string): Promise<DeleteDocumentResult> {
+  return deleteManagedDocument(id);
 }
 
 /**
  * Set tags for a document (replaces existing tags)
  */
 export async function setDocumentTags(documentId: string, tagIds: string[]): Promise<void> {
-  // Remove existing tags
-  await execute('DELETE FROM document_tag_links WHERE document_id = ?', [documentId]);
-  
-  // Add new tags
-  for (const tagId of tagIds) {
-    const linkId = generateId();
-    await execute(
-      `INSERT INTO document_tag_links (id, document_id, tag_id, created_at)
-       VALUES (?, ?, ?, ?)`,
-      [linkId, documentId, tagId, nowIso()]
-    );
-  }
+  await replaceManagedDocumentTags(documentId, tagIds);
 }
 
 /**

@@ -2,12 +2,10 @@
 // Uses Tauri's file system and dialog plugins
 
 import { open } from '@tauri-apps/plugin-dialog';
-import { logger } from '@/lib/errorTracking';
-import { readFile, exists, mkdir, remove, BaseDirectory } from '@tauri-apps/plugin-fs';
-import { atomicWriteFile } from '@/lib/fsUtils';
+import { readFile, exists, stat, BaseDirectory } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { open as shellOpen } from '@tauri-apps/plugin-shell';
+import { openManagedDocument } from '@/lib/documentWorkflow';
 
 // Supported file extensions by category
 export const SUPPORTED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
@@ -119,36 +117,6 @@ function isValidStoredFilename(filename: string): boolean {
   return ALL_SUPPORTED_EXTENSIONS.includes(ext);
 }
 
-import { v4 as uuidv4 } from 'uuid';
-
-/**
- * Generate a unique filename for storing documents
- */
-function generateUniqueFilename(originalPath: string): string {
-  const ext = getFileExtension(originalPath);
-  // Use UUID v4 for collision-free filenames
-  return `${uuidv4()}.${ext}`;
-}
-
-/**
- * Ensure the documents directory exists in app data
- */
-async function ensureDocumentsDirectory(): Promise<string> {
-  try {
-    const docsPath = 'documents';
-    
-    const dirExists = await exists(docsPath, { baseDir: BaseDirectory.AppData });
-    if (!dirExists) {
-      await mkdir(docsPath, { recursive: true, baseDir: BaseDirectory.AppData });
-    }
-    
-    return docsPath;
-  } catch (error) {
-    console.error('Failed to ensure documents directory:', error);
-    throw error;
-  }
-}
-
 /**
  * Extract file path from Tauri dialog result
  */
@@ -251,41 +219,6 @@ export async function selectMultipleDocuments(): Promise<string[]> {
 }
 
 /**
- * Copy a document file to the app's documents directory
- * Returns object with new filename and file size, or null on failure
- */
-export async function copyDocumentToDocsDir(sourcePath: string): Promise<{ filename: string; fileSize: number } | null> {
-  try {
-    const docsDir = await ensureDocumentsDirectory();
-
-    const newFilename = generateUniqueFilename(sourcePath);
-    // Use forward slashes for cross-platform compatibility - Tauri normalizes on all platforms
-    const destPath = `${docsDir}/${newFilename}`;
-
-    const sourceData = await readFile(sourcePath);
-
-    const dataToWrite = sourceData instanceof Uint8Array
-      ? sourceData
-      : new Uint8Array(sourceData);
-
-    // Write to destination atomically to prevent partial file corruption
-    await atomicWriteFile(destPath, dataToWrite, { baseDir: BaseDirectory.AppData });
-
-    return {
-      filename: newFilename,
-      fileSize: dataToWrite.length,
-    };
-  } catch (error) {
-    logger.warn('Failed to copy document to docs directory, returning null', {
-      error: error instanceof Error ? error.message : String(error),
-      context: 'copyDocumentToDocsDir',
-      sourcePath
-    });
-    return null;
-  }
-}
-
-/**
  * Get the relative file path for a stored document filename
  */
 export function getDocumentPath(filename: string): string {
@@ -358,24 +291,6 @@ export async function documentExists(filename: string): Promise<boolean> {
 }
 
 /**
- * Delete a document file from storage
- */
-export async function deleteDocumentFile(filename: string): Promise<boolean> {
-  try {
-    const docPath = getDocumentPath(filename);
-    await remove(docPath, { baseDir: BaseDirectory.AppData });
-    return true;
-  } catch (error) {
-    logger.warn('Failed to delete document file, returning false', {
-      error: error instanceof Error ? error.message : String(error),
-      context: 'deleteDocumentFile',
-      filename
-    });
-    return false;
-  }
-}
-
-/**
  * Open a document with the system default application
  */
 export async function openDocumentWithSystem(filename: string): Promise<boolean> {
@@ -386,8 +301,7 @@ export async function openDocumentWithSystem(filename: string): Promise<boolean>
   }
 
   try {
-    const fullPath = await getDocumentFullPath(filename);
-    await shellOpen(fullPath);
+    await openManagedDocument(filename);
     return true;
   } catch (error) {
     console.error('Failed to open document with system:', error);
@@ -396,11 +310,11 @@ export async function openDocumentWithSystem(filename: string): Promise<boolean>
 }
 
 /**
- * Select and copy a document in one step
- * Returns object with filename, original name, mime type, and file size
+ * Select a document without modifying managed storage. The Rust workflow copies
+ * the file only after the user confirms Upload.
  */
-export async function selectAndCopyDocument(): Promise<{
-  filename: string;
+export async function selectDocumentForUpload(): Promise<{
+  sourcePath: string;
   originalName: string;
   mimeType: string;
   fileSize: number;
@@ -420,19 +334,16 @@ export async function selectAndCopyDocument(): Promise<{
       return null;
     }
     
-    const result = await copyDocumentToDocsDir(selected);
-    if (!result) {
-      return null;
-    }
+    const sourceInfo = await stat(selected);
     
     return {
-      filename: result.filename,
+      sourcePath: selected,
       originalName,
       mimeType: getMimeType(originalName),
-      fileSize: result.fileSize,
+      fileSize: sourceInfo.size,
     };
   } catch (error) {
-    console.error('Error in selectAndCopyDocument:', error);
+    console.error('Error selecting document:', error);
     return null;
   }
 }

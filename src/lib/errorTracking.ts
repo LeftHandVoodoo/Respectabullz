@@ -37,6 +37,87 @@ const LOG_DIR = 'logs';
 const LOG_FILENAME = 'respectabullz.log';
 const MAX_LOG_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 const MAX_ENTRIES_IN_MEMORY = 1000;
+const MAX_LOG_STRING_LENGTH = 1000;
+const MAX_CONTEXT_DEPTH = 3;
+const REDACTED = '[redacted]';
+const SENSITIVE_CONTEXT_KEY = /(address|authorization|buyer|breeder|client|contact|content|credential|data|destination|email|file|filename|name|notes|password|path|phone|record|secret|source|text|token|variables)/i;
+
+/**
+ * Redact common secrets, contact details, identifiers, and local paths before
+ * any value reaches the console, in-memory buffer, or persisted log file.
+ */
+export function sanitizeLogString(value: string): string {
+  const sanitized = value
+    .replace(/\0/g, '')
+    .replace(/\bgithub_pat_[A-Za-z0-9_]+\b/gi, '[redacted credential]')
+    .replace(/\bgh[pousr]_[A-Za-z0-9]+\b/gi, '[redacted credential]')
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+\b/gi, 'Bearer [redacted credential]')
+    .replace(
+      /\b(api[_ -]?key|access[_ -]?token|auth(?:orization)?|password|secret)\s*[:=]\s*["']?[^\s"'`]+/gi,
+      (_match, label: string) => `${label}: [redacted credential]`
+    )
+    .replace(/file:\/\/[A-Za-z]:\/[^\s)\]}]+/gi, '[redacted filesystem path]')
+    .replace(/\b[A-Za-z]:[\\/](?:[^\\/:*?"<>|\r\n]+[\\/])*[^\\/:*?"<>|\s\r\n]*/g, '[redacted filesystem path]')
+    .replace(/\\\\[^\\\s]+\\[^\r\n]+/g, '[redacted filesystem path]')
+    .replace(/\/(?:Users|home)\/[^/\s]+(?:\/[^\s)\]}]+)?/g, '[redacted filesystem path]')
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[redacted contact]')
+    .replace(/\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b/g, '[redacted contact]')
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, '[redacted identifier]');
+
+  return sanitized.length > MAX_LOG_STRING_LENGTH
+    ? `${sanitized.slice(0, MAX_LOG_STRING_LENGTH)}…[truncated]`
+    : sanitized;
+}
+
+function sanitizeLogValue(
+  value: unknown,
+  key: string,
+  depth: number,
+  seen: WeakSet<object>
+): unknown {
+  if (SENSITIVE_CONTEXT_KEY.test(key)) {
+    return REDACTED;
+  }
+  if (value == null || typeof value === 'boolean' || typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    return sanitizeLogString(value);
+  }
+  if (typeof value === 'bigint') {
+    return value.toString();
+  }
+  if (typeof value !== 'object') {
+    return `[${typeof value}]`;
+  }
+  if (depth >= MAX_CONTEXT_DEPTH) {
+    return '[redacted nested value]';
+  }
+  if (seen.has(value)) {
+    return '[circular]';
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value
+      .slice(0, 20)
+      .map((item) => sanitizeLogValue(item, '', depth + 1, seen));
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([entryKey, entryValue]) => [
+      entryKey,
+      sanitizeLogValue(entryValue, entryKey, depth + 1, seen),
+    ])
+  );
+}
+
+export function sanitizeLogContext(
+  context?: Record<string, unknown>
+): Record<string, unknown> | undefined {
+  if (!context) return undefined;
+  return sanitizeLogValue(context, '', 0, new WeakSet<object>()) as Record<string, unknown>;
+}
 
 /**
  * Get the minimum log level from environment
@@ -66,7 +147,15 @@ function shouldLog(level: LogLevel): boolean {
 let logBuffer: LogEntry[] = [];
 let isInitialized = false;
 let writeQueue: LogEntry[] = [];
-let isWriting = false;
+let fileOperationChain: Promise<void> = Promise.resolve();
+
+function enqueueFileOperation(operation: () => Promise<void>): Promise<void> {
+  const queued = fileOperationChain.then(operation);
+  // Keep the serialization chain usable after a failed operation while still
+  // returning the original rejection to its caller.
+  fileOperationChain = queued.catch(() => undefined);
+  return queued;
+}
 
 /**
  * Check if running in Tauri environment
@@ -132,56 +221,55 @@ async function initialize(): Promise<void> {
  * ensure data integrity if the app crashes or is closed during write.
  */
 async function flushWriteQueue(): Promise<void> {
-  if (isWriting || writeQueue.length === 0 || !isTauriEnvironment()) {
+  if (writeQueue.length === 0 || !isTauriEnvironment()) {
     return;
   }
 
-  isWriting = true;
   const entriesToWrite = [...writeQueue];
   writeQueue = [];
 
   try {
-    const logPath = `${LOG_DIR}/${LOG_FILENAME}`;
+    await enqueueFileOperation(async () => {
+      const logPath = `${LOG_DIR}/${LOG_FILENAME}`;
 
-    // Read current content directly - no separate exists check to avoid TOCTOU
-    // If file doesn't exist, we catch the error and start fresh
-    let currentContent = '';
-    try {
-      const data = await readFile(logPath, { baseDir: BaseDirectory.AppData });
-      currentContent = new TextDecoder().decode(data);
+      // Read current content directly - no separate exists check to avoid TOCTOU
+      // If file doesn't exist, we catch the error and start fresh
+      let currentContent = '';
+      try {
+        const data = await readFile(logPath, { baseDir: BaseDirectory.AppData });
+        currentContent = new TextDecoder().decode(data);
 
-      // Check size and rotate if needed
-      if (data.length > MAX_LOG_SIZE_BYTES) {
-        // Keep only the last half of the log
-        const lines = currentContent.split('\n');
-        const keepLines = Math.floor(lines.length / 2);
-        currentContent = lines.slice(-keepLines).join('\n');
-        currentContent = `[${new Date().toISOString()}] [INFO ] Log file rotated (size exceeded ${MAX_LOG_SIZE_BYTES} bytes)\n${currentContent}`;
+        // Check size and rotate if needed
+        if (data.length > MAX_LOG_SIZE_BYTES) {
+          // Keep only the last half of the log
+          const lines = currentContent.split('\n');
+          const keepLines = Math.floor(lines.length / 2);
+          currentContent = lines.slice(-keepLines).join('\n');
+          currentContent = `[${new Date().toISOString()}] [INFO ] Log file rotated (size exceeded ${MAX_LOG_SIZE_BYTES} bytes)\n${currentContent}`;
+        }
+      } catch {
+        // File doesn't exist or can't be read, start fresh
+        // This is expected on first run or after log file deletion
       }
-    } catch {
-      // File doesn't exist or can't be read, start fresh
-      // This is expected on first run or after log file deletion
-    }
 
-    // Append new entries
-    const newContent = entriesToWrite.map(formatLogEntry).join('\n');
-    const finalContent = currentContent
-      ? `${currentContent}\n${newContent}`
-      : newContent;
+      // Append new entries
+      const newContent = entriesToWrite.map(formatLogEntry).join('\n');
+      const finalContent = currentContent
+        ? `${currentContent}\n${newContent}`
+        : newContent;
 
-    // Write atomically to prevent corruption if interrupted
-    await atomicWriteFile(logPath, finalContent, { baseDir: BaseDirectory.AppData });
+      // Write atomically to prevent corruption if interrupted
+      await atomicWriteFile(logPath, finalContent, { baseDir: BaseDirectory.AppData });
+    });
   } catch (error) {
     console.error('Failed to write log file:', error);
     // Re-queue failed entries
     writeQueue = [...entriesToWrite, ...writeQueue];
-  } finally {
-    isWriting = false;
+  }
 
-    // If more entries were queued during writing, flush again
-    if (writeQueue.length > 0) {
-      setTimeout(flushWriteQueue, 100);
-    }
+  // If more entries were queued during writing, serialize another flush.
+  if (writeQueue.length > 0) {
+    await flushWriteQueue();
   }
 }
 
@@ -197,15 +285,15 @@ function log(level: LogLevel, message: string, error?: Error, context?: Record<s
   const entry: LogEntry = {
     timestamp: new Date().toISOString(),
     level,
-    message,
+    message: sanitizeLogString(message),
     ...(error && {
       error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
+        name: sanitizeLogString(error.name),
+        message: sanitizeLogString(error.message),
+        stack: error.stack ? sanitizeLogString(error.stack) : undefined,
       },
     }),
-    ...(context && { context }),
+    ...(context && { context: sanitizeLogContext(context) }),
   };
 
   // Add to memory buffer
@@ -336,9 +424,14 @@ export async function clearLogFile(): Promise<boolean> {
   try {
     const logPath = `${LOG_DIR}/${LOG_FILENAME}`;
     const header = `[${new Date().toISOString()}] [INFO ] Log file cleared\n`;
-    // Use atomic write for consistency with other log operations
-    await atomicWriteFile(logPath, header, { baseDir: BaseDirectory.AppData });
+    // Define the clear boundary immediately. A flush already in the serialized
+    // chain finishes first, then this write replaces it; new entries queued
+    // after this call are flushed after the clear operation.
+    writeQueue = [];
     logBuffer = [];
+    await enqueueFileOperation(() =>
+      atomicWriteFile(logPath, header, { baseDir: BaseDirectory.AppData }),
+    );
     return true;
   } catch (error) {
     console.error('Failed to clear log file:', error);
@@ -350,6 +443,7 @@ export async function clearLogFile(): Promise<boolean> {
  * Export logs as a downloadable text file
  */
 export async function exportLogs(): Promise<Uint8Array | null> {
+  await flushWriteQueue();
   const content = await readLogFile();
   if (!content) {
     // Fall back to memory buffer

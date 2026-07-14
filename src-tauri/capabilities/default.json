@@ -5,7 +5,6 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "shell:allow-open",
     "dialog:default",
     "dialog:allow-open",
     "dialog:allow-save",
@@ -14,42 +13,31 @@
     "fs:allow-exists",
     "fs:allow-mkdir",
     "fs:allow-read-file",
+    "fs:allow-stat",
     "fs:allow-write-file",
-    "fs:allow-copy-file",
+    "fs:allow-read-dir",
+    "fs:allow-remove",
+    "fs:allow-rename",
     {
       "identifier": "fs:allow-read",
       "allow": [
-        { "path": "$APPDATA/com.respectabullz.app/**" },
-        { "path": "$DOCUMENT/**" },
-        { "path": "$PICTURE/**" },
-        { "path": "$DOWNLOAD/**" },
-        { "path": "$DESKTOP/**" }
+        { "path": "$APPDATA/**" }
       ]
     },
     {
       "identifier": "fs:allow-write",
       "allow": [
-        { "path": "$APPDATA/com.respectabullz.app/**" },
-        { "path": "$DOCUMENT/**" },
-        { "path": "$DOWNLOAD/**" },
-        { "path": "$DESKTOP/**" }
+        { "path": "$APPDATA/**" }
       ]
     },
     {
       "identifier": "fs:scope",
       "allow": [
-        { "path": "$APPDATA/com.respectabullz.app/**" },
-        { "path": "$DOCUMENT/**" },
-        { "path": "$PICTURE/**" },
-        { "path": "$DOWNLOAD/**" },
-        { "path": "$DESKTOP/**" }
+        { "path": "$APPDATA/**" }
       ]
     },
-    "sql:default",
-    "sql:allow-load",
     "sql:allow-execute",
-    "sql:allow-select",
-    "sql:allow-close"
+    "sql:allow-select"
   ]
 }
 

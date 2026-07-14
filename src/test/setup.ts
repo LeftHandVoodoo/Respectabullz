@@ -7,10 +7,9 @@ import { vi } from 'vitest';
 // Mock Tauri APIs that aren't available in Node.js test environment
 vi.mock('@tauri-apps/plugin-sql', () => ({
   default: {
-    load: vi.fn(() => Promise.resolve({
+    get: vi.fn(() => ({
       select: vi.fn(() => Promise.resolve([])),
       execute: vi.fn(() => Promise.resolve({ lastInsertId: 0, rowsAffected: 0 })),
-      close: vi.fn(() => Promise.resolve()),
     })),
   },
 }));
@@ -26,6 +25,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
   mkdir: vi.fn(() => Promise.resolve()),
   remove: vi.fn(() => Promise.resolve()),
   readDir: vi.fn(() => Promise.resolve([])),
+  stat: vi.fn(() => Promise.resolve({ size: 0, isFile: true, isDirectory: false })),
   copyFile: vi.fn(() => Promise.resolve()),
 }));
 

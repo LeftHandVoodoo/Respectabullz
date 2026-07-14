@@ -8,20 +8,30 @@ import type { PacketData } from '@/types';
 
 interface CareInstructionsSectionProps {
   data: PacketData;
+  part?: 'all' | 'essentials' | 'daily-care' | 'veterinary';
 }
 
-export function CareInstructionsSection({ data }: CareInstructionsSectionProps) {
+export function CareInstructionsSection({ data, part = 'all' }: CareInstructionsSectionProps) {
   const { dog, breederSettings } = data;
+  const showEssentials = part === 'all' || part === 'essentials';
+  const showDailyCare = part === 'all' || part === 'daily-care';
+  const showVeterinary = part === 'all' || part === 'veterinary';
+  const sectionTitle = part === 'daily-care'
+    ? 'Care Guide - Grooming & Training'
+    : part === 'veterinary'
+      ? 'Care Guide - Veterinary & Support'
+      : 'New Owner Care Guide';
   
   return (
     <View style={sharedStyles.section}>
       {/* Section Header */}
       <View style={sharedStyles.sectionHeader}>
-        <Text style={sharedStyles.sectionTitle}>New Owner Care Guide</Text>
+        <Text style={sharedStyles.sectionTitle}>{sectionTitle}</Text>
       </View>
       
       {/* Welcome note */}
-      <View style={{
+      {showEssentials && (
+        <View wrap={false} style={{
         ...sharedStyles.card,
         backgroundColor: BRAND_COLORS.cream,
         borderLeftWidth: 4,
@@ -42,10 +52,12 @@ export function CareInstructionsSection({ data }: CareInstructionsSectionProps) 
           This guide will help you provide the best care for {dog.name}. 
           Please don't hesitate to reach out if you have any questions.
         </Text>
-      </View>
+        </View>
+      )}
       
       {/* Feeding Guidelines */}
-      <View style={sharedStyles.card}>
+      {showEssentials && (
+        <View style={sharedStyles.card} wrap={false}>
         <View style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -110,10 +122,12 @@ export function CareInstructionsSection({ data }: CareInstructionsSectionProps) 
             if switching brands. Never feed chocolate, grapes, raisins, onions, or xylitol-containing products.
           </Text>
         </View>
-      </View>
+        </View>
+      )}
       
       {/* Grooming */}
-      <View style={sharedStyles.card}>
+      {showDailyCare && (
+        <View style={sharedStyles.card} wrap={false}>
         <View style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -170,10 +184,12 @@ export function CareInstructionsSection({ data }: CareInstructionsSectionProps) 
             </View>
           ))}
         </View>
-      </View>
+        </View>
+      )}
       
       {/* Exercise & Training */}
-      <View style={sharedStyles.card}>
+      {showDailyCare && (
+        <View style={sharedStyles.card} wrap={false}>
         <View style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -237,10 +253,12 @@ export function CareInstructionsSection({ data }: CareInstructionsSectionProps) 
             and new experiences to keep your dog engaged and happy.
           </Text>
         </View>
-      </View>
+        </View>
+      )}
       
       {/* Veterinary Care */}
-      <View style={sharedStyles.card}>
+      {showVeterinary && (
+        <View style={sharedStyles.card} wrap={false}>
         <View style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -313,10 +331,12 @@ export function CareInstructionsSection({ data }: CareInstructionsSectionProps) 
             seizures, loss of consciousness, severe bleeding, or trauma. When in doubt, call your vet.
           </Text>
         </View>
-      </View>
+        </View>
+      )}
       
       {/* Contact Information */}
-      <View style={{
+      {showVeterinary && (
+        <View wrap={false} style={{
         ...sharedStyles.card,
         backgroundColor: BRAND_COLORS.brown,
         marginTop: 15,
@@ -374,7 +394,8 @@ export function CareInstructionsSection({ data }: CareInstructionsSectionProps) 
         }}>
           We love to hear updates about our puppies! Feel free to send photos and updates anytime.
         </Text>
-      </View>
+        </View>
+      )}
     </View>
   );
 }

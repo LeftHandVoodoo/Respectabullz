@@ -1,33 +1,37 @@
 import { useMutation } from '@tanstack/react-query';
-import { createGitHubIssue, collectSystemInfo } from '@/lib/github';
+import { copyBugReportDraft, openGitHubIssue } from '@/lib/github';
 import { toast } from '@/components/ui/use-toast';
-import type { BugReportFormData, BugReportPayload } from '@/types';
+import type { BugReportDraft } from '@/types';
 
-export function useSubmitBugReport() {
-  return useMutation({
-    mutationFn: async (formData: BugReportFormData) => {
-      const systemInfo = collectSystemInfo();
+interface PreparedBugReportResult {
+  browserOpened: boolean;
+}
 
-      const payload: BugReportPayload = {
-        ...formData,
-        systemInfo,
-      };
-
-      return createGitHubIssue(payload);
+/**
+ * Copies an already-reviewed report and opens its public GitHub draft.
+ * Nothing is submitted automatically and no repository credential is used.
+ */
+export function usePrepareBugReport() {
+  return useMutation<PreparedBugReportResult, Error, BugReportDraft>({
+    mutationFn: async (draft) => {
+      // Open synchronously from the user's click so popup blockers are less
+      // likely to intercept it, then place the exact preview on the clipboard.
+      const browserOpened = await openGitHubIssue(draft);
+      await copyBugReportDraft(draft);
+      return { browserOpened };
     },
-    onSuccess: (data) => {
+    onSuccess: ({ browserOpened }) => {
       toast({
-        title: 'Bug Report Submitted',
-        description: `Issue #${data.number} has been created. Thank you for your feedback!`,
+        title: 'Public report draft prepared',
+        description: browserOpened
+          ? 'The sanitized report was copied and opened on GitHub. Review it there before submitting.'
+          : 'The sanitized report was copied. Open the project GitHub Issues page and review it before submitting.',
       });
     },
     onError: (error) => {
       toast({
-        title: 'Failed to Submit Bug Report',
-        description:
-          error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred. Please try again.',
+        title: 'Could not prepare bug report',
+        description: error.message || 'Copy the visible preview manually and open GitHub Issues.',
         variant: 'destructive',
       });
     },
