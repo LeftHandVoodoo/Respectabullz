@@ -94,7 +94,7 @@
     "react-pdf": "^10.2.0",
     "react-router-dom": "^7.18.2",
     "react-to-print": "^3.0.2",
-    "recharts": "^2.13.3",
+    "recharts": "^3.10.1",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^13.0.0",
