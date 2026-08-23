@@ -3,6 +3,8 @@
 
 import { query, execute } from './connection';
 import { generateId, dateToSql, sqlToDate, nowIso } from './utils';
+import { deleteManagedPhotoIfUnreferenced } from '@/lib/photoStorage';
+import { isValidManagedPhotoFilename } from '@/lib/photoValidation';
 import type {
   Dog,
   DogPhoto,
@@ -269,9 +271,42 @@ export async function updateDog(id: string, input: UpdateDogInput): Promise<Dog 
 /**
  * Delete a dog and all related records
  */
-export async function deleteDog(id: string): Promise<boolean> {
+export interface DogDeleteCleanupWarning {
+  deleted: true;
+  photoCleanupFailures: string[];
+}
+
+export async function deleteDog(id: string): Promise<boolean | DogDeleteCleanupWarning> {
+  const photoRows = (await query<{ filename: string | null }>(
+    `SELECT profile_photo_path AS filename FROM dogs
+     WHERE id = ? AND profile_photo_path IS NOT NULL
+     UNION
+     SELECT file_path AS filename FROM dog_photos WHERE dog_id = ?`,
+    [id, id],
+  )) ?? [];
+  const filenames = new Set(
+    photoRows
+      .map((row) => row.filename)
+      .filter((filename): filename is string => (
+        filename !== null && isValidManagedPhotoFilename(filename)
+      )),
+  );
+
   const result = await execute('DELETE FROM dogs WHERE id = ?', [id]);
-  return result.rowsAffected > 0;
+  if (result.rowsAffected === 0) return false;
+
+  const photoCleanupFailures: string[] = [];
+  for (const filename of filenames) {
+    try {
+      await deleteManagedPhotoIfUnreferenced(filename);
+    } catch {
+      photoCleanupFailures.push(filename);
+    }
+  }
+
+  return photoCleanupFailures.length > 0
+    ? { deleted: true, photoCleanupFailures }
+    : true;
 }
 
 // ============================================
@@ -343,8 +378,14 @@ export async function createDogPhoto(
  * Delete a dog photo
  */
 export async function deleteDogPhoto(id: string): Promise<boolean> {
+  const rows = await query<DogPhotoRow>('SELECT * FROM dog_photos WHERE id = ?', [id]);
+  if (rows.length === 0) return false;
+
   const result = await execute('DELETE FROM dog_photos WHERE id = ?', [id]);
-  return result.rowsAffected > 0;
+  if (result.rowsAffected === 0) return false;
+
+  await deleteManagedPhotoIfUnreferenced(rows[0].file_path);
+  return true;
 }
 
 /**

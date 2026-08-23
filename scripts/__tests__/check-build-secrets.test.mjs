@@ -43,4 +43,16 @@ describe('build secret scanning', () => {
     expect(result.filesScanned).toBe(2);
     expect(result.findings).toEqual([]);
   });
+
+  it.each([
+    ['private key material', '-----BEGIN PRIVATE KEY-----'],
+    ['AWS access key shape', 'AKIA1234567890ABCDEF'],
+    ['Google API key shape', 'AIza' + 'A'.repeat(35)],
+    ['OpenAI API key shape', 'sk-proj-' + 'A'.repeat(24)],
+    ['Slack token shape', 'xoxb-' + '1'.repeat(20)],
+    ['Stripe live secret shape', 'sk_live_' + '1'.repeat(20)],
+    ['public Vite credential marker', 'VITE_CUSTOM_API_KEY'],
+  ])('detects %s without requiring the actual credential value', (label, marker) => {
+    expect(scanBuffer(Buffer.from(marker))).toContain(label);
+  });
 });

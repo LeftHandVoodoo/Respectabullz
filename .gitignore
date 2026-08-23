@@ -1,5 +1,7 @@
 # Dependencies
 node_modules/
+__pycache__/
+*.py[cod]
 
 # Build outputs
 dist/
@@ -49,4 +51,12 @@ coverage/
 # Misc
 *.pem
 .vercel
+
+# Local AI-assistant and orchestration state
+.agents/
+.claude/
+.claude-flow/
+.codex/
+.swarm/
+/nul
 

@@ -1,84 +1,58 @@
 // Database connection management
-// Singleton connection to SQLite via tauri-plugin-sql
+// The renderer can use only the constrained Rust database command boundary.
 
-import Database from '@tauri-apps/plugin-sql';
+import { invoke } from '@tauri-apps/api/core';
 import { logger } from '../errorTracking';
 
-// Database singleton instance
-let db: Database | null = null;
+interface DatabaseExecuteResult {
+  lastInsertId: number;
+  rowsAffected: number;
+}
 
-// Promise-based lock to prevent duplicate connection verification attempts.
-// Rust preloads the only supported pool before the renderer starts.
-let dbPromise: Promise<Database> | null = null;
+export interface NativeDatabaseBoundary {
+  select<T>(sql: string, params?: unknown[]): Promise<T>;
+  execute(sql: string, params?: unknown[]): Promise<DatabaseExecuteResult>;
+}
 
-// Database path - will be in app data directory
-// Format: sqlite:filename.db (creates database in app data directory)
-const DB_NAME = 'sqlite:respectabullz.db';
+let db: NativeDatabaseBoundary | null = null;
+let dbPromise: Promise<NativeDatabaseBoundary> | null = null;
+
+const nativeDatabase: NativeDatabaseBoundary = Object.freeze({
+  select<T>(sql: string, params: unknown[] = []): Promise<T> {
+    return invoke<T>('database_select', { sql, params });
+  },
+  execute(sql: string, params: unknown[] = []): Promise<DatabaseExecuteResult> {
+    return invoke<DatabaseExecuteResult>('database_execute', { sql, params });
+  },
+});
 
 /**
- * Get the fixed, Rust-preloaded database connection
- * This is a singleton - only one connection is maintained
+ * Get the fixed native database boundary.
  *
- * Uses a promise-based lock to prevent race conditions where multiple
- * concurrent calls to getDatabase() could duplicate startup verification.
- * The first caller retrieves and verifies the fixed pool, and subsequent
- * callers await the same promise.
+ * A promise lock prevents duplicate startup verification. Rust owns the only
+ * supported SQLite pool and rejects schema, transaction, extension,
+ * filesystem, and multi-statement SQL before execution.
  */
-export async function getDatabase(): Promise<Database> {
-  // Fast path: return cached connection
+export async function getDatabase(): Promise<NativeDatabaseBoundary> {
   if (db) {
     return db;
   }
 
-  // If a connection attempt is in progress, await it
   if (dbPromise) {
     return dbPromise;
   }
 
-  // Initiate new connection with promise-based lock
   dbPromise = (async () => {
     try {
-      logger.debug('Retrieving preloaded database', { name: DB_NAME });
-      const database = Database.get(DB_NAME);
-
-      logger.info('Successfully connected to SQLite database');
-
-      // Fail closed if the fixed pool was not preloaded by the Rust plugin.
-      await database.select('SELECT 1 as test');
-      logger.debug('Database connection verified');
-
-      // Store in singleton before returning
-      db = database;
-      return database;
+      logger.debug('Verifying native database boundary');
+      await nativeDatabase.select<Array<{ test: number }>>('SELECT 1 as test');
+      logger.info('Successfully connected to the native SQLite boundary');
+      db = nativeDatabase;
+      return nativeDatabase;
     } catch (error) {
-      logger.error('Failed to connect to database', error as Error);
-
-      // Extract error message with better handling for Tauri plugin errors
-      let errorMessage = 'Unknown database error';
-      if (error instanceof Error) {
-        errorMessage = error.message || error.toString();
-        logger.debug('Error details', { name: error.name, stack: error.stack });
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      } else if (error && typeof error === 'object') {
-        const errObj = error as Record<string, unknown>;
-        if ('message' in errObj && typeof errObj.message === 'string') {
-          errorMessage = errObj.message;
-        } else if ('error' in errObj && typeof errObj.error === 'string') {
-          errorMessage = errObj.error;
-        } else {
-          try {
-            errorMessage = JSON.stringify(error);
-          } catch {
-            errorMessage = String(error);
-          }
-        }
-      }
-      logger.debug('Extracted error message', { errorMessage });
-
-      throw new Error(`Database connection failed: ${errorMessage}. Please ensure Tauri is running and the fixed SQL pool was preloaded.`);
+      logger.error('Failed to connect to the native database boundary', error as Error);
+      throw new Error('Database connection failed. Please restart Respectabullz and try again.');
     } finally {
-      // Clear promise lock so retry is possible on failure
       dbPromise = null;
     }
   })();
@@ -86,12 +60,7 @@ export async function getDatabase(): Promise<Database> {
   return dbPromise;
 }
 
-/**
- * Execute a SQL query that returns rows
- * @param sql - SQL query string with ? placeholders
- * @param params - Array of parameter values
- * @returns Array of row objects
- */
+/** Execute a read-only SQL query through the constrained native boundary. */
 export async function query<T = Record<string, unknown>>(
   sql: string,
   params: unknown[] = []
@@ -100,41 +69,26 @@ export async function query<T = Record<string, unknown>>(
   return database.select<T[]>(sql, params);
 }
 
-/**
- * Execute a SQL statement that modifies data (INSERT, UPDATE, DELETE)
- * @param sql - SQL statement string with ? placeholders
- * @param params - Array of parameter values
- * @returns Object with lastInsertId and rowsAffected
- */
+/** Execute one INSERT, UPDATE, DELETE, or REPLACE statement. */
 export async function execute(
   sql: string,
   params: unknown[] = []
-): Promise<{ lastInsertId: number; rowsAffected: number }> {
+): Promise<DatabaseExecuteResult> {
   const database = await getDatabase();
-  const result = await database.execute(sql, params);
-  return {
-    lastInsertId: result.lastInsertId ?? 0,
-    rowsAffected: result.rowsAffected,
-  };
+  return database.execute(sql, params);
 }
 
-/**
- * Check if the database has been initialized
- */
+/** Check whether the application schema has been initialized. */
 export async function isDatabaseInitialized(): Promise<boolean> {
   try {
-    // First try to get the database connection
-    const database = await getDatabase();
-    
-    // Then check if the dogs table exists
-    const result = await database.select<Array<{ name: string }>>(
+    const rows = await query<{ name: string }>(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='dogs'"
     );
-    return result.length > 0;
+    return rows.length > 0;
   } catch (error) {
-    // If database doesn't exist or connection fails, it's not initialized
-    logger.debug('Database not initialized (expected on first run)', { error: error instanceof Error ? error.message : String(error) });
+    logger.debug('Database not initialized (expected on first run)', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return false;
   }
 }
-

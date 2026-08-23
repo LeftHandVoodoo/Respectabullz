@@ -72,28 +72,55 @@ version source, or drift in any checked mirror.
    git commit -m "1.2.3 Release description"
    ```
 
-4. **Tag**
-   ```powershell
-   git tag v1.2.3
-   git push && git push --tags
-   ```
-
-5. **Verify and build**
+4. **Validate the frozen source**
    ```powershell
    npm ci
+   npm run version:check
    npm run lint
-   npm run test -- --run
+   npm run typecheck
+   npm run test:ci
+   npm run test:coverage
    npm run build
-   cargo test --manifest-path src-tauri/Cargo.toml
-   npm run tauri:build
+   cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+   cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features --locked -- -D warnings
+   cargo test --manifest-path src-tauri/Cargo.toml --all-features --locked
    ```
 
-6. **Create GitHub Release**
-   - Exercise the installer and supported upgrade path with disposable data
-   - Generate and publish artifact checksums and an SBOM
-   - State code-signing status explicitly
-   - Upload only artifacts produced by the verified build
+5. **Prepare protected release inputs**
+
+   Configure the protected GitHub `release` environment with
+   `WINDOWS_CERTIFICATE_BASE64`, `WINDOWS_CERTIFICATE_PASSWORD`, and the
+   `WINDOWS_TIMESTAMP_URL` repository variable. Do not place the PFX or password in the
+   repository.
+
+6. **Tag and run the signed release workflow**
+   ```powershell
+   git tag v1.2.3
+   git push
+   git push --tags
+   ```
+
+   The `Signed Windows Release` workflow is triggered only by a version tag and rejects
+   any tag other than `v` plus the exact `VERSION` value. It is the only distribution
+   path. It runs the complete version, demo-data, lint, type, frontend test/coverage,
+   Rust format/Clippy/test, and dependency-audit gates; imports the certificate on the
+   hosted runner; builds the NSIS bundle; verifies the expected timestamped
+   Authenticode signature on every executable/installer; scans artifacts; generates
+   npm and Rust CycloneDX SBOMs plus SHA-256 checksums; and removes temporary signing
+   material.
+
+7. **Create GitHub Release**
+   - Exercise the verified signed installer and supported upgrade path with disposable data
+   - Publish the workflow-generated checksums and both SBOMs
+   - Link the successful release-workflow run and signature evidence
+   - Upload only artifacts produced by that verified signed build
    - Copy the applicable changelog section and evidence links to release notes
+
+Ordinary CI builds and starts an unsigned `--no-bundle` executable only on its
+ephemeral Windows runner. It requires a versioned marker written after database
+initialization and reconciliation, verifies process/error state, and uploads evidence,
+not the executable or an unsigned installer. A local `npm run tauri:build` is
+development output and must not be distributed as a verified release.
 
 ## Pre-release Versions
 
@@ -107,7 +134,7 @@ For testing releases:
 
 ## Current Version
 
-**1.10.3** (2026-07-14) - Current source version
+**1.10.4** (2026-08-22) - Current source version
 
 The version number above identifies the current source metadata; it is not by
 itself release or assurance evidence. Current containment boundaries supersede the
@@ -122,11 +149,25 @@ historical summaries below:
   withdrawn pending a transactional recovery design;
 - sample-data tools require both a debug build and the exact isolated
   `com.respectabullz.demo` identity;
+- renderer database access crosses bounded native commands, while sale lifecycle
+  changes use purpose-specific transactions;
+- native filesystem capabilities are operation-specific and exclude managed roots,
+  hidden names, and nested paths from renderer mutation;
+- the complete npm lockfile has zero dated advisories; Rust audit policy documents one
+  exception for the unselected SQLx MySQL/RSA path and retains informational warnings;
+- operating-system notifications are not dispatched in v1.10.4; and
+- release distribution is signed-only through the protected release workflow, for
+  which a successful signing run is not yet recorded;
 - the app has no in-app updater; and
 - current verification results and limitations are recorded in
   [TEST_EVIDENCE.md](case-study/TEST_EVIDENCE.md).
 
-Version 1.10.3 contains the portfolio-remediation containment release: unsafe
+Version 1.10.4 contains the security-remediation patch: renderer database access is
+bounded by Rust, sale mutations use typed transactions, native filesystem scope is
+narrowed, renderer notification code is removed, dependency policy is updated, and
+unsigned CI output cannot become a release artifact.
+
+Version 1.10.3 contained the earlier portfolio-remediation containment release: unsafe
 restore/reset surfaces are withdrawn, the supported migration and managed-document
 paths are failure-aware, the frontend credential design is removed, Windows-aware CI
 is defined, and a separately addressed development demo fixture is available.

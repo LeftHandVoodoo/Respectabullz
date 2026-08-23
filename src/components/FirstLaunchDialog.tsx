@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { initializeAppDatabase, checkFirstLaunch } from '@/lib/db/init';
 import { logger } from '@/lib/errorTracking';
+import { invoke } from '@tauri-apps/api/core';
 
 const FIRST_LAUNCH_KEY = 'respectabullz_first_launch_complete';
 
@@ -63,7 +64,10 @@ export function FirstLaunchDialog({ children }: FirstLaunchDialogProps) {
         if (isFirst && !hasLaunched) {
           setOpen(true);
         }
-        
+
+        // CI waits for this native marker before treating process liveness as
+        // application readiness. Outside GitHub Actions the command is a no-op.
+        await invoke('report_application_ready');
         setBootstrapStatus('ready');
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);

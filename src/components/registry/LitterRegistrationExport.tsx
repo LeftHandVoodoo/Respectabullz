@@ -2,6 +2,7 @@ import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { formatDate } from '@/lib/utils';
+import { serializeCsv } from '@/lib/csvUtils';
 import type { Litter } from '@/types';
 
 interface LitterRegistrationExportProps {
@@ -95,21 +96,32 @@ export function LitterRegistrationExport({ litter }: LitterRegistrationExportPro
     lines.push('');
     lines.push('CSV FORMAT (for registry import)');
     lines.push('---------------------------------');
-    lines.push('Name,Sex,Color,Microchip,Date of Birth');
-    litter.puppies.forEach((puppy) => {
+    const csvRows = litter.puppies.map((puppy) => {
       const dob = puppy.dateOfBirth ? formatDate(puppy.dateOfBirth) : '';
-      lines.push(`"${puppy.name}","${puppy.sex === 'M' ? 'Male' : 'Female'}","${puppy.color || ''}","${puppy.microchipNumber || ''}","${dob}"`);
+      return [
+        puppy.name,
+        puppy.sex === 'M' ? 'Male' : 'Female',
+        puppy.color || '',
+        puppy.microchipNumber || '',
+        dob,
+      ];
     });
+    lines.push(serializeCsv([
+      ['Name', 'Sex', 'Color', 'Microchip', 'Date of Birth'],
+      ...csvRows,
+    ]));
 
     const content = lines.join('\n');
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
+    link.href = url;
     const filename = `litter_registration_${litter.code.replace(/\s+/g, '_')}.txt`;
     link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 
     toast({
       title: 'Export complete',

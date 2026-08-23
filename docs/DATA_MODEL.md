@@ -1,16 +1,28 @@
 # Respectabullz Data Model
 
-**Version 1.10.3**
+**Version 1.10.4**
 
 ## Overview
 
-The database uses SQLite with a normalized relational schema, accessed via `tauri-plugin-sql`. All entities use timestamp-based IDs for primary keys and include audit timestamps. The database schema is defined in `src/lib/db/schema.sql` and managed through migrations in `src/lib/db/migrations.ts`.
+The database uses SQLite with a normalized relational schema. Rust owns the one
+supported application pool. Renderer database helpers cross validated native read and
+mutation commands with statement, parameter, time, row, response-size, and affected-row
+limits; schema and transaction control are not exposed through that generic boundary.
+Integrity-sensitive setup/migration and sale workflows use purpose-specific native
+commands. All entities use timestamp-based IDs for primary keys and include audit
+timestamps. The database schema is defined in `src/lib/db/schema.sql`; the supported
+schema setup and migration path is enforced in Rust.
 
 **Migration note:** Older releases attempted an automatic browser-storage-to-SQLite
 conversion. That importer is withdrawn in 1.10.3 because its multi-table writes were
 not atomic. When the legacy `respectabullz_db` key is present, startup stops before
 SQLite setup and preserves the browser payload unchanged. The only currently supported
 schema upgrade is the separately tested SQLite schema-v4-to-v5 path.
+
+**Sale integrity note:** Creating, updating, deleting, or converting an interest to a
+sale is one native transaction that validates related records and commits the sale,
+puppy assignments, puppy statuses, and conversion links together. The generic renderer
+mutation boundary rejects direct writes to `sales` and `sale_puppies`.
 
 ## Entity Relationship Diagram
 

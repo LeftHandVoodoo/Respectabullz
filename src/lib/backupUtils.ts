@@ -2,9 +2,12 @@
 // These archives are not a supported recovery format.
 
 import JSZip from 'jszip';
-import { readFile, writeFile, exists, readDir, BaseDirectory } from '@tauri-apps/plugin-fs';
+import { readFile, writeFile, stat, BaseDirectory } from '@tauri-apps/plugin-fs';
 import { save } from '@tauri-apps/plugin-dialog';
 import { logger } from '@/lib/errorTracking';
+import { getPhotoPath } from '@/lib/photoUtils';
+import { getReferencedManagedPhotoFilenames } from '@/lib/photoStorage';
+import { PHOTO_LIMITS, assertPhotoFileSize, validateImageBytes } from '@/lib/photoValidation';
 
 const PHOTOS_DIR = 'photos';
 const DB_FILENAME = 'database.json';
@@ -17,44 +20,58 @@ interface PartialExportMetadata {
   photoCount: number;
 }
 
-/**
- * Get list of all photo files in the photos directory
- */
-async function getPhotoFiles(): Promise<string[]> {
-  try {
-    const dirExists = await exists(PHOTOS_DIR, { baseDir: BaseDirectory.AppData });
-    if (!dirExists) {
-      return [];
-    }
-    
-    const entries = await readDir(PHOTOS_DIR, { baseDir: BaseDirectory.AppData });
-    const photoFiles: string[] = [];
-    
-    for (const entry of entries) {
-      if (entry.isFile && entry.name) {
-        photoFiles.push(entry.name);
-      }
-    }
-    
-    return photoFiles;
-  } catch (error) {
-    logger.error('Failed to list photo files', error instanceof Error ? error : undefined);
-    throw new Error('Could not enumerate managed photos for the partial export.');
+interface ReferencedPhotoInfo {
+  filename: string;
+  size: number;
+}
+
+async function getReferencedPhotoInfo(): Promise<ReferencedPhotoInfo[]> {
+  const filenames = await getReferencedManagedPhotoFilenames();
+  if (filenames.length > PHOTO_LIMITS.maxExportCount) {
+    throw new Error(`Partial export supports at most ${PHOTO_LIMITS.maxExportCount} referenced photos.`);
   }
+
+  const photos: ReferencedPhotoInfo[] = [];
+  let aggregateBytes = 0;
+  for (const filename of filenames) {
+    const photoPath = getPhotoPath(filename);
+    let fileInfo;
+    try {
+      fileInfo = await stat(photoPath, { baseDir: BaseDirectory.AppData });
+    } catch (error) {
+      logger.error('Failed to inspect referenced photo', error, { filename });
+      throw new Error(`Referenced managed photo ${filename} is missing or inaccessible.`);
+    }
+    if (!fileInfo.isFile) {
+      throw new Error(`Referenced managed photo ${filename} is not a regular file.`);
+    }
+    assertPhotoFileSize(fileInfo.size, `Managed photo ${filename}`);
+    aggregateBytes += fileInfo.size;
+    if (aggregateBytes > PHOTO_LIMITS.maxExportBytes) {
+      throw new Error('Referenced photos exceed the 128 MB partial-export limit.');
+    }
+    photos.push({ filename, size: fileInfo.size });
+  }
+
+  return photos;
 }
 
 /**
  * Read a photo file and return its data
  */
 async function readPhotoFile(filename: string): Promise<Uint8Array> {
+  let data: Uint8Array;
   try {
     const photoPath = `${PHOTOS_DIR}/${filename}`;
-    const data = await readFile(photoPath, { baseDir: BaseDirectory.AppData });
-    return data;
+    const fileData = await readFile(photoPath, { baseDir: BaseDirectory.AppData });
+    data = fileData instanceof Uint8Array ? fileData : new Uint8Array(fileData);
   } catch (error) {
     logger.error(`Failed to read photo file ${filename}`, error instanceof Error ? error : undefined);
     throw new Error(`Could not read managed photo ${filename} for the partial export.`);
   }
+
+  validateImageBytes(filename, data);
+  return data;
 }
 
 /**
@@ -65,31 +82,26 @@ async function readPhotoFile(filename: string): Promise<Uint8Array> {
  */
 export async function exportPartialDataWithPhotos(databaseJson: string): Promise<boolean> {
   try {
+    const databaseBytes = new TextEncoder().encode(databaseJson).byteLength;
+    if (databaseBytes > PHOTO_LIMITS.maxDatabaseJsonBytes) {
+      throw new Error('Database JSON exceeds the 25 MB partial-export limit.');
+    }
+
     const zip = new JSZip();
     
     // Get app version from the version module
     const { VERSION } = await import('./version');
     
-    // Get list of photos
-    const photoFiles = await getPhotoFiles();
-    
-    // Read every enumerated photo before constructing metadata or requesting a
-    // destination. A single failure aborts the export rather than silently omitting
-    // a file while still reporting success.
-    const includedPhotos: Array<{ filename: string; data: Uint8Array }> = [];
-    for (const filename of photoFiles) {
-      includedPhotos.push({
-        filename,
-        data: await readPhotoFile(filename),
-      });
-    }
+    // Database references are the authority. Files merely present in the photos
+    // directory are orphans and must never be disclosed by an export.
+    const referencedPhotos = await getReferencedPhotoInfo();
 
     // Create metadata from the files that will actually be included.
     const metadata: PartialExportMetadata = {
       version: PARTIAL_EXPORT_VERSION,
       createdAt: new Date().toISOString(),
       appVersion: VERSION,
-      photoCount: includedPhotos.length,
+      photoCount: referencedPhotos.length,
     };
     
     // Add metadata
@@ -103,8 +115,14 @@ export async function exportPartialDataWithPhotos(databaseJson: string): Promise
     if (!photosFolder) {
       throw new Error('Could not initialize the photos folder in the partial export.');
     }
-    for (const photo of includedPhotos) {
-      photosFolder.file(photo.filename, photo.data);
+    let actualPhotoBytes = 0;
+    for (const photo of referencedPhotos) {
+      const data = await readPhotoFile(photo.filename);
+      actualPhotoBytes += data.byteLength;
+      if (actualPhotoBytes > PHOTO_LIMITS.maxExportBytes) {
+        throw new Error('Referenced photos changed and now exceed the 128 MB partial-export limit.');
+      }
+      photosFolder.file(photo.filename, data);
     }
     
     // Generate bytes directly for the native filesystem API.
@@ -151,16 +169,11 @@ export function isTauriEnvironment(): boolean {
  */
 export async function getPartialExportInfo(): Promise<{ photoCount: number; photosSize: number }> {
   try {
-    const photoFiles = await getPhotoFiles();
-    let totalSize = 0;
-    
-    for (const filename of photoFiles) {
-      const data = await readPhotoFile(filename);
-      totalSize += data.length;
-    }
+    const photos = await getReferencedPhotoInfo();
+    const totalSize = photos.reduce((sum, photo) => sum + photo.size, 0);
     
     return {
-      photoCount: photoFiles.length,
+      photoCount: photos.length,
       photosSize: totalSize,
     };
   } catch (error) {

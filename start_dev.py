@@ -6,9 +6,19 @@ This script starts the Tauri dev server with proper environment setup.
 """
 
 import os
-import sys
+import shutil
 import subprocess
+import sys
 from pathlib import Path
+
+
+def resolve_command(name: str, search_path: str) -> str:
+    """Resolve a tool once so child processes cannot be redirected through PATH."""
+    resolved = shutil.which(name, path=search_path)
+    if not resolved:
+        raise FileNotFoundError(name)
+    return str(Path(resolved).resolve())
+
 
 def main():
     # Get the project root directory
@@ -17,23 +27,27 @@ def main():
     # Rust toolchain path (adjust if your username is different)
     rust_path = Path.home() / ".rustup" / "toolchains" / "stable-x86_64-pc-windows-msvc" / "bin"
     
-    # Get current PATH
-    current_path = os.environ.get("PATH", "")
-    
-    # Add Rust to PATH if not already there
+    # Build a child environment without mutating the current Python process.
+    child_env = os.environ.copy()
+    current_path = child_env.get("PATH", "")
     rust_bin = str(rust_path)
     if rust_bin not in current_path:
-        os.environ["PATH"] = f"{rust_bin};{current_path}"
+        child_env["PATH"] = os.pathsep.join([rust_bin, current_path])
         print(f"Added Rust to PATH: {rust_bin}")
-    
+
+    cargo_name = "cargo.exe" if sys.platform == "win32" else "cargo"
+    npm_name = "npm.cmd" if sys.platform == "win32" else "npm"
+
     # Verify cargo is accessible
     try:
+        cargo_command = resolve_command(cargo_name, child_env["PATH"])
         result = subprocess.run(
-            ["cargo", "--version"],
+            [cargo_command, "--version"],
             capture_output=True,
             text=True,
             check=True,
-            shell=(sys.platform == "win32")
+            shell=False,
+            env=child_env,
         )
         print(f"✓ Found: {result.stdout.strip()}")
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -42,12 +56,14 @@ def main():
     
     # Verify npm is accessible
     try:
+        npm_command = resolve_command(npm_name, child_env["PATH"])
         result = subprocess.run(
-            ["npm", "--version"],
+            [npm_command, "--version"],
             capture_output=True,
             text=True,
             check=True,
-            shell=(sys.platform == "win32")
+            shell=False,
+            env=child_env,
         )
         print(f"✓ Found npm: {result.stdout.strip()}")
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -60,13 +76,14 @@ def main():
     print("\nStarting Tauri development server...")
     print("=" * 50)
     
-    # Run npm tauri:dev
-    # On Windows, use shell=True to find npm.cmd
+    # Run the already-resolved npm launcher with fixed arguments.
     try:
-        if sys.platform == "win32":
-            subprocess.run(["npm", "run", "tauri:dev"], check=True, shell=True)
-        else:
-            subprocess.run(["npm", "run", "tauri:dev"], check=True)
+        subprocess.run(
+            [npm_command, "run", "tauri:dev"],
+            check=True,
+            shell=False,
+            env=child_env,
+        )
     except KeyboardInterrupt:
         print("\n\nStopped by user.")
         sys.exit(0)

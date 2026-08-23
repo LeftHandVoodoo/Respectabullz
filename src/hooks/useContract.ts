@@ -177,29 +177,10 @@ export function printContractFromBlob(blob: Blob): void {
   const link = document.createElement('a');
   link.href = url;
   link.target = '_blank';
+  link.rel = 'noopener noreferrer';
   link.click();
   
   // Clean up
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-/**
- * Open a contract file in the system default application
- * This is useful for viewing/printing generated contracts
- */
-export async function openContractFile(filePath: string): Promise<void> {
-  // In Tauri, we would use the shell API to open the file
-  // For web, we can only open files that are accessible via URL
-  try {
-    // Try to open as a URL
-    window.open(filePath, '_blank');
-  } catch (error) {
-    logger.error('Failed to open contract file', error as Error);
-    toast({
-      title: 'Error',
-      description: 'Could not open the contract file. Please navigate to it manually.',
-      variant: 'destructive',
-    });
-  }
 }
 

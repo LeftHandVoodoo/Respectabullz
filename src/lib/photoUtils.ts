@@ -3,13 +3,18 @@
 
 import { open } from '@tauri-apps/plugin-dialog';
 import { logger } from '@/lib/errorTracking';
-import { readFile, exists, mkdir, BaseDirectory } from '@tauri-apps/plugin-fs';
+import { readFile, exists, mkdir, remove, stat, BaseDirectory } from '@tauri-apps/plugin-fs';
 import { atomicWriteFile } from '@/lib/fsUtils';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { convertFileSrc } from '@tauri-apps/api/core';
-
-// Supported image extensions
-const SUPPORTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+import {
+  PHOTO_LIMITS,
+  SUPPORTED_IMAGE_EXTENSIONS,
+  assertPhotoFileSize,
+  isSupportedImageFilename,
+  isValidManagedPhotoFilename,
+  validateImageBytes,
+} from '@/lib/photoValidation';
 
 /**
  * Generate a unique filename for storing photos
@@ -60,7 +65,7 @@ export async function selectImageFile(): Promise<string | null> {
       multiple: false,
       filters: [{
         name: 'Images',
-        extensions: SUPPORTED_EXTENSIONS,
+        extensions: [...SUPPORTED_IMAGE_EXTENSIONS],
       }],
     });
 
@@ -97,11 +102,11 @@ export async function selectImageFile(): Promise<string | null> {
 
     return null;
   } catch (error) {
-    logger.warn('Failed to open file dialog, returning null', {
+    logger.warn('Failed to open photo file dialog', {
       error: error instanceof Error ? error.message : String(error),
       context: 'selectImageFile'
     });
-    return null;
+    throw new Error('Could not open the photo picker.');
   }
 }
 
@@ -145,7 +150,7 @@ export async function selectMultipleImages(): Promise<string[]> {
       multiple: true,
       filters: [{
         name: 'Images',
-        extensions: SUPPORTED_EXTENSIONS,
+        extensions: [...SUPPORTED_IMAGE_EXTENSIONS],
       }],
     });
 
@@ -169,31 +174,48 @@ export async function selectMultipleImages(): Promise<string[]> {
       }
     }
 
+    if (results.length > PHOTO_LIMITS.maxSelectionCount) {
+      throw new Error(`Select no more than ${PHOTO_LIMITS.maxSelectionCount} photos at one time.`);
+    }
+
     return results;
   } catch (error) {
-    console.error('Failed to open file dialog:', error);
-    return [];
+    logger.warn('Failed to select multiple photos', {
+      error: error instanceof Error ? error.message : String(error),
+      context: 'selectMultipleImages',
+    });
+    throw error instanceof Error ? error : new Error('Could not open the photo picker.');
   }
 }
 
 /**
  * Copy an image file to the app's photos directory
- * Returns the new file path (relative to app data) or null on failure
+ * Returns the new file path (relative to app data); rejects on validation or I/O failure.
  */
-export async function copyImageToPhotosDir(sourcePath: string): Promise<string | null> {
+export async function copyImageToPhotosDir(sourcePath: string): Promise<string> {
   try {
-    const photosDir = await ensurePhotosDirectory();
-    const newFilename = generateUniqueFilename(sourcePath);
-    const destPath = `${photosDir}/${newFilename}`;
+    if (!isSupportedImageFilename(sourcePath)) {
+      throw new Error('Selected file does not use a supported image extension.');
+    }
 
-    // Read the source file (it's a user-selected file, so read it directly)
-    // The sourcePath is an absolute path from the file dialog
+    const sourceInfo = await stat(sourcePath);
+    if (!sourceInfo.isFile) {
+      throw new Error('Selected photo is not a regular file.');
+    }
+    assertPhotoFileSize(sourceInfo.size, 'Selected photo');
+
+    // The dialog grants access to the selected path. Size is checked before the
+    // whole-file read, then checked again with signature and dimensions to close
+    // the gap if the source changes between stat and read.
     const sourceData = await readFile(sourcePath);
-
-    // Ensure we have a Uint8Array
     const dataToWrite = sourceData instanceof Uint8Array
       ? sourceData
       : new Uint8Array(sourceData);
+    validateImageBytes(sourcePath, dataToWrite);
+
+    const photosDir = await ensurePhotosDirectory();
+    const newFilename = generateUniqueFilename(sourcePath);
+    const destPath = `${photosDir}/${newFilename}`;
 
     // Write to destination atomically using BaseDirectory.AppData
     // This prevents partial file corruption if write is interrupted
@@ -202,12 +224,12 @@ export async function copyImageToPhotosDir(sourcePath: string): Promise<string |
     // Return just the filename - we'll reconstruct the full path when needed
     return newFilename;
   } catch (error) {
-    logger.warn('Failed to copy image to photos directory, returning null', {
+    logger.warn('Failed to copy image to photos directory', {
       error: error instanceof Error ? error.message : String(error),
       context: 'copyImageToPhotosDir',
       sourcePath
     });
-    return null;
+    throw error instanceof Error ? error : new Error('Selected photo could not be copied.');
   }
 }
 
@@ -216,6 +238,9 @@ export async function copyImageToPhotosDir(sourcePath: string): Promise<string |
  * Uses BaseDirectory.AppData when accessing files
  */
 export function getPhotoPath(filename: string): string {
+  if (!isValidManagedPhotoFilename(filename)) {
+    throw new Error('Managed photo filename is invalid.');
+  }
   return `photos/${filename}`;
 }
 
@@ -224,7 +249,7 @@ export function getPhotoPath(filename: string): string {
  * Uses Tauri's convertFileSrc for proper file:// protocol handling
  */
 export async function getPhotoUrl(filename: string | null | undefined): Promise<string | null> {
-  if (!filename) return null;
+  if (!filename || !isValidManagedPhotoFilename(filename)) return null;
 
   try {
     // Get the full app data directory path
@@ -233,7 +258,10 @@ export async function getPhotoUrl(filename: string | null | undefined): Promise<
     const url = convertFileSrc(fullPath);
     return url;
   } catch (error) {
-    console.error('Failed to get photo URL:', error);
+    logger.warn('Failed to get photo URL', {
+      error: error instanceof Error ? error.message : String(error),
+      context: 'getPhotoUrl',
+    });
     return null;
   }
 }
@@ -246,84 +274,132 @@ export async function getPhotoUrl(filename: string | null | undefined): Promise<
 let cachedPhotosBasePath: string | null = null;
 const photoUrlCache = new Map<string, string>();
 
+function getCachedPhotoUrl(filename: string): string | null {
+  const cached = photoUrlCache.get(filename);
+  if (!cached) return null;
+
+  // Refresh insertion order so the bounded map behaves as an LRU cache.
+  photoUrlCache.delete(filename);
+  photoUrlCache.set(filename, cached);
+  return cached;
+}
+
+function cachePhotoUrl(filename: string, url: string): void {
+  photoUrlCache.delete(filename);
+  photoUrlCache.set(filename, url);
+  while (photoUrlCache.size > PHOTO_LIMITS.urlCacheEntries) {
+    const oldestKey = photoUrlCache.keys().next().value as string | undefined;
+    if (!oldestKey) break;
+    photoUrlCache.delete(oldestKey);
+  }
+}
+
+export function clearPhotoUrlCache(filename?: string): void {
+  if (filename) {
+    photoUrlCache.delete(filename);
+    return;
+  }
+  photoUrlCache.clear();
+}
+
 export async function initPhotoBasePath(): Promise<void> {
   try {
     const appData = await appDataDir();
     const photosPath = await join(appData, 'photos');
     cachedPhotosBasePath = photosPath;
   } catch (error) {
-    console.error('Failed to init photo base path:', error);
+    logger.warn('Failed to initialize photo base path', {
+      error: error instanceof Error ? error.message : String(error),
+      context: 'initPhotoBasePath',
+    });
   }
 }
 
 /**
- * Get the MIME type from a filename
- */
-function getMimeType(filename: string): string {
-  const ext = filename.split('.').pop()?.toLowerCase();
-  const mimeTypes: Record<string, string> = {
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'png': 'image/png',
-    'gif': 'image/gif',
-    'webp': 'image/webp',
-    'bmp': 'image/bmp',
-  };
-  return mimeTypes[ext || ''] || 'image/jpeg';
-}
-
-/**
- * Convert Uint8Array to base64 string
- */
-function uint8ArrayToBase64(bytes: Uint8Array): string {
-  let binary = '';
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-/**
- * Get photo URL asynchronously (preferred method)
- * This properly constructs the path and caches the result
- * Uses base64 data URL for reliable cross-platform display
+ * Get a photo URL asynchronously (preferred method).
+ * The native asset URL avoids retaining full base64 images in renderer memory.
  */
 export async function getPhotoUrlAsync(filename: string | null | undefined): Promise<string | null> {
-  if (!filename) return null;
+  if (!filename || !isValidManagedPhotoFilename(filename)) return null;
 
-  // Check cache first
-  if (photoUrlCache.has(filename)) {
-    return photoUrlCache.get(filename) || null;
-  }
+  const cached = getCachedPhotoUrl(filename);
+  if (cached) return cached;
 
   try {
-    // Read the file from app data directory
     const photoPath = getPhotoPath(filename);
-    const fileData = await readFile(photoPath, { baseDir: BaseDirectory.AppData });
+    if (!await exists(photoPath, { baseDir: BaseDirectory.AppData })) return null;
 
-    // Convert to base64 data URL
-    const mimeType = getMimeType(filename);
-    const base64 = uint8ArrayToBase64(fileData);
-    const dataUrl = `data:${mimeType};base64,${base64}`;
-
-    photoUrlCache.set(filename, dataUrl);
-    return dataUrl;
+    const appData = await appDataDir();
+    const fullPath = await join(appData, 'photos', filename);
+    const assetUrl = convertFileSrc(fullPath);
+    cachePhotoUrl(filename, assetUrl);
+    return assetUrl;
   } catch (error) {
-    console.error('Failed to get photo URL async:', error);
-
-    // Fallback: try convertFileSrc
-    try {
-      const appData = await appDataDir();
-      const fullPath = await join(appData, 'photos', filename);
-      const assetUrl = convertFileSrc(fullPath);
-      photoUrlCache.set(filename, assetUrl);
-      return assetUrl;
-    } catch (fallbackError) {
-      console.error('Fallback also failed:', fallbackError);
-      return null;
-    }
+    logger.warn('Failed to get photo URL asynchronously', {
+      error: error instanceof Error ? error.message : String(error),
+      context: 'getPhotoUrlAsync',
+      filename,
+    });
+    return null;
   }
+}
+
+export interface PhotoDataUrl {
+  dataUrl: string;
+  byteLength: number;
+}
+
+const BASE64_CHUNK_BYTES = 24 * 1024;
+
+function encodeBase64InChunks(bytes: Uint8Array): string {
+  let encoded = '';
+  for (let offset = 0; offset < bytes.byteLength; offset += BASE64_CHUNK_BYTES) {
+    const chunk = bytes.subarray(offset, offset + BASE64_CHUNK_BYTES);
+    let binary = '';
+    for (let index = 0; index < chunk.byteLength; index += 1) {
+      binary += String.fromCharCode(chunk[index]);
+    }
+    encoded += btoa(binary);
+  }
+  return encoded;
+}
+
+function assertPdfPhotoSize(size: number): void {
+  if (!Number.isSafeInteger(size) || size <= 0) {
+    throw new Error('PDF photo is empty or has an invalid size.');
+  }
+  if (size > PHOTO_LIMITS.maxPdfPhotoBytes) {
+    throw new Error('PDF photo exceeds the 8 MB embedding limit.');
+  }
+}
+
+/**
+ * Read a validated managed photo for PDF embedding.
+ * UI rendering should continue to use the bounded asset-URL helpers above.
+ */
+export async function getPhotoDataUrl(
+  filename: string | null | undefined,
+): Promise<PhotoDataUrl | null> {
+  if (!filename) return null;
+  if (!isValidManagedPhotoFilename(filename)) {
+    throw new Error('Managed photo filename is invalid.');
+  }
+
+  const photoPath = getPhotoPath(filename);
+  const fileInfo = await stat(photoPath, { baseDir: BaseDirectory.AppData });
+  if (!fileInfo.isFile) throw new Error('PDF photo is not a regular file.');
+  assertPdfPhotoSize(fileInfo.size);
+
+  const fileData = await readFile(photoPath, { baseDir: BaseDirectory.AppData });
+  const bytes = fileData instanceof Uint8Array ? fileData : new Uint8Array(fileData);
+  assertPdfPhotoSize(bytes.byteLength);
+  const image = validateImageBytes(filename, bytes);
+  const mimeType = image.format === 'jpeg' ? 'image/jpeg' : `image/${image.format}`;
+
+  return {
+    dataUrl: `data:${mimeType};base64,${encodeBase64InChunks(bytes)}`,
+    byteLength: bytes.byteLength,
+  };
 }
 
 /**
@@ -332,12 +408,10 @@ export async function getPhotoUrlAsync(filename: string | null | undefined): Pro
  * Uses convertFileSrc (asset://) for better performance vs base64
  */
 export function getPhotoUrlSync(filename: string | null | undefined): string | null {
-  if (!filename) return null;
+  if (!filename || !isValidManagedPhotoFilename(filename)) return null;
 
-  // Check cache first
-  if (photoUrlCache.has(filename)) {
-    return photoUrlCache.get(filename) || null;
-  }
+  const cached = getCachedPhotoUrl(filename);
+  if (cached) return cached;
 
   // If base path is initialized, construct URL using convertFileSrc
   if (cachedPhotosBasePath) {
@@ -346,10 +420,14 @@ export function getPhotoUrlSync(filename: string | null | undefined): string | n
       const normalizedBase = cachedPhotosBasePath.replace(/\\/g, '/').replace(/\/$/, '');
       const fullPath = `${normalizedBase}/${filename}`;
       const url = convertFileSrc(fullPath);
-      photoUrlCache.set(filename, url);
+      cachePhotoUrl(filename, url);
       return url;
     } catch (error) {
-      console.error('Failed to get photo URL sync:', error);
+      logger.warn('Failed to get photo URL synchronously', {
+        error: error instanceof Error ? error.message : String(error),
+        context: 'getPhotoUrlSync',
+        filename,
+      });
       return null;
     }
   }
@@ -357,12 +435,12 @@ export function getPhotoUrlSync(filename: string | null | undefined): string | n
   return null;
 }
 
-
 /**
  * Check if a photo file exists
  */
 export async function photoExists(filename: string): Promise<boolean> {
   try {
+    if (!isValidManagedPhotoFilename(filename)) return false;
     const photoPath = getPhotoPath(filename);
     return exists(photoPath, { baseDir: BaseDirectory.AppData });
   } catch {
@@ -374,8 +452,7 @@ export async function photoExists(filename: string): Promise<boolean> {
  * Validate that a file is a supported image type
  */
 export function isValidImageFile(filename: string): boolean {
-  const ext = filename.split('.').pop()?.toLowerCase();
-  return ext ? SUPPORTED_EXTENSIONS.includes(ext) : false;
+  return isSupportedImageFilename(filename);
 }
 
 /**
@@ -383,18 +460,13 @@ export function isValidImageFile(filename: string): boolean {
  * Returns the new filename or null if cancelled/failed
  */
 export async function selectAndCopyImage(): Promise<string | null> {
-  try {
-    const selected = await selectImageFile();
-    if (!selected) {
-      return null;
-    }
-
-    const filename = await copyImageToPhotosDir(selected);
-    return filename;
-  } catch (error) {
-    console.error('Error in selectAndCopyImage:', error);
+  const selected = await selectImageFile();
+  if (!selected) {
     return null;
   }
+
+  const filename = await copyImageToPhotosDir(selected);
+  return filename;
 }
 
 /**
@@ -406,12 +478,27 @@ export async function selectAndCopyMultipleImages(): Promise<string[]> {
   if (selected.length === 0) return [];
 
   const results: string[] = [];
-  for (const path of selected) {
-    const newFilename = await copyImageToPhotosDir(path);
-    if (newFilename) {
+  try {
+    for (const path of selected) {
+      const newFilename = await copyImageToPhotosDir(path);
       results.push(newFilename);
     }
+    return results;
+  } catch (error) {
+    const cleanupResults = await Promise.allSettled(
+      results.map(async (filename) => {
+        const photoPath = getPhotoPath(filename);
+        if (await exists(photoPath, { baseDir: BaseDirectory.AppData })) {
+          await remove(photoPath, { baseDir: BaseDirectory.AppData });
+        }
+        clearPhotoUrlCache(filename);
+      }),
+    );
+    if (cleanupResults.some((result) => result.status === 'rejected')) {
+      logger.error('Failed to clean up one or more photos after a batch copy error', undefined, {
+        context: 'selectAndCopyMultipleImages',
+      });
+    }
+    throw error;
   }
-
-  return results;
 }

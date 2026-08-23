@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
 import { isTauriEnvironment } from '@/lib/backupUtils';
-import { getPhotoUrlAsync } from '@/lib/photoUtils';
+import { createPdfPhotoLoader, PdfPhotoBudgetError } from '@/lib/pdfPhotoUtils';
 import { getPacketData } from '@/lib/db';
 import { loadPacketPdfGenerator } from './pdfRuntime';
 import type { PacketOptions } from '@/types';
@@ -72,25 +72,40 @@ export function PacketExportDialog({
         return;
       }
 
-      // Load photos and convert to base64, tracking any that fail to load
+      // Load photos as validated data URLs. Asset URLs are intentionally not
+      // used here because React-PDF fetches them and production CSP blocks that
+      // connection path. The per-export loader also bounds count and memory.
       let dogPhotoBase64: string | null = null;
       let sirePhotoBase64: string | null = null;
       let damPhotoBase64: string | null = null;
       const dogGalleryPhotosBase64: (string | null)[] = [];
       const missingPhotos: string[] = [];
+      const photoLoader = createPdfPhotoLoader();
+
+      const loadPacketPhoto = async (filename: string, label: string) => {
+        try {
+          const loaded = await photoLoader.load(filename);
+          if (!loaded) missingPhotos.push(`${label}: ${filename}`);
+          return loaded;
+        } catch (error) {
+          if (error instanceof PdfPhotoBudgetError) throw error;
+          missingPhotos.push(`${label}: ${filename}`);
+          return null;
+        }
+      };
 
       // Load dog's profile photo
       if (packetData.dog.profilePhotoPath) {
-        dogPhotoBase64 = await getPhotoUrlAsync(packetData.dog.profilePhotoPath);
-        if (!dogPhotoBase64) {
-          missingPhotos.push(`Profile photo: ${packetData.dog.profilePhotoPath}`);
-        }
+        dogPhotoBase64 = await loadPacketPhoto(
+          packetData.dog.profilePhotoPath,
+          'Profile photo',
+        );
       }
 
       // Load dog's gallery photos
       // Include profile photo in gallery if it exists
       if (packetData.dog.profilePhotoPath) {
-        const profilePhotoBase64 = await getPhotoUrlAsync(packetData.dog.profilePhotoPath);
+        const profilePhotoBase64 = dogPhotoBase64;
         if (profilePhotoBase64) {
           dogGalleryPhotosBase64.push(profilePhotoBase64);
         }
@@ -104,12 +119,8 @@ export function PacketExportDialog({
           if (photo.filePath === packetData.dog.profilePhotoPath) {
             continue;
           }
-          const photoBase64 = await getPhotoUrlAsync(photo.filePath);
-          if (photoBase64) {
-            dogGalleryPhotosBase64.push(photoBase64);
-          } else {
-            missingPhotos.push(`Gallery photo: ${photo.filePath}`);
-          }
+          const photoBase64 = await loadPacketPhoto(photo.filePath, 'Gallery photo');
+          if (photoBase64) dogGalleryPhotosBase64.push(photoBase64);
         }
       }
 
@@ -117,10 +128,7 @@ export function PacketExportDialog({
       if (options.includeParentPhotos) {
         const sirePhotoPath = packetData.sirePhoto || packetData.sire?.profilePhotoPath;
         if (sirePhotoPath) {
-          sirePhotoBase64 = await getPhotoUrlAsync(sirePhotoPath);
-          if (!sirePhotoBase64) {
-            missingPhotos.push(`Sire photo: ${sirePhotoPath}`);
-          }
+          sirePhotoBase64 = await loadPacketPhoto(sirePhotoPath, 'Sire photo');
         }
       }
 
@@ -128,10 +136,7 @@ export function PacketExportDialog({
       if (options.includeParentPhotos) {
         const damPhotoPath = packetData.damPhoto || packetData.dam?.profilePhotoPath;
         if (damPhotoPath) {
-          damPhotoBase64 = await getPhotoUrlAsync(damPhotoPath);
-          if (!damPhotoBase64) {
-            missingPhotos.push(`Dam photo: ${damPhotoPath}`);
-          }
+          damPhotoBase64 = await loadPacketPhoto(damPhotoPath, 'Dam photo');
         }
       }
 

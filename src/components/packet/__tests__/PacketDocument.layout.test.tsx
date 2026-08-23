@@ -1,5 +1,5 @@
 import { pdf } from '@react-pdf/renderer';
-import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -107,6 +107,58 @@ const coverOnlyOptions = {
 } satisfies PacketOptions;
 
 describe('PacketDocument pagination', () => {
+  it('embeds managed-photo data URLs without asset-protocol fetches', async () => {
+    const dataWithPhotos = {
+      ...packetData,
+      dog: {
+        ...packetData.dog,
+        profilePhotoPath: '00000000-0000-4000-8000-000000000001.png',
+      },
+      dogPhotos: [
+        { id: 'photo-1', filePath: '00000000-0000-4000-8000-000000000001.png' },
+        { id: 'photo-2', filePath: '00000000-0000-4000-8000-000000000002.png' },
+      ],
+      sire: { name: 'Demo Sire' },
+      dam: { name: 'Demo Dam' },
+    } as unknown as PacketData;
+    const options = {
+      ...coverOnlyOptions,
+      includePhotos: true,
+      includeParentPhotos: true,
+    } satisfies PacketOptions;
+
+    const blob = await pdf(
+      <PacketDocument
+        data={dataWithPhotos}
+        options={options}
+        logoBase64={logoBase64}
+        dogPhotoBase64={logoBase64}
+        dogGalleryPhotosBase64={[logoBase64, logoBase64]}
+        sirePhotoBase64={logoBase64}
+        damPhotoBase64={logoBase64}
+      />,
+    ).toBlob();
+    const bytes = await new Promise<Uint8Array>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(reader.error);
+      reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+      reader.readAsArrayBuffer(blob);
+    });
+    const parsed = await getDocument({ data: bytes }).promise;
+    let paintedImages = 0;
+
+    for (let pageNumber = 1; pageNumber <= parsed.numPages; pageNumber += 1) {
+      const page = await parsed.getPage(pageNumber);
+      const operators = await page.getOperatorList();
+      paintedImages += operators.fnArray.filter(
+        (operator) => operator === OPS.paintImageXObject || operator === OPS.paintInlineImageXObject,
+      ).length;
+    }
+
+    expect(paintedImages).toBeGreaterThanOrEqual(6);
+    await parsed.destroy();
+  }, 30_000);
+
   it('keeps the branded cover on one physical page', async () => {
     const blob = await pdf(
       <PacketDocument

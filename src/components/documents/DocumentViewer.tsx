@@ -13,10 +13,10 @@ import { Button } from '@/components/ui/button';
 import { TagBadgeList } from './TagSelector';
 import type { DocumentWithRelations } from '@/types';
 import {
-  isImageFile,
   isPdfFile,
   formatFileSize,
   getDocumentBase64,
+  isValidStoredFilename,
   openDocumentWithSystem,
 } from '@/lib/documentUtils';
 
@@ -48,7 +48,6 @@ interface DocumentViewerProps {
 }
 
 export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerProps) {
-  const [imageUrl, setImageUrl] = React.useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -58,23 +57,17 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
 
   // Load document when dialog opens
   React.useEffect(() => {
+    let cancelled = false;
+
     if (open) {
       setIsLoading(true);
       setError(null);
       setPageNumber(1);
       setScale(1.0);
-      
-      if (isImageFile(document.filename)) {
-        getDocumentBase64(document.filename)
-          .then((url) => {
-            setImageUrl(url);
-            setIsLoading(false);
-          })
-          .catch((err) => {
-            console.error('Failed to load image:', err);
-            setError('Failed to load image');
-            setIsLoading(false);
-          });
+
+      if (!isValidStoredFilename(document.filename)) {
+        setError('Preview blocked because the stored document filename is invalid.');
+        setIsLoading(false);
       } else if (isPdfFile(document.filename)) {
         // Check if PDF worker initialized successfully
         if (!pdfWorkerInitialized) {
@@ -86,6 +79,7 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
         // Use base64 for PDFs - more reliable in Tauri desktop apps
         getDocumentBase64(document.filename)
           .then((base64Url) => {
+            if (cancelled) return;
             if (base64Url) {
               setPdfUrl(base64Url);
             } else {
@@ -94,17 +88,21 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
             setIsLoading(false);
           })
           .catch((err) => {
+            if (cancelled) return;
             console.error('Failed to load PDF:', err);
             setError(`Failed to load PDF: ${err.message || 'Unknown error'}`);
             setIsLoading(false);
           });
       } else {
+        // Legacy image documents were admitted with only shallow signature
+        // validation. Until native dimension/frame validation covers them,
+        // decode those files only in the user's system application.
         setIsLoading(false);
       }
     }
 
     return () => {
-      setImageUrl(null);
+      cancelled = true;
       setPdfUrl(null);
       setError(null);
       setNumPages(null);
@@ -141,56 +139,17 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
   };
 
   const handlePrint = async () => {
-    if (isImageFile(document.filename) && imageUrl) {
-      // Create a new window for printing the image
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>${document.originalName}</title>
-              <style>
-                body {
-                  margin: 0;
-                  padding: 20px;
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                  min-height: 100vh;
-                }
-                img {
-                  max-width: 100%;
-                  max-height: 100vh;
-                  object-fit: contain;
-                }
-                @media print {
-                  body { margin: 0; padding: 0; }
-                  img { max-width: 100%; height: auto; }
-                }
-              </style>
-            </head>
-            <body>
-              <img src="${imageUrl}" alt="${document.originalName}" onload="window.print(); window.close();" />
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-      }
-    } else if (isPdfFile(document.filename) && pdfUrl) {
-      // For PDFs, open with system default app for printing
-      await openDocumentWithSystem(document.filename);
-    } else {
-      // For other files, open with system default app
-      await openDocumentWithSystem(document.filename);
-    }
+    // Printing stays outside the webview: the native command validates the
+    // managed filename and opens the registered file in the system application.
+    await openDocumentWithSystem(document.filename);
   };
 
   const handleOpenExternal = async () => {
     await openDocumentWithSystem(document.filename);
   };
 
-  const canPreview = isImageFile(document.filename) || isPdfFile(document.filename);
+  const hasValidFilename = isValidStoredFilename(document.filename);
+  const canPreview = hasValidFilename && isPdfFile(document.filename);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -213,7 +172,13 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
 
         {/* Preview area */}
         <div className="flex-1 min-h-0 overflow-auto">
-          {canPreview ? (
+          {!hasValidFilename ? (
+            <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg min-h-[200px] text-center">
+              <p className="text-sm text-destructive">
+                Preview blocked because the stored document filename is invalid.
+              </p>
+            </div>
+          ) : canPreview ? (
             <div className="flex flex-col items-center p-4 bg-muted/30 rounded-lg min-h-[300px]">
               {isLoading ? (
                 <div className="flex flex-col items-center gap-2">
@@ -227,12 +192,6 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
                     Open with System
                   </Button>
                 </div>
-              ) : isImageFile(document.filename) && imageUrl ? (
-                <img
-                  src={imageUrl}
-                  alt={document.originalName}
-                  className="max-w-full max-h-[500px] object-contain rounded"
-                />
               ) : isPdfFile(document.filename) && pdfUrl ? (
                 <div className="flex flex-col items-center w-full">
                   {/* PDF Controls */}
@@ -282,6 +241,8 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
                   <div className="overflow-auto max-h-[600px] border rounded bg-white p-4">
                     <Document
                       file={pdfUrl}
+                      externalLinkTarget="_blank"
+                      externalLinkRel="noopener noreferrer nofollow"
                       onLoadSuccess={onDocumentLoadSuccess}
                       onLoadError={onDocumentLoadError}
                       loading={
@@ -295,7 +256,10 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
                           pageNumber={pageNumber}
                           scale={scale}
                           renderTextLayer={true}
-                          renderAnnotationLayer={true}
+                          // Imported PDFs are untrusted. Disabling annotation
+                          // interaction prevents embedded links from navigating
+                          // this webview or spawning deceptive child pages.
+                          renderAnnotationLayer={false}
                           className="shadow-lg"
                           width={Math.min(800, typeof window !== 'undefined' ? window.innerWidth * 0.7 : 800)}
                         />
@@ -328,11 +292,11 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
 
         {/* Actions */}
         <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={handleOpenExternal}>
+          <Button variant="outline" onClick={handleOpenExternal} disabled={!hasValidFilename}>
             <ExternalLink className="mr-2 h-4 w-4" />
             Open External
           </Button>
-          <Button onClick={handlePrint}>
+          <Button onClick={handlePrint} disabled={!hasValidFilename}>
             <Printer className="mr-2 h-4 w-4" />
             Print
           </Button>

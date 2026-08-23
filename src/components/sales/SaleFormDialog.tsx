@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, FileText, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, FileText } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +51,15 @@ const saleSchema = z.object({
   contractPath: z.string().optional(),
   notes: z.string().optional(),
   puppies: z.array(puppySchema).min(1, 'At least one puppy is required'),
+}).superRefine((data, context) => {
+  const selectedIds = data.puppies.map((puppy) => puppy.dogId).filter(Boolean);
+  if (new Set(selectedIds).size !== selectedIds.length) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['puppies'],
+      message: 'Each puppy can only be selected once',
+    });
+  }
 });
 
 type SaleFormData = z.infer<typeof saleSchema>;
@@ -91,8 +100,7 @@ export function SaleFormDialog({
   // But also include dogs that are already in this sale when editing
   const existingPuppyIds = sale?.puppies?.map(p => p.dogId) || [];
   const availableDogs = dogs?.filter(d => 
-    d.status === 'active' || 
-    d.status === 'retired' || 
+    d.status === 'active' ||
     existingPuppyIds.includes(d.id)
   ) || [];
 
@@ -552,32 +560,13 @@ export function SaleFormDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="contractPath">Contract File Path</Label>
-                <div className="flex gap-2">
-                  <Input
-                    {...register('contractPath')}
-                    placeholder="/path/to/contract.docx"
-                    className="flex-1"
-                  />
-                  {watch('contractPath') && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => {
-                        const path = watch('contractPath');
-                        if (path) {
-                          window.open(path, '_blank');
-                        }
-                      }}
-                      title="Open Contract"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+                <Input
+                  {...register('contractPath')}
+                  placeholder="/path/to/contract.docx"
+                />
                 <p className="text-xs text-muted-foreground">
                   <FileText className="inline h-3 w-3 mr-1" />
-                  Contract can be generated from the Inquiries page during conversion
+                  Stored for reference only. Open the contract from its trusted file location.
                 </p>
               </div>
             </div>

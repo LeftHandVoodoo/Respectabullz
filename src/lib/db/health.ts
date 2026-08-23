@@ -665,7 +665,10 @@ export async function createHealthScheduleTemplate(
   
   // If setting as default, unset other defaults
   if (input.isDefault) {
-    await execute('UPDATE health_schedule_templates SET is_default = 0');
+    await execute(
+      'UPDATE health_schedule_templates SET is_default = ? WHERE is_default <> ?',
+      [0, 0],
+    );
   }
   
   await execute(
@@ -689,7 +692,10 @@ export async function updateHealthScheduleTemplate(
   if (input.name !== undefined) { updates.push('name = ?'); values.push(input.name); }
   if (input.isDefault !== undefined) {
     if (input.isDefault) {
-      await execute('UPDATE health_schedule_templates SET is_default = 0');
+      await execute(
+        'UPDATE health_schedule_templates SET is_default = ? WHERE is_default <> ?',
+        [0, 0],
+      );
     }
     updates.push('is_default = ?');
     values.push(input.isDefault ? 1 : 0);

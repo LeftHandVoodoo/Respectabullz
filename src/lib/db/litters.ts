@@ -3,6 +3,8 @@
 
 import { query, execute } from './connection';
 import { generateId, dateToSql, sqlToDate, nowIso } from './utils';
+import { deleteManagedPhotoIfUnreferenced } from '@/lib/photoStorage';
+import { isValidManagedPhotoFilename } from '@/lib/photoValidation';
 import type {
   Litter,
   LitterPhoto,
@@ -230,12 +232,42 @@ export async function updateLitter(id: string, input: UpdateLitterInput): Promis
 /**
  * Delete a litter
  */
-export async function deleteLitter(id: string): Promise<boolean> {
+export interface LitterDeleteCleanupWarning {
+  deleted: true;
+  photoCleanupFailures: string[];
+}
+
+export async function deleteLitter(id: string): Promise<boolean | LitterDeleteCleanupWarning> {
+  const photoRows = (await query<{ filename: string | null }>(
+    'SELECT file_path AS filename FROM litter_photos WHERE litter_id = ?',
+    [id],
+  )) ?? [];
+  const filenames = new Set(
+    photoRows
+      .map((row) => row.filename)
+      .filter((filename): filename is string => (
+        filename !== null && isValidManagedPhotoFilename(filename)
+      )),
+  );
+
   // First, unlink puppies from this litter
   await execute('UPDATE dogs SET litter_id = NULL WHERE litter_id = ?', [id]);
   
   const result = await execute('DELETE FROM litters WHERE id = ?', [id]);
-  return result.rowsAffected > 0;
+  if (result.rowsAffected === 0) return false;
+
+  const photoCleanupFailures: string[] = [];
+  for (const filename of filenames) {
+    try {
+      await deleteManagedPhotoIfUnreferenced(filename);
+    } catch {
+      photoCleanupFailures.push(filename);
+    }
+  }
+
+  return photoCleanupFailures.length > 0
+    ? { deleted: true, photoCleanupFailures }
+    : true;
 }
 
 // ============================================
@@ -334,8 +366,16 @@ export async function updateLitterPhoto(id: string, input: UpdateLitterPhotoInpu
  * Delete a litter photo
  */
 export async function deleteLitterPhoto(id: string): Promise<boolean> {
+  const photo = await getLitterPhoto(id);
+  if (!photo) return false;
+
   const result = await execute('DELETE FROM litter_photos WHERE id = ?', [id]);
-  return result.rowsAffected > 0;
+  if (result.rowsAffected === 0) return false;
+
+  // The database is authoritative: remove the record first, then delete the
+  // physical file only if no dog, litter, or stud still references it.
+  await deleteManagedPhotoIfUnreferenced(photo.filePath);
+  return true;
 }
 
 /**

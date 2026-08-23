@@ -38,6 +38,7 @@ import { useLitters } from '@/hooks/useLitters';
 import { useVaccinations } from '@/hooks/useHealth';
 import { useSales } from '@/hooks/useClients';
 import { formatCurrency, formatDate, getCategoryDisplayName } from '@/lib/utils';
+import { serializeCsv } from '@/lib/csvUtils';
 import type { VaccinationRecord, Sale } from '@/types';
 
 const COLORS = ['#303845', '#6e5e44', '#fbf1e5', '#3b82f6', '#22c55e', '#f59e0b'];
@@ -388,25 +389,24 @@ export function ReportsPage() {
     const rows = litterFinancials.map(l => [
       l.code,
       l.nickname || '',
-      l.puppyCount.toString(),
-      l.income.toFixed(2),
-      l.expenses.toFixed(2),
-      l.profit.toFixed(2),
+      l.puppyCount,
+      Number(l.income.toFixed(2)),
+      Number(l.expenses.toFixed(2)),
+      Number(l.profit.toFixed(2)),
     ]);
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(field => `"${field}"`).join(',')),
-    ].join('\n');
+    const csvContent = serializeCsv([headers, ...rows]);
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
+    link.href = url;
     const today = new Date().toISOString().slice(0, 10);
     link.setAttribute('download', `litter_financials_${today}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (

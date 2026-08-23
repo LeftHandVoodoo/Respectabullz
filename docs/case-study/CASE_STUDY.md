@@ -1,8 +1,8 @@
 # Respectabullz Case Study
 
-Status: **Portfolio remediation in progress**
-Source version: **1.10.3**
-Evidence baseline: commit `fd21363beae044f0649a1e03f3bb6bcc2249f970`,
+Status: **Local remediation gates complete; public CI and signed release pending**
+Source version: **1.10.4**
+Historical evidence baseline: commit `fd21363beae044f0649a1e03f3bb6bcc2249f970`,
 2026-07-14
 
 ## Product ownership
@@ -89,12 +89,15 @@ screenshots.
 
 ### Current architecture
 
-React and TypeScript implement the renderer, forms, hooks, domain logic, and database
-modules. `tauri-plugin-sql` provides local SQLite access. Scoped Tauri plugins provide
-filesystem, dialog, and notification integration; broad shell-open permission is
-removed. Narrow Rust commands own database initialization/migration, managed-document
-coordination/opening, and the fixed support-page destination. The Rust crate remains a
-desktop boundary rather than a separate service layer.
+React and TypeScript implement the renderer, forms, hooks, and most domain logic. Rust
+owns the one supported SQLite pool. Renderer database helpers cross bounded native
+read/mutation commands; schema/transaction control and protected sale tables are not
+available through that generic path. Purpose-specific native commands own database
+initialization/migration, sale lifecycle transactions, managed-document coordination,
+safe path/link handling, and the fixed support-page destination. Filesystem capability
+is deny-by-default and operation-specific for direct managed files. There is no native
+notification integration in v1.10.4. The Rust crate remains a desktop boundary rather
+than a separate service layer.
 
 Core operation has no hosted backend. SQLite, managed photos/documents/contracts, and
 logs live on the local device; user-selected exports and browser actions cross the
@@ -160,33 +163,44 @@ The dated local baseline passed ESLint, TypeScript, and 290 Vitest tests. Config
 coverage reported 10.93% statements/lines and exposed 0% coverage in critical
 migration and document paths. The coverage configuration itself includes a test file
 in measured source. The remediation configuration excludes test/setup sources and
-enforces initial statement/branch/function/line floors; the final scoped run passed.
+enforces initial statement/branch/function/line floors; the later v1.10.3 scoped run
+passed.
 
 Dependency scans reported unresolved advisories. No required public CI, Windows
 packaged smoke test, checksum, SBOM, or signing evidence existed at the baseline.
 
-The latest local pre-release checkpoint passed 354 frontend tests in
-39 files and 39 Rust tests. The exact tree also passed lint/
-type/version/demo guards, web and NSIS builds/scans, production audit, source/history
-secret scans, workflow lint, and npm SBOM generation. A native smoke exposed a startup
-panic; after correction, the rebuilt executable stayed alive for eight seconds with
-empty stderr. The attempted local `APPDATA` override did not isolate Tauri and opened
-the real profile's SQLite sidecars, so no second local launch was attempted. Exact
-final-SHA smoke remains an ephemeral hosted-runner CI gate. No tagged public CI or
-published packaged Windows smoke result is claimed.
+The later **historical v1.10.3** local pre-release checkpoint passed 354 frontend tests
+in 39 files and 39 Rust tests. Its exact tree also passed lint/type/version/demo guards,
+build/scanning, dependency, workflow-lint, and npm-SBOM checks. A native smoke exposed
+a startup panic; after correction, the rebuilt executable stayed alive for eight
+seconds with empty stderr. That launch was not isolated from the real profile, so it is
+historical engineering evidence rather than a current packaged-release claim.
 
-The exact final local NSIS build was 29,413,927 bytes with SHA-256
+The historical v1.10.3 local NSIS build was 29,413,927 bytes with SHA-256
 `3167be8a9a0b774a72bcc4b1af30fd00ac95e03215c4bc6dd4d79d74b020bd11`.
 It and the release executable were unsigned. An 84-file artifact scan found no
 configured token markers, and a local npm CycloneDX SBOM recorded 700 components.
 Those artifacts are pre-release evidence, not a published signed release.
 
-The pre-release coverage checkpoint met the configured initial floors at 22.21%
+That historical coverage checkpoint met the configured initial floors at 22.21%
 statements/lines, 62.73% branches, and 27.85% functions. Broad statement/line coverage
 remains low; focused tests on the new critical paths are the more specific evidence.
-Pinned Rust advisory evidence fell from 7 to 5 vulnerability entries after patching two
-active runtime transitive dependencies; the remaining entries and warning groups are
-target-triaged rather than described as resolved.
+
+The v1.10.4 remediation adds the bounded database command layer, typed transactional
+sale workflows, operation-specific native file scope, validated referenced-photo
+handling, and signed-only release automation. The pinned local gate passed 439
+frontend tests in 50 files, 68 Rust tests, lint/type/coverage/Clippy checks, workflow
+lint, web build, and the Windows release-profile `--no-bundle` build. Vitest 4/V8
+measured 26.40% statements, 20.06% branches, 17.52% functions, and 27.74% lines. The
+complete npm graph has zero advisories. Rust policy has no unignored vulnerability
+entry, one documented exception for the unselected SQLx MySQL/RSA path, and 20
+informational warnings that remain tracked.
+
+Ordinary CI requires database-initialization/reconciliation readiness from an ephemeral
+unsigned executable but uploads evidence only. Distribution requires a successful
+exact-version-tag protected release run that repeats all gates, verifies timestamped
+signatures, scans the artifacts, and retains checksums plus npm/Rust SBOMs.
+No successful public final-SHA CI or signing run is yet claimed.
 
 Exact commands and limitations are in [TEST_EVIDENCE.md](TEST_EVIDENCE.md). The test
 count is not used as the headline proof.
@@ -197,15 +211,19 @@ Positive signals include a CSP with a scoped local asset origin, Tauri capabilit
 parameterized SQL in many paths, selected filename/path checks, and local storage.
 Residual risk remains substantial:
 
-- historical renderer-side GitHub credential design;
-- broad permission/network scope requiring review;
+- historical renderer-side GitHub credential design and external rotation evidence that
+  cannot be proven from this repository;
+- a bounded generic renderer database command surface that is not per-record
+  authorization;
+- operation-specific native file authority within direct managed-file scopes;
 - plaintext local data, logs, and exports;
 - incomplete archive/media/document adversarial testing;
 - semantic sensitive logging/reporting content that can fall outside the tested
   key/value redaction rules;
-- seven triaged full-graph development dependency findings (production npm graph 0;
-  see the [dependency risk ledger](DEPENDENCY_RISK.md)); and
-- unsigned/unverified Windows release artifacts.
+- one documented RustSec exception for the unselected SQLx MySQL/RSA path plus
+  informational Rust warnings (npm advisories 0; see the
+  [dependency risk ledger](DEPENDENCY_RISK.md)); and
+- no successful protected signed-release run or independently verified Windows release.
 
 The project distinguishes self-review and automated scanning from independent
 assessment. See [Security](../../SECURITY.md), [Privacy](../../PRIVACY.md), and
@@ -224,14 +242,13 @@ presenting the original state as already production-ready.
 
 ### Next three improvements
 
-1. Complete containment verification: rotate any historically exposed credential,
-   scan history and clean build artifacts, and confirm withdrawn controls and the
-   credential-free reporter in the packaged build.
-2. Run and harden the required Windows-aware CI workflow for a frozen commit, publish
-   the scoped coverage report and ratchet critical-path thresholds, retain dependency/
-   secret evidence, and smoke-test the
-   produced installer on a clean Windows profile.
-3. Capture the supported demo workflows under the dedicated
+1. Complete final v1.10.4 validation for a frozen commit, including frontend/Rust
+   counts, coverage, dependency policy, secret scans, workflow lint, and the Windows
+   `--no-bundle` build.
+2. Run the required public CI and protected signed-release workflows, retain their
+   evidence, and smoke/upgrade-test the verified signed installer on a clean Windows
+   profile. Rotate any historically exposed external credential outside the repository.
+3. Recapture supported demo workflows under the dedicated
    `com.respectabullz.demo` development identity, then publish the synthetic assets and
    failure evidence from one frozen commit.
 
@@ -251,6 +268,7 @@ demonstrate model integration, grounding, evaluation, latency, cost, and human r
 
 ## Readiness gate
 
-This case study is not recruiter-ready until containment P0 items are closed, public
-CI and clean-machine evidence pass for the displayed SHA, synthetic assets are
-rights-reviewed, and README/screenshots/demo/deck all reference that same version.
+This case study is not recruiter-ready until final v1.10.4 validation, public CI,
+protected signing, and clean-machine evidence pass for the displayed SHA; synthetic
+assets remain rights-reviewed historical captures until README/screenshots/demo/deck
+are refreshed together.

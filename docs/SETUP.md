@@ -1,6 +1,6 @@
 # Respectabullz Setup Guide
 
-Last reviewed: 2026-07-14
+Last reviewed: 2026-08-22
 
 This guide covers source development on Windows. A verified public portfolio
 installer has not yet been established. Do not use the historical restore,
@@ -49,8 +49,8 @@ For frontend-only iteration:
 npm run dev
 ```
 
-The Vite-only mode cannot validate native SQLite, filesystem, dialog, notification,
-shell, or packaging behavior. Do not treat it as an end-to-end test.
+The Vite-only mode cannot validate native SQLite, filesystem, dialog, navigation,
+or packaging behavior. Do not treat it as an end-to-end test.
 
 ## Configuration
 
@@ -159,28 +159,34 @@ the generated frontend constant, and `.env.example` display metadata.
 The dated baseline, coverage command, advisory counts, and missing checks are in
 [`TEST_EVIDENCE.md`](case-study/TEST_EVIDENCE.md).
 
-## Build a local Windows bundle
+## Build and release Windows artifacts
 
 ```powershell
 npm run tauri:build
 ```
 
-This command can produce an NSIS installer locally. A successful local build does not
-make the artifact a verified release.
+This command can produce an unsigned NSIS installer locally. A successful local build
+does not make the artifact a verified release and the output must not be distributed
+as one.
 
-Before publishing an installer, require:
+Ordinary CI uses `--no-bundle` and uploads only smoke/SBOM/checksum evidence. The
+`Signed Windows Release` workflow is the only distribution path. Its protected
+`release` environment requires `WINDOWS_CERTIFICATE_BASE64` and
+`WINDOWS_CERTIFICATE_PASSWORD` secrets plus the `WINDOWS_TIMESTAMP_URL` repository
+variable. It requires:
 
 - the exact tag and commit in all presentation material;
 - clean lint, type, tests, and critical-path evidence;
 - a controlled Windows build and clean-machine smoke test;
 - dependency and secret-scan triage;
 - SHA-256 checksum;
-- SBOM where practical; and
-- explicit signing status.
+- npm and Rust CycloneDX SBOMs; and
+- valid timestamped Authenticode signatures from the expected certificate on every
+  executable and installer.
 
-If unsigned, label the artifact as unsigned and explain that Windows SmartScreen may
-warn. A checksum provides integrity for the downloaded bytes; it does not establish
-publisher identity or software safety.
+The workflow removes imported signing material before uploading the verified bundle.
+A checksum provides integrity for downloaded bytes; the independently verified
+signature supplies publisher identity, but neither establishes that software is safe.
 
 ## Optional Prisma reference tooling
 

@@ -4,6 +4,11 @@ import userEvent from '@testing-library/user-event';
 
 import { FirstLaunchDialog } from '../FirstLaunchDialog';
 import { checkFirstLaunch, initializeAppDatabase } from '@/lib/db/init';
+import { invoke } from '@tauri-apps/api/core';
+
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock('@/lib/db/init', () => ({
   initializeAppDatabase: vi.fn().mockResolvedValue({
@@ -20,6 +25,7 @@ describe('FirstLaunchDialog containment', () => {
       migrated: false,
     });
     vi.mocked(checkFirstLaunch).mockReset().mockResolvedValue(true);
+    vi.mocked(invoke).mockReset().mockResolvedValue(undefined);
   });
 
   it('does not advertise a nonfunctional or destructively clearable sample-data path', async () => {
@@ -37,6 +43,7 @@ describe('FirstLaunchDialog containment', () => {
     expect(screen.queryByText(/load sample data/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/clear this later/i)).not.toBeInTheDocument();
     expect(screen.getByText('Protected application')).toBeInTheDocument();
+    expect(invoke).toHaveBeenCalledWith('report_application_ready');
   });
 
   it('blocks operational screens after a failed integrity check and supports retry', async () => {
@@ -60,6 +67,7 @@ describe('FirstLaunchDialog containment', () => {
     await user.click(screen.getByRole('button', { name: /retry integrity check/i }));
 
     expect(await screen.findByText('Protected application')).toBeInTheDocument();
+    expect(invoke).toHaveBeenCalledTimes(1);
   });
 
   it('preserves and surfaces the legacy browser-storage recovery block', async () => {
@@ -81,5 +89,6 @@ describe('FirstLaunchDialog containment', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Protected application')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /start fresh/i })).not.toBeInTheDocument();
+    expect(invoke).not.toHaveBeenCalled();
   });
 });

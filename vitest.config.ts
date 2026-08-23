@@ -30,22 +30,25 @@ export default defineConfig({
         '**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       ],
       thresholds: {
-        statements: 10,
-        branches: 59,
-        functions: 20,
-        lines: 10,
+        // Vitest 4/V8 instruments substantially more functions and branches
+        // than the former Vitest 2 baseline. These integer floors ratchet the
+        // measured 1.10.4 result without pretending the metrics are comparable.
+        statements: 26,
+        branches: 19,
+        functions: 17,
+        lines: 27,
         // Risk-focused ratchets complement the measured repository baseline.
         'src/lib/db/migrations.ts': {
           statements: 70,
-          branches: 90,
+          branches: 60,
           functions: 50,
           lines: 70,
         },
         'src/lib/documentWorkflow.ts': {
-          statements: 55,
-          branches: 80,
+          statements: 54,
+          branches: 10,
           functions: 55,
-          lines: 55,
+          lines: 54,
         },
         'src/lib/backupUtils.ts': {
           statements: 40,
@@ -56,33 +59,33 @@ export default defineConfig({
         'src/lib/fsUtils.ts': {
           statements: 80,
           branches: 50,
-          functions: 100,
+          functions: 60,
           lines: 80,
         },
         'src/lib/github.ts': {
-          statements: 85,
+          statements: 73,
           branches: 80,
-          functions: 85,
-          lines: 85,
+          functions: 77,
+          lines: 73,
         },
         'src/lib/contract{Destination,Template}.ts': {
-          statements: 100,
+          statements: 80,
           branches: 70,
           functions: 100,
           lines: 100,
         },
         'src/components/bug-report/BugReportDialog.tsx': {
-          statements: 95,
+          statements: 92,
           branches: 60,
           functions: 75,
-          lines: 95,
+          lines: 92,
         },
       },
     },
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
 });

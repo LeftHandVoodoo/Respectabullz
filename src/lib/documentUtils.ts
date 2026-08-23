@@ -20,6 +20,10 @@ export const ALL_SUPPORTED_EXTENSIONS = [
   ...SUPPORTED_EXCEL_EXTENSIONS,
 ];
 
+// Managed files may be larger, but renderer previews deliberately stay small
+// enough to avoid duplicating a large binary as both bytes and base64 text.
+export const MAX_DOCUMENT_PREVIEW_BYTES = 20 * 1024 * 1024;
+
 // MIME type mappings
 const MIME_TYPES: Record<string, string> = {
   // Images
@@ -96,7 +100,7 @@ export function isSupportedFile(filename: string): boolean {
  * Supports both legacy format ({timestamp}-{random}.{ext}) and new UUID format ({uuid}.{ext})
  * e.g., "1704067200000-abc123.pdf" or "550e8400-e29b-41d4-a716-446655440000.pdf"
  */
-function isValidStoredFilename(filename: string): boolean {
+export function isValidStoredFilename(filename: string): boolean {
   // Must not contain path traversal sequences
   if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
     return false;
@@ -222,6 +226,9 @@ export async function selectMultipleDocuments(): Promise<string[]> {
  * Get the relative file path for a stored document filename
  */
 export function getDocumentPath(filename: string): string {
+  if (!isValidStoredFilename(filename)) {
+    throw new Error('Invalid stored document filename');
+  }
   return `documents/${filename}`;
 }
 
@@ -229,6 +236,9 @@ export function getDocumentPath(filename: string): string {
  * Get the full path to a document file
  */
 export async function getDocumentFullPath(filename: string): Promise<string> {
+  if (!isValidStoredFilename(filename)) {
+    throw new Error('Invalid stored document filename');
+  }
   const appData = await appDataDir();
   return await join(appData, 'documents', filename);
 }
@@ -237,7 +247,7 @@ export async function getDocumentFullPath(filename: string): Promise<string> {
  * Convert a stored document filename to a displayable URL (for images)
  */
 export async function getDocumentUrl(filename: string | null | undefined): Promise<string | null> {
-  if (!filename) return null;
+  if (!filename || !isValidStoredFilename(filename)) return null;
   
   try {
     const appData = await appDataDir();
@@ -253,16 +263,27 @@ export async function getDocumentUrl(filename: string | null | undefined): Promi
  * Get document as base64 data URL (for images)
  */
 export async function getDocumentBase64(filename: string): Promise<string | null> {
+  if (!isValidStoredFilename(filename)) return null;
   try {
     const docPath = getDocumentPath(filename);
+    const fileInfo = await stat(docPath, { baseDir: BaseDirectory.AppData });
+    if (!fileInfo.isFile) {
+      throw new Error('The managed document preview target is not a regular file.');
+    }
+    if (fileInfo.size > MAX_DOCUMENT_PREVIEW_BYTES) {
+      throw new Error('This document exceeds the 20 MB preview limit. Open it with the system application instead.');
+    }
     const fileData = await readFile(docPath, { baseDir: BaseDirectory.AppData });
+    if (fileData.byteLength > MAX_DOCUMENT_PREVIEW_BYTES) {
+      throw new Error('This document exceeds the 20 MB preview limit. Open it with the system application instead.');
+    }
     
     const mimeType = getMimeType(filename);
     const base64 = uint8ArrayToBase64(fileData);
     return `data:${mimeType};base64,${base64}`;
   } catch (error) {
     console.error('Failed to get document base64:', error);
-    return null;
+    throw error instanceof Error ? error : new Error('Failed to load the managed document preview.');
   }
 }
 
@@ -271,9 +292,9 @@ export async function getDocumentBase64(filename: string): Promise<string | null
  */
 function uint8ArrayToBase64(bytes: Uint8Array): string {
   let binary = '';
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  const chunkSize = 32 * 1024;
+  for (let offset = 0; offset < bytes.byteLength; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
   }
   return btoa(binary);
 }
@@ -282,6 +303,7 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
  * Check if a document file exists
  */
 export async function documentExists(filename: string): Promise<boolean> {
+  if (!isValidStoredFilename(filename)) return false;
   try {
     const docPath = getDocumentPath(filename);
     return exists(docPath, { baseDir: BaseDirectory.AppData });

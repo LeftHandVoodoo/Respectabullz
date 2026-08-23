@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -25,7 +25,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/components/ui/use-toast';
 import { useCreateDog, useUpdateDog, useDogs } from '@/hooks/useDogs';
 import { useLitters } from '@/hooks/useLitters';
-import { selectAndCopyImage, getPhotoUrlAsync, initPhotoBasePath } from '@/lib/photoUtils';
+import {
+  getPhotoUrlAsync,
+  initPhotoBasePath,
+  selectAndCopyImage,
+} from '@/lib/photoUtils';
+import { deleteManagedPhotoIfUnreferenced } from '@/lib/photoStorage';
 import { parseLocalDate } from '@/lib/utils';
 import type { Dog, DogStatus, DogSex } from '@/types';
 
@@ -106,6 +111,7 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
   const [profilePhotoPath, setProfilePhotoPath] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const stagedPhotoPaths = useRef(new Set<string>());
 
   const isEditing = !!dog;
 
@@ -136,18 +142,48 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
     };
   }, [profilePhotoPath]);
 
+  const cleanupPhotoFiles = async (filenames: Iterable<string>): Promise<string[]> => {
+    const uniqueFilenames = [...new Set(filenames)];
+    const results = await Promise.allSettled(
+      uniqueFilenames.map((filename) => deleteManagedPhotoIfUnreferenced(filename)),
+    );
+    const failed: string[] = [];
+    results.forEach((result, index) => {
+      const filename = uniqueFilenames[index];
+      if (result.status === 'fulfilled') {
+        stagedPhotoPaths.current.delete(filename);
+      } else {
+        failed.push(filename);
+      }
+    });
+    return failed;
+  };
+
   const handlePhotoUpload = async () => {
     setIsUploadingPhoto(true);
     try {
       const filename = await selectAndCopyImage();
       if (filename) {
+        const previouslyStaged = profilePhotoPath && stagedPhotoPaths.current.has(profilePhotoPath)
+          ? profilePhotoPath
+          : null;
+        stagedPhotoPaths.current.add(filename);
         setProfilePhotoPath(filename);
-        // Force reload photo URL after setting path
         const url = await getPhotoUrlAsync(filename);
         setPhotoUrl(url);
+        if (previouslyStaged && previouslyStaged !== filename) {
+          const failed = await cleanupPhotoFiles([previouslyStaged]);
+          if (failed.length > 0) {
+            toast({
+              title: 'Previous selection cleanup failed',
+              description: 'The unused local file remains on this device but is excluded from exports.',
+              variant: 'destructive',
+            });
+          }
+        }
         toast({
-          title: 'Photo uploaded',
-          description: 'Profile photo has been uploaded successfully.',
+          title: 'Photo selected',
+          description: 'Save the dog record to keep this validated profile photo.',
         });
       }
     } catch (error) {
@@ -162,9 +198,45 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
     }
   };
 
-  const handleRemovePhoto = () => {
+  const handleRemovePhoto = async () => {
+    if (profilePhotoPath && stagedPhotoPaths.current.has(profilePhotoPath)) {
+      const failed = await cleanupPhotoFiles([profilePhotoPath]);
+      if (failed.length > 0) {
+        toast({
+          title: 'Photo cleanup failed',
+          description: 'The selected local file could not be removed. It remains excluded from exports.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
     setProfilePhotoPath(null);
     setPhotoUrl(null);
+  };
+
+  const handleDialogOpenChange = async (nextOpen: boolean) => {
+    if (nextOpen) {
+      onOpenChange(true);
+      return;
+    }
+
+    if (isUploadingPhoto || isSubmitting) {
+      toast({
+        title: 'Please wait',
+        description: isUploadingPhoto ? 'Finish selecting the photo before closing.' : 'Finish saving the dog before closing.',
+      });
+      return;
+    }
+
+    const failed = await cleanupPhotoFiles(stagedPhotoPaths.current);
+    if (failed.length > 0) {
+      toast({
+        title: 'Unused photo cleanup failed',
+        description: 'One or more local files remain on this device but are excluded from exports.',
+        variant: 'destructive',
+      });
+    }
+    onOpenChange(false);
   };
 
   const {
@@ -266,6 +338,23 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
       await createDog.mutateAsync(payload);
     }
 
+    // The saved path is now referenced and must be retained. Any replaced
+    // original or abandoned staged selections are removed only after the
+    // successful database update.
+    if (profilePhotoPath) stagedPhotoPaths.current.delete(profilePhotoPath);
+    const obsoletePhotos = [...stagedPhotoPaths.current];
+    if (dog?.profilePhotoPath && dog.profilePhotoPath !== profilePhotoPath) {
+      obsoletePhotos.push(dog.profilePhotoPath);
+    }
+    const failedCleanup = await cleanupPhotoFiles(obsoletePhotos);
+    if (failedCleanup.length > 0) {
+      toast({
+        title: 'Dog saved; old photo cleanup failed',
+        description: 'An unused local file remains on this device but is excluded from exports.',
+        variant: 'destructive',
+      });
+    }
+
     onOpenChange(false);
   };
 
@@ -273,7 +362,7 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
   const females = allDogs?.filter((d) => d.sex === 'F' && d.id !== dog?.id) || [];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(nextOpen) => void handleDialogOpenChange(nextOpen)}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Dog' : 'Add New Dog'}</DialogTitle>
@@ -301,7 +390,7 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
                   variant="destructive"
                   size="icon"
                   className="absolute -top-1 -right-1 h-5 w-5 rounded-full"
-                  onClick={handleRemovePhoto}
+                  onClick={() => void handleRemovePhoto()}
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -319,7 +408,7 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
                 {isUploadingPhoto ? 'Uploading...' : photoUrl ? 'Change Photo' : 'Add Photo'}
               </Button>
               <p className="text-xs text-muted-foreground">
-                Profile photo (JPG, PNG, GIF, WebP)
+                Profile photo (JPG, PNG, GIF, WebP, BMP; 20 MB maximum)
               </p>
             </div>
           </div>
@@ -597,7 +686,7 @@ export function DogFormDialog({ open, onOpenChange, dog, defaultLitterId }: DogF
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => void handleDialogOpenChange(false)}
             >
               Cancel
             </Button>

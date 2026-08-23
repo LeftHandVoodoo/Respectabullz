@@ -1,6 +1,6 @@
 # Threat Model
 
-Last reviewed: 2026-07-14
+Last reviewed: 2026-08-22
 
 ## Scope
 
@@ -52,20 +52,20 @@ compromise within granted capabilities.
 | Threat | Impact | Current posture | Required evidence/control |
 | --- | --- | --- | --- |
 | Renderer-side credential exposure | Repository compromise | Historical Vite-bundled PAT design is unsupported | No credential inputs or authorization header in renderer/build; secret and artifact scan |
-| Renderer compromise using broad capabilities | Read/write/open beyond intent | CSP/capabilities exist; `http://asset.localhost` image access is allowed for Tauri `convertFileSrc`, while connection sources are self-only. The SQL plugin preloads one fixed pool and renderer capabilities omit pool load/close, but renderer select/execute authority still reaches the application database | Least-privilege capability/asset-origin diff, negative permission/network tests, and continued movement of high-risk mutations behind typed Rust commands |
+| Renderer compromise using capabilities | Read/write/open beyond intent | Renderer SQL plugin permissions are removed; one native command boundary rejects schema, transaction, extension, filesystem, stacked, and unsupported SQL. Filesystem access is deny-by-default and limited to direct files in four managed directories; asset URLs expose direct photo files only. Dedicated Rust transactions own multi-row sales | Keep moving domain/file operations behind purpose-specific native commands; retain negative SQL, path, permission, and navigation tests |
 | Partial restore mutates files | Data inconsistency/loss | Restore withdrawn | Staged format, full validation, pre-restore snapshot, rollback/failpoint matrix |
 | Partial legacy browser-storage conversion | Split or duplicated records and source-data loss | Non-transactional importer and automatic cleanup removed; read-only detection blocks before SQLite setup and preserves the payload | Versioned transactional importer, full mapping/validation, rollback/retry matrix, and explicit source-retention policy before reinstatement |
 | Incomplete reset reports success | Privacy and trust failure | No verified factory reset | Table/file inventory, transaction, residual enumeration, precise result summary |
-| Database/filesystem split-brain | Orphans or broken references | Managed documents use staged files, recoverable tombstones/quarantine, `BEGIN IMMEDIATE` serialization, startup reconciliation, and focused Rust tests; commit ambiguity preserves residue for durable-state recovery; other file workflows remain path-specific | Extend state machines and injected-failure tests to every database/file workflow |
+| Database/filesystem split-brain | Orphans or broken references | Managed documents use staged files, recoverable tombstones/quarantine, `BEGIN IMMEDIATE` serialization, startup reconciliation, and focused Rust tests. Photo cleanup is record-first, reports failures, and excludes orphans from export, but a failed deletion can leave a file | Extend native state machines and injected-failure tests to every database/file workflow |
 | Bounded reconciliation misses later residue | Uninspected orphan/tombstone remains | Actual failures block operational routes, but the 10,000-entry scan limit warns and permits startup with an explicitly truncated result | Operational continuation/full-scan tooling, residue metrics, and limit-exhaustion tests before claiming exhaustive cleanup |
 | Interrupted or incomplete partial ZIP export | Incomplete file mistaken for recovery | ZIP writes directly to the exact dialog-granted target and is explicitly non-atomic/non-recoverable; managed-photo enumeration/read failures abort before the save dialog instead of silently omitting files | Clear partial-export labeling, visible write failure, independent backups, and future staged recovery format |
 | Malicious ZIP/archive | Traversal, overwrite, decompression exhaustion | No complete adversarial matrix | Canonical paths, entry/size/count limits, duplicate rejection, staged extraction |
-| Malformed image/PDF/Office file | Parser exploit or resource exhaustion | Managed-document intake enforces a 100 MB cap and supported signature checks; this is not parser-safety proof | Dimension/page/decompression limits, timeout/resource tests, maintained parsers, and broader adversarial fixtures |
-| Path manipulation or stale grant | Access outside managed/dialog-selected scope | Managed-document selection is dialog-scoped and canonical opens are database-backed; custom contract folders are session-scoped and persisted legacy paths are ignored | Canonicalization, allowlisted roots/extensions, symlink/reparse handling, and negative tests for every file workflow |
+| Malformed image/PDF/Office file | Parser exploit or resource exhaustion | Photo intake/export enforces strict names, signatures, dimensions, full-canvas work for every animation frame, per-file/aggregate sizes, and counts; packet PDF embedding is capped at 8 MiB each, 25 photos, and 48 MiB total. Document intake enforces 100 MiB. Inline preview is PDF-only, signature-checked, and capped at 20 MiB; legacy image documents are delegated to the system viewer. This is not parser-safety proof | Page/decompression/time limits, maintained parsers, system-viewer patching, and broader adversarial fixtures |
+| Path manipulation or stale grant | Access outside managed/dialog-selected scope | Managed-document selection is dialog-scoped, canonical opens are database-backed, filenames are revalidated before preview, and native managed roots reject links/reparse points. Capabilities allow direct children only | Keep canonicalization, allowlisted roots/extensions, reparse handling, and negative tests on every file workflow |
 | Sensitive log/report disclosure | Personal data leaves device | Central rules redact common sensitive keys/values and truncate output; log clear/export serialize with pending writes; semantic PII can remain | Default minimization, preview, focused redaction/ordering tests, explicit consent, retention controls |
 | Plaintext local storage | Disclosure after local/device access | Database/files/exports are plaintext | Document limitation; recommend OS/storage encryption; future encryption design if required |
-| Dependency compromise/advisory | Code execution or data access | Production npm graph is clean for the dated lockfile; 7 full-graph development findings are triaged in the [risk ledger](case-study/DEPENDENCY_RISK.md); pinned Rust audit retains 5 vulnerability entries plus warning groups after two patch updates | Locked installs, per-target reachability triage, secret/dependency scans, SBOM, controlled framework upgrades |
-| Unsigned or substituted installer | Publisher impersonation/malware delivery | Signing evidence not established | Controlled Windows build, checksum, SBOM, explicit unsigned status; verified signature/timestamp if signed |
+| Dependency compromise/advisory | Code execution or data access | The dated complete npm graph has zero findings. Rust policy has no unignored vulnerability entries and one documented non-compiled SQLx MySQL/RSA exception; informational warnings remain in the [risk ledger](case-study/DEPENDENCY_RISK.md) | Locked installs, exact feature/target triage, required scans, npm/Rust SBOMs, controlled framework upgrades |
+| Unsigned or substituted installer | Publisher impersonation/malware delivery | CI does not upload an unsigned installer. The exact-version-tag release workflow requires a protected PFX, complete test/audit gates, timestamp, certificate match, valid signatures, checksums, SBOMs, and artifact scanning before upload; no successful signed run is yet retained | Configure protected signing inputs, retain exact-run evidence, and publish only verified release-workflow output |
 | Stale documentation | Unsafe user action and false assurance | High-risk public manuals corrected; legacy reports archived with obsolete banners | Keep claim-to-evidence review and link checks in the change gate |
 
 ## Existing defensive signals
@@ -73,10 +73,11 @@ compromise within granted capabilities.
 The repository includes:
 
 - a configured CSP;
-- Tauri capabilities rather than unrestricted shell execution;
+- Tauri capabilities with deny-by-default, direct-child managed-file scopes;
+- a Rust-mediated, fixed-pool SQL boundary and purpose-specific sale transactions;
 - parameterized SQL in database modules;
 - selected path and filename validation;
-- UUID-based managed filenames in newer paths;
+- validated UUID-based managed filenames and native reparse-point checks;
 - structured local logging; and
 - an operational-shell startup gate with retry on actual database-integrity or
   document-reconciliation failures; and

@@ -52,6 +52,18 @@ fn seed_error(message: impl AsRef<str>) -> String {
     format!("Synthetic demo seed failed: {}", message.as_ref())
 }
 
+fn seed_ipc_error(detail: String) -> String {
+    eprintln!(
+        "{}",
+        serde_json::json!({
+            "level": "error",
+            "event": "synthetic_demo_seed_failed",
+            "detail": detail,
+        })
+    );
+    "Synthetic demo data could not be created.".to_string()
+}
+
 fn validate_demo_runtime(identifier: &str, debug_build: bool) -> Result<(), String> {
     if !debug_build {
         return Err(seed_error("this command is disabled in release builds"));
@@ -244,20 +256,32 @@ pub async fn apply_demo_seed(
     app: tauri::AppHandle,
     statements: Vec<DemoStatement>,
 ) -> Result<DemoSeedReport, String> {
-    validate_demo_runtime(&app.config().identifier, cfg!(debug_assertions))?;
+    let result = async {
+        validate_demo_runtime(&app.config().identifier, cfg!(debug_assertions))?;
 
-    let pool = loaded_sqlite_pool(app).await?;
-    let mut connection = pool
-        .acquire()
-        .await
-        .map_err(|error| seed_error(format!("could not acquire SQLite: {error}")))?;
-    apply_on_connection(&mut connection, statements).await
+        let pool = loaded_sqlite_pool(app).await?;
+        let mut connection = pool
+            .acquire()
+            .await
+            .map_err(|error| seed_error(format!("could not acquire SQLite: {error}")))?;
+        apply_on_connection(&mut connection, statements).await
+    }
+    .await;
+    result.map_err(seed_ipc_error)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use sqlx::{Connection, SqliteConnection};
+
+    #[test]
+    fn ipc_error_does_not_expose_seed_details() {
+        let error =
+            seed_ipc_error(r"SQL error in C:\Users\person\private\respectabullz.db".to_string());
+        assert!(!error.contains("person"));
+        assert!(!error.contains("SQL"));
+    }
 
     fn statement(sql: &str, params: Vec<Value>) -> DemoStatement {
         DemoStatement {

@@ -1,5 +1,9 @@
-import Database from '@tauri-apps/plugin-sql';
+import { invoke } from '@tauri-apps/api/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn(),
+}));
 
 vi.mock('@/lib/errorTracking', () => ({
   logger: {
@@ -10,40 +14,63 @@ vi.mock('@/lib/errorTracking', () => ({
   },
 }));
 
-const getMock = vi.mocked(Database.get);
+const invokeMock = vi.mocked(invoke);
 
-describe('fixed database connection boundary', () => {
+describe('native database connection boundary', () => {
   beforeEach(() => {
     vi.resetModules();
-    getMock.mockReset();
+    invokeMock.mockReset();
   });
 
-  it('retrieves and verifies only the fixed preloaded pool', async () => {
-    const select = vi.fn().mockResolvedValue([{ test: 1 }]);
-    const database = { select } as unknown as Database;
-    getMock.mockReturnValue(database);
+  it('verifies the native boundary once for concurrent callers', async () => {
+    invokeMock.mockResolvedValue([{ test: 1 }]);
 
     const { getDatabase } = await import('../connection');
     const [first, second] = await Promise.all([getDatabase(), getDatabase()]);
 
-    expect(first).toBe(database);
-    expect(second).toBe(database);
-    expect(getMock).toHaveBeenCalledOnce();
-    expect(getMock).toHaveBeenCalledWith('sqlite:respectabullz.db');
-    expect(select).toHaveBeenCalledOnce();
-    expect(select).toHaveBeenCalledWith('SELECT 1 as test');
+    expect(first).toBe(second);
+    expect(invokeMock).toHaveBeenCalledOnce();
+    expect(invokeMock).toHaveBeenCalledWith('database_select', {
+      sql: 'SELECT 1 as test',
+      params: [],
+    });
   });
 
-  it('fails closed when Rust did not preload the pool', async () => {
-    const database = {
-      select: vi.fn().mockRejectedValue(new Error('Database not loaded')),
-    } as unknown as Database;
-    getMock.mockReturnValue(database);
+  it('routes reads and writes through the constrained Rust commands', async () => {
+    invokeMock
+      .mockResolvedValueOnce([{ test: 1 }])
+      .mockResolvedValueOnce([{ id: 'dog-1' }])
+      .mockResolvedValueOnce({ lastInsertId: 7, rowsAffected: 1 });
+
+    const { query, execute } = await import('../connection');
+    await expect(query('SELECT id FROM dogs WHERE id = ?', ['dog-1'])).resolves.toEqual([
+      { id: 'dog-1' },
+    ]);
+    await expect(
+      execute('UPDATE dogs SET name = ? WHERE id = ?', ['Nova', 'dog-1'])
+    ).resolves.toEqual({ lastInsertId: 7, rowsAffected: 1 });
+
+    expect(invokeMock).toHaveBeenNthCalledWith(2, 'database_select', {
+      sql: 'SELECT id FROM dogs WHERE id = ?',
+      params: ['dog-1'],
+    });
+    expect(invokeMock).toHaveBeenNthCalledWith(3, 'database_execute', {
+      sql: 'UPDATE dogs SET name = ? WHERE id = ?',
+      params: ['Nova', 'dog-1'],
+    });
+  });
+
+  it('does not expose native database details in the renderer error', async () => {
+    invokeMock.mockRejectedValue(
+      new Error('C:\\Users\\person\\AppData\\respectabullz.db is locked')
+    );
 
     const { getDatabase } = await import('../connection');
+    const failure = getDatabase();
 
-    await expect(getDatabase()).rejects.toThrow(
-      'Please ensure Tauri is running and the fixed SQL pool was preloaded.'
+    await expect(failure).rejects.toThrow(
+      'Database connection failed. Please restart Respectabullz and try again.'
     );
+    await expect(failure).rejects.not.toThrow('person');
   });
 });

@@ -49,11 +49,11 @@ export function useDeleteLitterPhoto() {
   return useMutation({
     mutationFn: ({ id, litterId }: { id: string; litterId: string }) =>
       deleteLitterPhoto(id).then((success) => ({ success, litterId })),
-    onSuccess: (result) => {
-      if (result.success) {
-        queryClient.invalidateQueries({ queryKey: ['litterPhotos', result.litterId] });
-        queryClient.invalidateQueries({ queryKey: ['litter', result.litterId] });
-      }
+    // Cleanup happens after the database delete. Refresh even when filesystem
+    // cleanup fails so the UI never retains a record that is already gone.
+    onSettled: (_result, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['litterPhotos', variables.litterId] });
+      queryClient.invalidateQueries({ queryKey: ['litter', variables.litterId] });
     },
   });
 }

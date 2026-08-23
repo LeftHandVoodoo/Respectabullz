@@ -1,6 +1,6 @@
 # Respectabullz Internal API Reference
 
-**Version 1.10.3**
+**Version 1.10.4**
 
 ## Overview
 
@@ -19,7 +19,9 @@ The database layer has been refactored into modular domain-specific files:
 - `src/lib/db/dashboard.ts` - Dashboard statistics
 - `src/lib/db/index.ts` - Re-exports all functions for backwards compatibility
 
-All functions are async and return Promises. The API uses TypeScript for type safety. The database now uses SQLite via `tauri-plugin-sql` instead of localStorage.
+All functions are async and return Promises. The TypeScript database modules invoke a
+validated native boundary backed by the single Rust-owned SQLx/`tauri-plugin-sql`
+SQLite pool; the renderer cannot call the SQL plugin directly.
 
 ## Dog Operations
 
@@ -520,9 +522,11 @@ createSale(input: CreateSaleInput): Promise<Sale>
 - `input.puppies`: Array of { dogId, price } objects
 - Additional optional fields: depositAmount, depositDate, shippedDate, receivedDate, isLocalPickup, paymentStatus, warrantyInfo, registrationTransferDate, transportId, contractPath, notes
 
-**Side Effects:** 
+**Atomic side effects:**
 - Creates SalePuppy records for each puppy
 - Sets each puppy's status to 'sold'
+- Rejects missing, duplicate, retired, deceased, or already-assigned dogs
+- Commits the sale, assignments, statuses, and foreign-key verification together
 
 ### updateSale
 Updates a sale record.
@@ -535,7 +539,8 @@ updateSale(id: string, input: UpdateSaleInput): Promise<Sale | null>
 - `id`: Sale ID
 - `input`: Partial sale data, including optional `puppies` array to update puppy list
 
-**Side Effects:** Updates SalePuppy records and dog statuses as needed.
+**Atomic side effects:** Replaces assignments and updates sold/active dog statuses in
+one native transaction. Validation failure rolls back the full update.
 
 ### deleteSale
 Deletes a sale record.
@@ -544,33 +549,14 @@ Deletes a sale record.
 deleteSale(id: string): Promise<boolean>
 ```
 
-**Side Effects:** 
+**Atomic side effects:**
 - Deletes associated SalePuppy records
 - Reverts each puppy's status to 'active'
 - Clears convertedToSaleId from related ClientInterest records
+- Restores converted waitlist entries and verifies foreign keys before commit
 
-### addPuppyToSale
-Adds a puppy to an existing sale.
-
-```typescript
-addPuppyToSale(saleId: string, dogId: string, price: number): Promise<SalePuppy | null>
-```
-
-### removePuppyFromSale
-Removes a puppy from a sale.
-
-```typescript
-removePuppyFromSale(saleId: string, dogId: string): Promise<boolean>
-```
-
-**Side Effects:** Reverts the puppy's status to 'active'.
-
-### updatePuppyPrice
-Updates the price of a puppy within a sale.
-
-```typescript
-updatePuppyPrice(saleId: string, dogId: string, price: number): Promise<SalePuppy | null>
-```
+Individual add/remove/price helpers were removed because they split assignment and
+dog-status writes. Call `updateSale` with the complete desired puppy list instead.
 
 ---
 
@@ -640,11 +626,12 @@ Converts a client interest to a sale.
 convertInterestToSale(interestId: string, saleInput: CreateSaleInput): Promise<{ sale: Sale; interest: ClientInterest } | null>
 ```
 
-**Side Effects:**
+**Atomic side effects:**
 - Creates a new Sale with SalePuppy records
 - Updates the interest status to 'converted'
 - Links the interest to the sale via convertedToSaleId
 - Sets puppy statuses to 'sold'
+- Rolls back the sale and interest update together on any failure
 
 ---
 
@@ -783,7 +770,7 @@ getDashboardStats(): Promise<DashboardStats>
 ### Photo Utilities (`lib/photoUtils.ts`)
 
 #### selectAndCopyImage
-Selects an image file and copies it to the app's photos directory.
+Selects and validates an image before copying it to the app's photos directory.
 
 ```typescript
 selectAndCopyImage(): Promise<string | null>
@@ -793,14 +780,33 @@ selectAndCopyImage(): Promise<string | null>
 
 **Storage:** Photos are saved to `%APPDATA%/com.respectabullz.app/photos/` with unique filenames.
 
+**Limits:** Supported signatures only, maximum 20 MB per source image, bounded pixel
+dimensions/frame count, and direct managed filenames.
+
 #### getPhotoUrlAsync
-Converts a photo filename to a displayable data URL.
+Converts a validated managed photo filename to a scoped Tauri asset URL.
 
 ```typescript
 getPhotoUrlAsync(filename: string | null | undefined): Promise<string | null>
 ```
 
-**Returns:** Base64 data URL (`data:image/jpeg;base64,...`) or null if file not found.
+**Returns:** Bounded cached asset URL or null if the filename/file is invalid.
+
+#### getPhotoDataUrl
+Reads and validates a managed photo for PDF embedding.
+
+```typescript
+getPhotoDataUrl(filename: string | null | undefined): Promise<{
+  dataUrl: string;
+  byteLength: number;
+} | null>
+```
+
+The file must be a regular direct child of managed photo storage with a canonical
+UUID-v4 or verified legacy filename. Metadata and bytes are each checked against the
+8 MiB embedding cap, content validation is repeated after reading, and encoding is
+chunked. Packet export wraps this helper in `createPdfPhotoLoader`, which reads each
+distinct filename once and rejects more than 25 photos or more than 48 MiB total.
 
 #### selectAndCopyMultipleImages
 Selects multiple images and copies them to the photos directory.
@@ -839,7 +845,9 @@ Deletes a litter photo.
 deleteLitterPhoto(id: string): Promise<boolean>
 ```
 
-**Side Effects:** Photo file is not automatically deleted (stored separately).
+**Side Effects:** Deletes the database row, then removes the managed file only when no
+other row references it. A cleanup failure is reported and can leave an export-excluded
+orphan because SQLite and the filesystem do not share a transaction.
 
 ---
 

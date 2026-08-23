@@ -3,8 +3,8 @@
  * Uses @react-pdf/renderer for PDF generation.
  */
 import { StyleSheet } from '@react-pdf/renderer';
-import { convertFileSrc } from '@tauri-apps/api/core';
-import { getPhotoUrlAsync } from '@/lib/photoUtils';
+import { getPhotoDataUrl } from '@/lib/photoUtils';
+import { isValidManagedPhotoFilename, PHOTO_LIMITS } from '@/lib/photoValidation';
 
 // Brand colors from project rules
 export const BRAND_COLORS = {
@@ -510,79 +510,37 @@ export function formatWeight(weightLbs: number): string {
 }
 
 // Convert image path to base64 for PDF embedding
-const isAbsolutePath = (value: string): boolean => /^[a-zA-Z]:\\/.test(value) || value.startsWith('/');
-
 const sanitizeRelativePath = (value: string): string =>
   value.replace(/^[\\/]+/, '').replace(/^photos[\\/]/i, '');
 
-const joinPaths = (base: string, next: string): string => {
-  if (isAbsolutePath(next)) {
-    return next;
-  }
-  // Normalize both paths to use forward slashes (Tauri normalizes on all platforms)
-  const normalizedBase = base.replace(/\\/g, '/').replace(/\/$/, '');
-  const normalizedNext = next.replace(/\\/g, '/').replace(/^\//, '');
-  return `${normalizedBase}/${normalizedNext}`;
-};
+const SAFE_IMAGE_DATA_URL = /^data:image\/(?:jpeg|png|gif|webp|bmp);base64,[a-z0-9+/]+=*$/i;
 
-const fetchAsDataUrl = async (path: string): Promise<string | null> => {
-  try {
-    const response = await fetch(path);
-    if (!response.ok) {
-      return null;
-    }
-    const blob = await response.blob();
-    const mimeType = blob.type || 'image/png';
-    const buffer = await blob.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    const base64 = btoa(binary);
-    return `data:${mimeType};base64,${base64}`;
-  } catch (error) {
-    console.warn('Failed to fetch image for PDF export:', path, error);
-    return null;
-  }
-};
+function isBoundedImageDataUrl(value: string): boolean {
+  if (!SAFE_IMAGE_DATA_URL.test(value)) return false;
+  const encoded = value.slice(value.indexOf(',') + 1);
+  const paddingBytes = encoded.endsWith('==') ? 2 : encoded.endsWith('=') ? 1 : 0;
+  const estimatedBytes = Math.floor((encoded.length * 3) / 4) - paddingBytes;
+  return estimatedBytes > 0 && estimatedBytes <= PHOTO_LIMITS.maxPdfPhotoBytes;
+}
 
 export async function imagePathToBase64(
   imagePath: string | null | undefined,
-  photoBasePath?: string
+  _photoBasePath?: string
 ): Promise<string | null> {
   if (!imagePath) return null;
   const trimmedPath = imagePath.trim();
   
   try {
-    // If it's already a data URL or HTTP URL, return as-is
-    if (trimmedPath.startsWith('data:') || trimmedPath.startsWith('http')) {
-      return trimmedPath;
-    }
+    if (trimmedPath.startsWith('data:')) return isBoundedImageDataUrl(trimmedPath) ? trimmedPath : null;
+
+    // Remote/custom schemes and arbitrary local paths are never fetched by
+    // PDF export. Managed photos are read through the scoped AppData helper.
+    if (/^[a-z][a-z0-9+.-]*:/i.test(trimmedPath)) return null;
 
     // Attempt to load from the stored photos directory
     const cleanedFilename = sanitizeRelativePath(trimmedPath);
-    const storedPhoto = await getPhotoUrlAsync(cleanedFilename);
-    if (storedPhoto) {
-      return storedPhoto;
-    }
-    
-    // Attempt to load from the provided base path (Tauri file system)
-    if (photoBasePath) {
-      try {
-        const fullPath = joinPaths(photoBasePath, trimmedPath);
-        const fileUrl = convertFileSrc(fullPath);
-        const base64 = await fetchAsDataUrl(fileUrl);
-        if (base64) {
-          return base64;
-        }
-      } catch (error) {
-        console.warn('Unable to convert photo path via Tauri:', error);
-      }
-    }
-
-    // Fallback: try to fetch relative to the current origin (public assets)
-    return await fetchAsDataUrl(trimmedPath);
+    if (!isValidManagedPhotoFilename(cleanedFilename)) return null;
+    return (await getPhotoDataUrl(cleanedFilename))?.dataUrl ?? null;
   } catch {
     console.error('Error converting image to base64:', imagePath);
     return null;
@@ -606,8 +564,7 @@ export async function validateImagesBeforeExport(
     const trimmedPath = imagePath.trim();
     if (!trimmedPath) continue;
 
-    // Skip data URLs and HTTP URLs - they're always "valid" for our purposes
-    if (trimmedPath.startsWith('data:') || trimmedPath.startsWith('http')) {
+    if (trimmedPath.startsWith('data:') && isBoundedImageDataUrl(trimmedPath)) {
       valid.push(trimmedPath);
       continue;
     }

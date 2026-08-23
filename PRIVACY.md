@@ -1,6 +1,6 @@
 # Privacy Statement
 
-Last updated: 2026-07-14
+Last updated: 2026-08-22
 
 Respectabullz is a local-first desktop application. The project does not operate a
 cloud account, synchronization service, analytics service, or application backend
@@ -29,8 +29,8 @@ portfolio demonstration, issue report, screenshot, or test fixture.
 
 ## Where information is stored
 
-Runtime records are stored in a local SQLite database opened by
-`tauri-plugin-sql`. Managed photos, documents, generated contracts, and logs can be
+Runtime records are stored in a local SQLite database behind validated native Tauri
+commands and a fixed SQLx pool. Managed photos, documents, generated contracts, and logs can be
 stored beneath the application's Windows application-data directory. Users can also
 choose locations outside that directory for imports and exports.
 
@@ -109,6 +109,13 @@ local managed copy, but it does not remove:
 
 Before relying on deletion for a legal or contractual requirement, inventory all
 storage locations and verify the result independently.
+
+Removing or replacing a dog/litter photo updates its database reference first and then
+attempts to remove the managed file when no record still references it. A failed file
+operation is reported and can leave an orphan until separately cleaned. Partial export
+includes only current database-referenced, validated photos, so an orphan is not
+silently redistributed. This behavior is ordinary deletion, not cryptographic secure
+erasure.
 
 ## Backup and recovery
 

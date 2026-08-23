@@ -65,15 +65,8 @@ jobs:
           BUILD_SECRET_SENTINEL: RB009_BUILD_SECRET_SENTINEL_DO_NOT_BUNDLE_000000000000
         run: npm run check:build-secrets -- dist
 
-      - name: Capture full npm advisory report
-        id: full_audit
-        continue-on-error: true
+      - name: Enforce clean npm advisory graph
         run: npm audit --json > artifacts/npm-audit-full.json
-
-      - name: Gate production advisories at high severity
-        id: production_audit
-        continue-on-error: true
-        run: npm audit --omit=dev --audit-level=high --json > artifacts/npm-audit-production.json
 
       - name: Upload frontend evidence
         if: always()
@@ -86,12 +79,6 @@ jobs:
             dist/
           if-no-files-found: warn
           retention-days: 14
-
-      - name: Enforce production advisory result
-        if: steps.production_audit.outcome == 'failure'
-        run: |
-          echo "Production dependencies contain high or critical advisories."
-          exit 1
 
   required-windows-tauri:
     name: Required Windows build and smoke
@@ -117,9 +104,13 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Generate npm dependency SBOM (Rust SBOM deferred)
+      - name: Install pinned Rust SBOM generator
+        run: cargo install cargo-cyclonedx --locked --version 0.5.9
+
+      - name: Generate npm and Rust dependency SBOMs
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path artifacts | Out-Null
           npm sbom --sbom-format cyclonedx |
             Set-Content -LiteralPath artifacts/npm-sbom.cdx.json -Encoding utf8
@@ -130,6 +121,26 @@ jobs:
             ConvertFrom-Json
           if ($sbom.bomFormat -ne 'CycloneDX') {
             throw 'npm did not produce a CycloneDX dependency SBOM.'
+          }
+          Push-Location src-tauri
+          try {
+            cargo cyclonedx --format json --spec-version 1.5
+            if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+            }
+          } finally {
+            Pop-Location
+          }
+          $rustSboms = @(Get-ChildItem -LiteralPath src-tauri -File -Filter '*.cdx.json')
+          if ($rustSboms.Count -ne 1) {
+            throw "Expected one Rust CycloneDX SBOM, found $($rustSboms.Count)."
+          }
+          Move-Item -LiteralPath $rustSboms[0].FullName `
+            -Destination artifacts/rust-sbom.cdx.json -Force
+          $rustSbom = Get-Content -LiteralPath artifacts/rust-sbom.cdx.json -Raw |
+            ConvertFrom-Json
+          if ($rustSbom.bomFormat -ne 'CycloneDX') {
+            throw 'cargo-cyclonedx did not produce a CycloneDX dependency SBOM.'
           }
 
       - name: Check release version consistency
@@ -144,20 +155,19 @@ jobs:
       - name: Test Rust
         run: cargo test --manifest-path src-tauri/Cargo.toml --all-features --locked
 
-      - name: Build Windows installer with a non-secret sentinel
+      - name: Build unsigned executable for CI smoke testing only
         env:
           BUILD_SECRET_SENTINEL: RB009_BUILD_SECRET_SENTINEL_DO_NOT_BUNDLE_000000000000
           VITE_GITHUB_TOKEN: RB009_BUILD_SECRET_SENTINEL_DO_NOT_BUNDLE_000000000000
-        run: npm run tauri:build
+        run: npm run tauri:build -- --no-bundle --ci
 
-      - name: Scan compiled application and installer artifacts
+      - name: Scan compiled application artifacts
         env:
           BUILD_SECRET_SENTINEL: RB009_BUILD_SECRET_SENTINEL_DO_NOT_BUNDLE_000000000000
         run: >-
           npm run check:build-secrets --
           dist
           src-tauri/target/release/respectabullz.exe
-          src-tauri/target/release/bundle
 
       - name: Smoke-launch packaged executable on ephemeral hosted runner
         shell: pwsh
@@ -168,6 +178,10 @@ jobs:
           $stdout = Join-Path (Resolve-Path 'artifacts').Path 'smoke-stdout.log'
           $stderr = Join-Path (Resolve-Path 'artifacts').Path 'smoke-stderr.log'
           $evidence = Join-Path (Resolve-Path 'artifacts').Path 'smoke-result.txt'
+          $readyMarker = Join-Path $env:APPDATA 'com.respectabullz.app\logs\ci-ready-v1'
+          if (Test-Path -LiteralPath $readyMarker) {
+            Remove-Item -LiteralPath $readyMarker -Force
+          }
           $process = $null
           try {
             $process = Start-Process `
@@ -176,46 +190,63 @@ jobs:
               -WindowStyle Hidden `
               -RedirectStandardOutput $stdout `
               -RedirectStandardError $stderr
-            Start-Sleep -Seconds 8
-            $process.Refresh()
-            if ($process.HasExited) {
-              throw "Packaged executable exited during startup with code $($process.ExitCode)."
+            $deadline = (Get-Date).AddSeconds(30)
+            do {
+              Start-Sleep -Milliseconds 500
+              $process.Refresh()
+              if ($process.HasExited) {
+                throw "Packaged executable exited during startup with code $($process.ExitCode)."
+              }
+            } until ((Test-Path -LiteralPath $readyMarker) -or (Get-Date) -ge $deadline)
+            if (-not (Test-Path -LiteralPath $readyMarker)) {
+              throw 'Packaged executable did not report completed database initialization.'
             }
-            "Packaged executable remained running for the 8-second startup window on the clean, ephemeral GitHub-hosted Windows runner." |
+            $readyValue = (Get-Content -LiteralPath $readyMarker -Raw).Trim()
+            if ($readyValue -ne 'ready-v1') {
+              throw 'Packaged executable wrote an invalid readiness marker.'
+            }
+            $stderrText = if (Test-Path -LiteralPath $stderr) {
+              (Get-Content -LiteralPath $stderr -Raw).Trim()
+            } else {
+              ''
+            }
+            if ($stderrText -match '(?i)(panic|fatal|"level"\s*:\s*"error")') {
+              throw 'Packaged executable reported a startup error.'
+            }
+            "Packaged executable completed database initialization and remained running on the clean, ephemeral GitHub-hosted Windows runner." |
               Set-Content -LiteralPath $evidence -Encoding utf8
           } finally {
             if ($process -and -not $process.HasExited) {
               Stop-Process -Id $process.Id -Force
               Wait-Process -Id $process.Id -Timeout 10 -ErrorAction SilentlyContinue
             }
+            if (Test-Path -LiteralPath $readyMarker) {
+              Remove-Item -LiteralPath $readyMarker -Force
+            }
           }
 
-      - name: Create installer checksums
+      - name: Create evidence checksums
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path artifacts | Out-Null
-          $bundleRoot = (Resolve-Path 'src-tauri/target/release/bundle').Path
-          $checksumLines = @(Get-ChildItem -LiteralPath $bundleRoot -File -Recurse |
+          $artifactRoot = (Resolve-Path 'artifacts').Path
+          $checksumLines = @(Get-ChildItem -LiteralPath $artifactRoot -File -Recurse |
+            Where-Object Name -ne 'SHA256SUMS.txt' |
             Sort-Object FullName |
             ForEach-Object {
-              $relativePath = [System.IO.Path]::GetRelativePath($bundleRoot, $_.FullName)
+              $relativePath = [System.IO.Path]::GetRelativePath($artifactRoot, $_.FullName)
               $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
               "$hash  $relativePath"
             })
-          $sbomPath = (Resolve-Path 'artifacts/npm-sbom.cdx.json').Path
-          $sbomHash = (Get-FileHash -LiteralPath $sbomPath -Algorithm SHA256).Hash.ToLowerInvariant()
-          $checksumLines += "$sbomHash  npm-sbom.cdx.json"
           $checksumLines |
             Set-Content -LiteralPath artifacts/SHA256SUMS.txt -Encoding utf8
 
-      - name: Upload Windows installer evidence
+      - name: Upload Windows CI evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: windows-tauri-installer
-          path: |
-            artifacts/
-            src-tauri/target/release/bundle/
+          name: windows-tauri-ci-evidence
+          path: artifacts/
           if-no-files-found: warn
           retention-days: 14
 
@@ -237,7 +268,7 @@ jobs:
           GITLEAKS_ENABLE_COMMENTS: "false"
 
   rust-advisories:
-    name: Rust advisory evidence
+    name: Required Rust advisory gate
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -253,8 +284,7 @@ jobs:
       - name: Install pinned cargo-audit
         run: cargo install cargo-audit --locked --version 0.22.2
 
-      - name: Capture Rust advisory report
-        continue-on-error: true
+      - name: Enforce documented Rust advisory policy
         working-directory: src-tauri
         run: |
           mkdir -p ../artifacts

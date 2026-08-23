@@ -1,16 +1,16 @@
 # Security Policy
 
-Respectabullz is a local-first Windows desktop project under active portfolio
-remediation. This policy describes the current reporting route, evidence boundaries,
-and known limitations. It is not a security certification or warranty.
+Respectabullz is a local-first Windows desktop project. This policy records the
+current reporting route, implemented trust boundaries, and residual risks. It is a
+self-review, not an independent penetration test, certification, or warranty.
 
 ## Supported scope
 
-Security remediation is focused on the current default-branch source. Previously
-published binaries and older `1.10.x` builds are not represented as independently
-assessed or production-safe. A release is not considered a verified portfolio
-artifact unless its tag, commit, checksum, dependency results, signing status, and
-clean-machine smoke evidence are published together.
+Security work applies to the current default-branch source and newly produced
+artifacts. Older `1.10.x` source and binaries are not represented as having the same
+controls. A release is verified only when its exact version tag, commit, dependency
+reports, SBOMs, checksums, Authenticode verification, and clean-runner database-
+readiness evidence are retained together.
 
 ## Report a vulnerability privately
 
@@ -21,165 +21,153 @@ Use GitHub's private security-advisory form:
 Do not open a public issue containing exploit details, credentials, personal records,
 database files, logs, photos, contracts, or other sensitive material.
 
-Please include only the minimum information needed to reproduce the issue:
+Include only the minimum synthetic information needed to reproduce the issue:
 
 - affected version, tag, or commit;
 - operating-system version;
-- affected component and prerequisites;
+- component and prerequisites;
 - reproduction steps using synthetic data;
-- observed and expected behavior;
-- plausible impact; and
-- a minimal proof of concept with secrets and personal information removed.
+- observed and expected behavior; and
+- plausible impact and a minimal redacted proof of concept.
 
 No fixed response or remediation timeline is promised. Receipt, severity, and next
 steps will be communicated through the private advisory when possible.
 
 ## Current assessment status
 
-The repository has undergone self-review and local automated checks. It has not been
-independently penetration tested or certified.
+The 2026-08-22 remediation addressed the identified application findings:
 
-On 2026-07-14, local checks against commit
-`fd21363beae044f0649a1e03f3bb6bcc2249f970` found:
+- Renderer SQL plugin permissions were removed. Reads and ordinary mutations now
+  cross typed Rust commands backed by one fixed SQLite pool. Rust rejects multiple
+  statements, schema/transaction/extension/filesystem SQL, oversized input, and
+  unsupported parameter types. Multi-row sale operations use dedicated native
+  transactions instead of renderer-controlled statement sequences.
+- Filesystem capabilities are deny-by-default and limited to direct files in the
+  managed photos, contracts, documents, and logs directories. Asset URLs expose only
+  direct managed photo files. Native managed-path checks reject links and reparse
+  points before sensitive document operations.
+- Photo input and export enforce strict managed names, type/signature, dimensions,
+  per-frame and aggregate decoded-pixel work, item-size, aggregate-size, and count
+  limits. Animated formats are charged one full canvas per frame, including small
+  delta frames. Packet PDFs embed validated data URLs under 8 MiB per photo, 25
+  distinct photos, and 48 MiB total rather than fetching asset/remote/local-path URLs.
+  Replaced or deleted database-referenced photos are physically cleaned when possible;
+  unreferenced files are excluded from export.
+- CSV cells are formula-neutralized and serialized consistently; managed document
+  filenames are validated before preview/open. Inline preview is limited to PDFs that
+  reject non-files and payloads above 20 MiB before reading and discard stale results;
+  legacy image documents open in the system application instead of an inline decoder.
+  PDF external navigation is blocked, and Help Markdown escapes raw HTML and
+  allowlists safe links.
+- The JavaScript lockfile reports zero advisories. Rust advisory policy has no
+  unignored vulnerability entries and documents one unavailable-patch exception for
+  an unselected SQLx MySQL/RSA option that is not compiled into the SQLite-only app.
+- CI no longer uploads an unsigned installer and requires a versioned readiness marker
+  after database initialization and reconciliation. A separate exact-version-tag
+  release workflow imports a protected PFX, requires timestamping, runs all test and
+  audit gates, verifies every executable/installer signature and certificate
+  thumbprint, scans artifacts, and publishes SBOM/checksum evidence only after those
+  checks pass.
 
-- ESLint, TypeScript compilation, and 290 Vitest tests passing;
-- low overall automated coverage, including 0% coverage in critical migration and
-  document paths;
-- 24 npm advisory findings across all dependencies (3 critical, 9 high, 11 moderate,
-  and 1 low); and
-- 10 npm advisory findings in production dependencies (4 high and 6 moderate).
-
-Advisory counts are time-sensitive signals, not exploitability conclusions. They
-must be triaged for reachability, affected runtime, upgrade risk, and compensating
-controls. See [test evidence](docs/case-study/TEST_EVIDENCE.md) for exact commands and
-missing gates.
-
-The remediation tree defines a required GitHub Actions workflow with frontend,
-Windows Rust/Tauri build and packaged smoke on an ephemeral hosted runner, secret-history, dependency-evidence,
-npm CycloneDX SBOM, installer-artifact, and checksum jobs, plus weekly Dependabot review.
-No successful public run is yet linked to a frozen final commit; the locally generated
-SBOM is not a published release artifact, and there is no code-signing verification or
-independent security report at this time.
+Local automated checks exercise these boundaries, but configuration is not public run
+evidence. Exact commands and results are maintained in
+[test evidence](docs/case-study/TEST_EVIDENCE.md).
 
 ## Security-relevant architecture
 
-- Core records use local SQLite through `tauri-plugin-sql`.
-- Photos, documents, contracts, and logs can be stored in application data; users can
-  also select external export destinations.
-- A Tauri capability boundary and content security policy are configured. Their
-  current breadth remains under review and should not be interpreted as least-
-  privilege proof.
-- TypeScript modules issue parameterized SQL in many paths, but validation and
-  authorization properties must be evaluated per operation.
-- The application is single-user and has no application-level authentication or
-  multi-user authorization model.
-- Local database, managed files, logs, and current exports are plaintext unless the
-  host or storage layer provides encryption.
+- Core records use one local SQLite database owned by the Tauri process.
+- The renderer can request read queries and ordinary single-statement data mutations
+  through the constrained native boundary. This is query-shape containment, not
+  per-record authorization or a sandbox for a fully compromised renderer.
+- Photos, documents, contracts, and logs can be stored in application data. Users can
+  select external export destinations, which leave application lifecycle control.
+- The application is single-user and has no application login, multi-user
+  authorization, cloud account, analytics backend, or synchronization service.
+- Local databases, files, logs, and exports are plaintext unless the host or storage
+  layer provides encryption.
 
-The full boundary and attacker model is documented in
-[`THREAT_MODEL.md`](docs/THREAT_MODEL.md).
+The complete attacker and boundary model is in
+[THREAT_MODEL.md](docs/THREAT_MODEL.md).
 
 ## Withdrawn or unsupported security-sensitive features
 
 ### Restore
 
-The historical restore path is withdrawn. It could mutate files before database
-import completed and did not prove complete recovery. Restore must remain disabled in
-any recruiter-visible build until the proposed format and failure matrix pass. The
-current export formats are partial exports, not verified backups.
+The historical restore path remains withdrawn. It could mutate files before database
+import completed and did not prove complete recovery. Current JSON and ZIP outputs are
+partial exports, not verified backups.
 
 ### Destructive reset
 
-There is no verified in-app factory reset. Legacy clear/test-data removal paths do
-not prove removal of every table and managed file and must not claim that all data was
-deleted.
+There is no verified in-app factory reset. Legacy reset paths did not prove removal of
+every table and managed file and must not be described as complete erasure.
 
 ### GitHub credentials
 
-A GitHub personal access token must not be placed in any `VITE_` variable, renderer
-bundle, source file, documentation example, or distributed artifact. Older source
-contained a renderer-side direct GitHub API design; that design is unsupported. The
-remediation flow now prepares a sanitized full preview locally, requires user review,
-copies that exact draft, and opens the fixed blank GitHub Issues/new page without a
-bundled repository credential or direct API request. Report contents are not placed in
-the URL. It attaches no logs, database records, photos, or documents automatically;
-the user pastes and submits the report manually.
+A GitHub personal access token must never be placed in a `VITE_` variable, renderer
+bundle, source file, documentation example, or distributed artifact. The current bug
+report flow sanitizes and previews a local draft, copies only after user review, and
+opens a fixed blank GitHub issue page. It does not attach records or submit through an
+application credential.
 
-If a token was ever embedded in a build, revoke or rotate it and rebuild from a clean
-environment. Deleting the local file alone does not invalidate the credential.
-
-The latest local pre-release checkpoint passed 354 frontend tests in
-39 files and 39 Rust tests. The exact tree also passed lint/type/
-version/demo guards, web and NSIS builds, artifact scans, production audit,
-source/history secret scans, workflow lint, and npm SBOM generation. Production npm
-audit reported 0 findings; the informative full graph retained 7. Pinned Rust audit
-retained 5 vulnerability entries plus warning groups after two transitive patch
-updates; target reachability and deferrals are in the dependency risk ledger. A native smoke caught
-a Tokio nested-runtime startup panic. After correction, the rebuilt executable remained
-alive for eight seconds with empty stderr, but Windows/Tauri ignored the attempted local
-`APPDATA` override and opened the real profile's SQLite sidecars. No records were deleted;
-the main database file mtime was unchanged. Exact final-SHA smoke evidence is therefore
-required from the ephemeral hosted CI runner.
+If a token was embedded in any historical build, revoke or rotate it and rebuild from
+a clean environment. Deleting a file does not invalidate a credential.
 
 ## Known residual risks
 
-- The declared schema-v4→v5 path is transaction- and failpoint-tested against real
-  SQLite, but a packaged Windows upgrade is still pending, older schemas are rejected,
-  and the setup connection's foreign-key setting is not global pooled-connection proof.
-- Managed-document create, tag/update, delete, open, and startup reconciliation now
-  use a staged/tombstone/quarantine protocol around `BEGIN IMMEDIATE` SQL transactions.
-  Actual reconciliation failures block operational routes behind a retry screen;
-  scan-limit truncation warns and is non-exhaustive. Ambiguous delete commits preserve
-  the tombstone for startup to resolve from durable row state.
-  Other database/filesystem workflows remain path-specific and may still partially
-  complete because SQLite and the filesystem do not share a transaction.
-- Managed-document intake enforces a 100 MB cap and signature checks for supported
-  formats. Archive, image, PDF, and Office parsing still need broader adversarial and
-  decompression/resource-limit evidence, including for other file workflows.
-- The partial ZIP export writes directly to the exact dialog-granted target and is
-  non-atomic; interruption can leave an incomplete file. Photo enumeration/read errors
-  abort before destination selection rather than silently omitting managed photos.
-  Custom contract-folder grants last only for the current session and must be
-  reselected after restart.
-- Central logging redacts sensitive context-key families and common credentials,
-  paths, email/phone values, and UUIDs, and truncates long values before console,
-  memory, or disk output. Focused tests cover those patterns, but semantic personal
-  information outside the rules can still appear and must be reviewed before sharing.
-  Log clear/export serialize with pending writes to avoid queue-order races.
-- The CSP permits inline styles and `http://asset.localhost` image loading for Tauri
-  `convertFileSrc`; connection sources are self-only. The SQL plugin preloads only
-  `sqlite:respectabullz.db`, and renderer capabilities omit pool load/close authority.
-  Renderer compromise can still issue select/execute operations against that fixed
-  database, so capability and asset-origin scope still need least-privilege review.
-- Dependency advisories remain unresolved. They have a dated local reachability and
-  deferral triage in the risk ledger, but no final-SHA public scan evidence yet.
-- Unsigned Windows artifacts do not establish publisher identity and may trigger
-  SmartScreen.
-- A local attacker with access to the Windows account or application-data directory
-  can read or alter plaintext application data.
+- A local attacker who controls the Windows account or application-data directory can
+  read or alter plaintext data. Use operating-system and storage encryption where the
+  records require it.
+- A compromised renderer can still read and perform ordinary data mutations in the
+  fixed application database and can access direct files in the four granted managed
+  directories. Moving every domain/file operation behind purpose-specific native
+  commands would narrow this further.
+- Photo row updates and filesystem deletion do not share a transaction. Cleanup is
+  record-first and reports failures; a failed file deletion can leave an orphan, but
+  that orphan is not included in exports.
+- Managed documents have a staged/tombstone/quarantine protocol and startup
+  reconciliation. Other database/filesystem workflows do not automatically inherit
+  that state machine.
+- The partial ZIP export is non-atomic. Interruption can leave an incomplete target;
+  it must not be treated as a sole recovery copy.
+- File type/signature, container/header, frame, and resource limits reduce parser
+  exposure but are not a complete codec decode or bitstream-integrity proof and do not
+  prove that third-party image, PDF, Office, or archive parsers are vulnerability-free.
+  Legacy image documents are delegated to the operating-system viewer, so its decoder
+  and patch state remain outside this application's assurance boundary.
+- `cargo audit` ignores RUSTSEC-2023-0071 only for the unselected `sqlx-mysql` →
+  `rsa@0.9.9` lockfile path because RustSec has no patched RSA release and the app
+  selects SQLite only. Enabling MySQL or changing SQLx features invalidates that
+  exception. Informational cross-target/unmaintained/yanked entries remain visible in
+  the [dependency ledger](docs/case-study/DEPENDENCY_RISK.md).
+- The signed-release workflow cannot establish publisher identity until the protected
+  certificate/password and timestamp URL are configured and a successful run is
+  retained. Locally built or historical installers remain unsigned unless separately
+  verified.
+- Restore and complete factory reset remain unavailable.
 
 ## Security expectations for changes
 
-Security-sensitive changes should include:
+Security-sensitive changes require:
 
 - explicit trust boundaries and misuse cases;
 - positive, negative, and failure-path tests;
 - path, size, type, and resource limits for untrusted files;
-- rollback or compensation behavior for cross-database/filesystem work;
+- rollback or compensation behavior for mixed database/filesystem work;
 - no credentials in renderer-visible configuration;
-- dependency and secret scans with dated results;
-- review of Tauri capabilities and CSP changes; and
-- documentation of accepted residual risk.
+- dated dependency, source, history, and artifact scans;
+- review of Tauri capabilities, navigation policy, and CSP changes; and
+- documentation of any accepted residual risk.
 
-Passing a scanner or test suite is evidence for a defined scope only. Do not describe
-self-review as an independent audit, a checksum as authenticity, a signature as proof
-of safety, or an advisory count as complete vulnerability knowledge.
+Passing a scanner or test suite is evidence for its defined scope only. Do not describe
+self-review as independent assurance, a checksum as authenticity, or a signature as
+proof that software is safe.
 
 ## Related documents
 
 - [Privacy](PRIVACY.md)
 - [Threat model](docs/THREAT_MODEL.md)
 - [Reliability](docs/RELIABILITY.md)
-- [Future backup-format contract](docs/BACKUP_FORMAT.md)
+- [Future backup format](docs/BACKUP_FORMAT.md)
 - [Test evidence](docs/case-study/TEST_EVIDENCE.md)
 - [Dependency risk ledger](docs/case-study/DEPENDENCY_RISK.md)

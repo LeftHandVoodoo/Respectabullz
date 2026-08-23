@@ -96,9 +96,17 @@ export function useDeleteLitter() {
 
   return useMutation({
     mutationFn: (id: string) => db.deleteLitter(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['litters'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    onSuccess: (result) => {
+      if (typeof result === 'object') {
+        logger.warn('Litter was deleted but managed photo cleanup was incomplete', {
+          photoCleanupFailures: result.photoCleanupFailures,
+        });
+        toast({
+          title: 'Litter deleted with a cleanup warning',
+          description: `${result.photoCleanupFailures.length} photo file(s) could not be cleaned up. The litter record was deleted.`,
+        });
+        return;
+      }
       toast({
         title: 'Litter deleted',
         description: 'The litter has been removed successfully.',
@@ -111,6 +119,10 @@ export function useDeleteLitter() {
         variant: 'destructive',
       });
       logger.error('Failed to delete litter', error as Error);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['litters'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }

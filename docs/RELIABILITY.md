@@ -1,7 +1,7 @@
 # Reliability Model
 
-Last reviewed: 2026-07-14 against commit
-`fd21363beae044f0649a1e03f3bb6bcc2249f970`
+Last reviewed: 2026-08-22 for source version 1.10.4. Final validation against a frozen
+commit is pending; the dated 1.10.3 checkpoint remains historical evidence only.
 
 ## Purpose
 
@@ -21,17 +21,20 @@ Evidence labels used here:
 | Area | Status | What can be claimed |
 | --- | --- | --- |
 | Routine local CRUD | Partially exercised | Broad workflow implementation exists; coverage and failure evidence vary by module |
+| Renderer database access | Constrained native boundary | Rust owns one application pool; generic reads/mutations have SQL-shape and resource limits, while schema/transaction controls and protected sale tables are excluded |
+| Sale lifecycle | Purpose-specific transaction | Create, update, delete, and interest conversion commit sale rows, puppy assignments/statuses, and conversion links together or roll back |
 | UI optimistic updates | Path-specific | Some hooks restore cached state after errors; this is not end-to-end rollback |
 | Individual file writes | Path-specific | Some utilities use write-to-temp then rename; this does not make database plus file work atomic |
-| Declared schema-v4→v5 migration | Implemented; final Windows verification pending | One Rust/SQLx connection, `BEGIN IMMEDIATE`, per-connection busy timeout, explicit FK check, and seven real-SQLite tests; older versions unsupported |
+| Declared schema-v4→v5 migration | Implemented; packaged upgrade verification pending | One Rust/SQLx connection, `BEGIN IMMEDIATE`, per-connection busy timeout, explicit FK check, and real-SQLite tests; older versions unsupported |
 | Legacy browser-storage conversion | Withdrawn | Read-only detection blocks before SQLite setup and preserves the payload; no automatic conversion or cleanup is attempted |
 | Managed-document coordination | Implemented and path-tested | Create, tag/update, delete, canonical open, and startup reconciliation use a staged/tombstone/quarantine protocol around one-connection SQL transactions; this is not a global file-workflow guarantee |
 | Partial exports | Available with qualification | Existing JSON/ZIP outputs export subsets of state; the ZIP writes directly to the exact dialog-granted target and is non-atomic, so neither output is a verified backup |
 | Custom contract destination | Session-scoped | A native folder grant is used only for the current session; the folder must be reselected after restart and persisted legacy paths are ignored |
 | Diagnostic logs | Path-specific | Redaction/truncation is scoped; clear/export serialize with pending disk writes, but semantic PII can remain |
+| Native notifications | Not provided | The preference can be stored, but v1.10.4 does not dispatch renderer-triggered operating-system notifications; in-app reminders remain the supported surface |
 | Restore | Withdrawn | No supported restore format or in-app recovery operation |
 | Factory reset | Withdrawn | No verified operation removes every table and managed file |
-| CI/release evidence | Workflow present; public final-SHA smoke pending | Frontend, Windows Rust/Tauri build/smoke on an ephemeral runner, history-secret, dependency-evidence, npm SBOM, artifact, and checksum jobs are defined; no successful public run or controlled release proof is linked yet |
+| CI/release evidence | Workflows present; run evidence pending | Ordinary CI requires a database-initialization/reconciliation readiness marker from an ephemeral unsigned executable and retains evidence only. Distribution requires the exact-version-tag protected signed-release workflow and signature verification; no successful signing run is linked yet |
 
 ## Reliability principles
 
@@ -105,6 +108,25 @@ an inspection error blocks startup and leaves the payload unchanged. Recovery fr
 that legacy format remains unsupported until a staged, transactional import contract
 and failure matrix are implemented.
 
+### Renderer database boundary and sale invariants
+
+The generic renderer database path is no longer raw `tauri-plugin-sql` select/execute
+authority. Rust validates a single read or data-mutation statement, rejects schema,
+transaction, extension, filesystem, and stacked SQL, binds JSON parameters, and applies
+execution-time, result-row, response-size, parameter, and affected-row limits. Generic
+mutations cannot write the internal schema version or the protected `sales` and
+`sale_puppies` tables. This limits the consequences of malformed requests; it is not
+per-record authorization against a fully compromised renderer.
+
+Sale creation, replacement, deletion, and interest conversion instead use typed native
+commands. Each command validates identifiers and related rows under `BEGIN IMMEDIATE`,
+then updates the sale, puppy links/statuses, and interest or waitlist conversion state
+as one unit. Any validation or database failure rolls the transaction back.
+
+The renderer still performs generic mutations for other domains. Each domain therefore
+needs its own invariant and negative tests; the sale boundary is not evidence that all
+application workflows have purpose-specific authorization.
+
 ### Documents and managed files
 
 Document upload, metadata/tag updates, and deletion cross SQLite and filesystem
@@ -144,6 +166,13 @@ The Rust library suite includes managed-document success and failure/reconciliat
 paths. This evidence is deliberately scoped: it does not make
 SQLite and the filesystem one transaction, prove every other photo/contract/export
 workflow, or replace packaged-Windows and adversarial file-system testing.
+
+The exposed filesystem capability is deny-by-default and operation-specific. Direct
+managed photo, contract, document, and log files are allowlisted only for the operations
+their current workflows use; managed directory roots, hidden names, and nested paths
+are denied for mutation. Rust-managed paths additionally reject unsafe reparse-point
+traversal. This narrows renderer authority but does not encrypt files or make every
+database/file pair atomic.
 
 ### Partial exports and external contract destinations
 
@@ -192,20 +221,18 @@ Restore is therefore withdrawn, and existing exports are called **partial export
 The future contract is documented in [BACKUP_FORMAT.md](BACKUP_FORMAT.md). No restore
 button or demo may imply that contract exists today.
 
-## Local verification baseline
+## Verification evidence
 
-At the reviewed commit, lint, TypeScript, and 290 tests passed locally. Configured
+At the historical baseline commit, lint, TypeScript, and 290 tests passed locally. Configured
 coverage reported 10.93% statements/lines, with migration and key document modules at
 0%. No required CI workflow or Windows clean-machine smoke evidence existed.
 
-The later remediation working tree adds real-SQLite migration tests for the declared
-path plus managed-document success and reconciliation/failure coverage. The latest
-local pre-release checkpoint passes 354 frontend tests in 39 files
-and 39 Rust tests. A pinned Node 22.23.1/npm 10.9.8 rehearsal also passes lint,
-TypeScript, version/demo guards, web and NSIS builds/scans, production audit,
-history/current-source Gitleaks scans, workflow lint, and npm SBOM generation.
+The later **historical v1.10.3** checkpoint added real-SQLite migration tests for the
+declared path plus managed-document success and reconciliation/failure coverage. It
+recorded 354 frontend tests in 39 files and 39 Rust tests. Its exact counts and local
+build evidence do not describe v1.10.4.
 
-The local pre-release coverage checkpoint meets the configured initial floors at
+That historical pre-release coverage checkpoint met the configured initial floors at
 22.21% statements/lines, 62.73% branches, and 27.85% functions. Statement/line coverage
 is still low across the broad application; the stronger claim is limited to focused
 tests for the new migration, managed-document, and startup paths.
@@ -217,6 +244,23 @@ real profile's SQLite WAL/SHM and WebView state were opened, while the main data
 file mtime remained unchanged. No second local launch was attempted. The exact final
 SHA must pass the workflow's smoke step on an ephemeral hosted runner before this is
 public release evidence.
+
+The pinned local v1.10.4 gate completed on 2026-08-22: lint, type checking, version and
+demo guards, 439 frontend tests in 50 files, coverage ratchets, Rust format, strict
+Clippy, 68 Rust tests, web build, and Windows release-profile `--no-bundle` build all
+passed. Vitest 4/V8 measured 26.40% statements, 20.06% branches, 17.52% functions, and
+27.74% lines; these metrics are not directly comparable to the historical Vitest 2
+figures. The lockfile had zero npm advisories, no unignored Rust vulnerability, one
+documented exception for the unselected SQLx MySQL/RSA path, and 20 informational Rust
+warnings.
+
+Ordinary CI starts the unsigned executable on an ephemeral Windows runner, requires a
+versioned marker after database initialization and reconciliation, checks process and
+startup-error state, scans it, and uploads evidence only. It does not retain the
+executable or an unsigned installer.
+A distributable installer must come from the protected signed-release workflow, pass
+timestamped Authenticode/thumbprint verification, and include checksums plus npm and
+Rust SBOMs. No successful protected signing run is yet claimed.
 
 See [TEST_EVIDENCE.md](case-study/TEST_EVIDENCE.md) for the exact commands and scope
 caveats. Passing local checks does not close the release and clean-machine gates below.

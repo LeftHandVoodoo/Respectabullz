@@ -1,19 +1,19 @@
 # Respectabullz Architecture
 
-Last reviewed: 2026-07-14 against commit
-`fd21363beae044f0649a1e03f3bb6bcc2249f970`
+Last reviewed: 2026-08-22
 
 ## Accurate technical description
 
 Respectabullz is a React and TypeScript desktop application packaged with Tauri 2.
-It uses SQLite through `tauri-plugin-sql`, scoped filesystem/dialog/notification
-plugins, and narrow Rust commands for database integrity, managed documents, and the
-fixed support-page destination. The broad shell plugin/permission is not enabled.
+It uses a fixed SQLx/`tauri-plugin-sql` pool behind validated Rust commands, plus
+scoped filesystem/dialog plugins and narrow Rust commands for database integrity,
+sales, managed documents, navigation, and the fixed support-page destination. The
+notification and broad shell plugins/permissions are not enabled.
 
-Most domain/UI logic remains in TypeScript, while the Rust crate now owns the Tauri
-host plus integrity-sensitive setup/migration and managed-document boundaries. It is
-not a separate API server. Prisma files are development/schema reference material;
-Prisma is not the runtime ORM.
+Most domain/UI logic remains in TypeScript, while the Rust crate owns the Tauri host,
+fixed database guard, integrity-sensitive setup/migration, atomic sales, managed
+documents, and native path/navigation boundaries. It is not a separate API server.
+Prisma files are development/schema reference material; Prisma is not the runtime ORM.
 
 ## System context
 
@@ -47,8 +47,9 @@ not the same as keeping data inside the local application boundary.
 flowchart TB
     UI["Pages and React components"] --> Hooks["Domain hooks and TanStack Query"]
     Hooks --> Modules["TypeScript domain/database modules"]
-    Modules --> SQLPlugin["tauri-plugin-sql"]
-    SQLPlugin --> SQLite["respectabullz.db"]
+    Modules --> DatabaseCommands["Validated Tauri database commands"]
+    DatabaseCommands --> SQLPool["Fixed Rust SQLx/plugin pool"]
+    SQLPool --> SQLite["respectabullz.db"]
 
     UI --> NativeUtils["TypeScript native-integration utilities"]
     NativeUtils --> Tauri["Tauri plugin/capability boundary"]
@@ -68,14 +69,15 @@ roll back a database or filesystem side effect.
 
 ### Database access
 
-Tauri's SQL plugin preloads only `sqlite:respectabullz.db` from trusted application
-configuration. `src/lib/db/connection.ts` retrieves that existing pool with
-`Database.get`; production and synthetic-demo capabilities grant select/execute but
-not renderer-controlled pool load/close. This prevents alternate SQLite pool creation
-through the renderer but is not a query sandbox: renderer code still issues hand-written
-parameterized SQL against the fixed application database. Domain modules cover animals,
-litters, health, breeding, clients, sales, operations, documents, settings, and
-dashboard queries.
+Tauri's SQL plugin preloads only `sqlite:respectabullz.db` for Rust use. Renderer SQL
+plugin permissions are absent. `src/lib/db/connection.ts` invokes `database_select` or
+`database_execute`; `src-tauri/src/database_access.rs` binds JSON parameters and
+rejects stacked statements, schema/transaction/extension/filesystem SQL, unsupported
+parameter types, and oversized requests before using the fixed pool. This is a
+query-shape boundary, not per-record authorization: a compromised renderer can still
+request ordinary reads and mutations in the application database. Domain modules
+cover animals, litters, health, breeding, clients, operations, settings, and dashboard
+queries. Multi-row sales use purpose-specific Rust transaction commands.
 
 Fresh setup and the declared schema-v4→v5 migration are owned by the typed Tauri
 command in `src-tauri/src/database_integrity.rs`. It acquires one SQLx connection,
@@ -109,10 +111,11 @@ drift; they must not be presented as the runtime source of truth. See
 ### Tauri host and plugins
 
 `src-tauri/` configures the desktop window and registers plugins. Renderer-visible
-capabilities control access to native filesystem, dialog, notification, and SQL
-operations. Broad Tauri shell-open permission and plugin initialization were removed;
-managed documents open through a Rust command that requires a database-backed filename
-and canonical path inside the managed directory. A configured permission or CSP is a
+capabilities are deny-by-default for filesystem operations and allow only the reviewed
+commands on direct files in photos, contracts, documents, and logs. Renderer SQL,
+notification, and broad shell-open permissions are absent. Managed documents open
+through a Rust command that requires a database-backed filename and canonical path
+inside a link/reparse-free managed directory. A configured permission or CSP is a
 boundary, not proof that every native call is safe.
 
 The CSP permits inline styles and image loading from self, data/asset sources, and
@@ -143,15 +146,16 @@ or destination supplies encryption.
 
 1. A page calls a domain hook.
 2. The hook calls a TypeScript database function.
-3. The function sends a parameterized query through `tauri-plugin-sql`.
-4. Returned rows are mapped to TypeScript objects.
+3. The function invokes the native database guard with SQL and parameters.
+4. Rust validates the statement, executes it on the fixed pool, and returns JSON rows.
 5. TanStack Query caches the result and React renders it.
 
 ### Database-only write
 
 1. A form or action validates the fields covered by that UI boundary.
 2. A mutation calls a domain database function.
-3. SQL changes the relevant rows.
+3. The native database boundary changes one ordinary statement, or a purpose-specific
+   Rust transaction changes the full sale/assignment state atomically.
 4. Query data is invalidated or an optimistic cache is reconciled.
 5. The UI reports the result.
 
@@ -189,10 +193,13 @@ delete preserves the tombstone for that durable-state decision instead of guessi
 Actual reconciliation failures block startup; scan-limit truncation warns and permits
 startup only when no failure was recorded, so the scan is not represented as exhaustive.
 
-This does not make SQLite and the filesystem one atomic system. File cleanup can still
-leave an explicitly reported residue, and photo, contract, export, and other file
-workflows retain their own narrower guarantees. Individual write-to-temp/rename helpers
-reduce interrupted-write risk only for their documented destination.
+This does not make SQLite and the filesystem one atomic system. Photo replacement and
+deletion remove the database reference first, then physically delete only when no row
+still references the managed file; cleanup failures are reported and can leave an
+orphan. Export enumerates validated database references rather than the whole directory,
+so those orphans are excluded. Contract/export and other file workflows retain their
+own narrower guarantees. Individual write-to-temp/rename helpers reduce interrupted-
+write risk only for their documented destination.
 
 The partial ZIP exporter is an explicit exception: the native save grant covers the
 exact selected file, not a sibling temporary path, so the exporter writes directly and

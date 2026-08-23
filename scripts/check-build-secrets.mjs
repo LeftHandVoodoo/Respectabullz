@@ -18,6 +18,34 @@ const BUILT_IN_PATTERNS = [
     label: 'GitHub classic token shape',
     pattern: /\bgh[pousr]_[A-Za-z0-9]{20,}\b/u,
   },
+  {
+    label: 'private key material',
+    pattern: /-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/u,
+  },
+  {
+    label: 'AWS access key shape',
+    pattern: /\bAKIA[0-9A-Z]{16}\b/u,
+  },
+  {
+    label: 'Google API key shape',
+    pattern: /\bAIza[0-9A-Za-z_-]{35}\b/u,
+  },
+  {
+    label: 'OpenAI API key shape',
+    pattern: /\bsk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}\b/u,
+  },
+  {
+    label: 'Slack token shape',
+    pattern: /\bxox[baprs]-[0-9A-Za-z-]{20,}\b/u,
+  },
+  {
+    label: 'Stripe live secret shape',
+    pattern: /\b(?:sk_live|rk_live)_[0-9A-Za-z]{16,}\b/u,
+  },
+  {
+    label: 'public Vite credential marker',
+    pattern: /\bVITE_(?!GITHUB_TOKEN\b)[A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|API_KEY)\b/u,
+  },
 ];
 
 function escapeRegExp(value) {

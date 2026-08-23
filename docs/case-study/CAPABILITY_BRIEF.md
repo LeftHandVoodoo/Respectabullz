@@ -4,7 +4,8 @@
 local-first Windows desktop system. This is not an AI application, a production-
 adoption claim, an independent audit, or evidence of completed backup/restore.
 
-**Evidence version:** v1.10.3 local pre-release snapshot, 2026-07-14.
+**Source version:** v1.10.4, locally validated 2026-08-22. Public final-commit CI and
+protected signing evidence are pending. The v1.10.3 snapshot below is historical.
 
 ## Engineering problem
 
@@ -21,25 +22,28 @@ state across partial failures, and make every remaining claim traceable to evide
 | Product judgment | Withdrew historical restore and unverified destructive-reset paths; relabeled incomplete outputs as partial exports | No supported restore, verified backup, or factory reset today |
 | Reliability engineering | Routed fresh setup and schema-v4→v5 through one SQLx connection with `BEGIN IMMEDIATE`, foreign-key checks, rejection of unsupported versions, and real-SQLite failure tests | One declared migration path; final packaged Windows upgrade evidence pending |
 | State-machine design | Added staged document intake, transactional metadata, tombstones/quarantine, canonical database-backed opens, and startup reconciliation | Path-specific coordination; not global database/filesystem atomicity; scan is bounded |
-| Security and privacy | Removed the renderer credential/direct-API design; added local preview, redaction, fixed blank issue route, narrower capabilities, and source/build secret checks | Historical external credential revocation cannot be proven from the repository; no independent assessment |
-| Quality systems | Passed the local exact-tree rehearsal across tests, lint, type checks, Rust format/Clippy, builds, packaging, scans, and SBOM generation; recorded the exact NSIS artifact and checksum | Installer is unsigned; exact final-SHA hosted smoke/public CI and published provenance remain pending |
+| Security and privacy | Removed the renderer credential/direct-API design; routed database access through bounded native commands; narrowed filesystem scope by operation; removed native renderer notifications; added local bug-report preview and source/build secret checks | Generic database access is not per-record authorization; historical external credential revocation cannot be proven here; no independent assessment |
+| Sale integrity | Added purpose-specific native transactions for create/update/delete and interest conversion | Scoped to the sale lifecycle; other domains still need their own invariant tests |
+| Quality systems | Added zero-finding npm audit, triaged Rust audit policy, evidence-only unsigned CI, and a protected signed-release path with signature/SBOM/checksum gates | Local v1.10.4 gates pass; public CI, signed artifact, and clean-profile proof are pending |
 | Technical communication | Maintained a threat model, reliability contract, dated test evidence, dependency-risk ledger, ADRs, and explicit current limitations | Documentation is a claim boundary, not a substitute for runtime evidence |
 
-## Dated evidence snapshot
+## Evidence snapshot
 
-- Local pre-release checkpoint: **354/354 frontend tests in 39 files** and **39/39
-  Rust tests**.
-- Coverage: **22.21% statements/lines**, **62.73% branches**, and **27.85% functions**.
-- Production npm graph: **0 dated findings**; **7 development-graph findings** remain
-  triaged.
-- Cargo audit reports **5 vulnerability entries remaining**.
-- Focused evidence covers the declared migration, managed-document recovery states,
-  startup gating, log ordering/redaction, and containment boundaries.
-- The exact local NSIS installer is **29,413,927 bytes**, SHA-256
-  **`3167be8a9a0b774a72bcc4b1af30fd00ac95e03215c4bc6dd4d79d74b020bd11`**, and
-  unsigned. Local exact-tree gates passed; the exact final executable was not launched
-  again against the non-isolated development profile. Hosted final-SHA smoke and a
-  successful public CI URL remain pending.
+- **v1.10.4 local validation:** 439/439 frontend tests in 50 files and 68/68 Rust
+  tests passed with lint, type checking, coverage ratchets, strict Clippy, workflow
+  lint, web build, and Windows `--no-bundle` build. Vitest 4/V8 measured 26.40%
+  statements, 20.06% branches, 17.52% functions, and 27.74% lines.
+- **Dependency state:** zero npm advisories; no unignored Rust vulnerability entry;
+  one documented exception for the unselected SQLx MySQL/RSA path; 20 informational
+  Rust warnings remain tracked.
+- **Release state:** ordinary CI requires completed database initialization and
+  reconciliation from an ephemeral unsigned executable and retains evidence only. The
+  exact-version-tag protected signed-release workflow has not yet produced a verified
+  distributable artifact.
+- **Historical v1.10.3 checkpoint (2026-07-14):** 354/354 frontend tests in 39 files,
+  39/39 Rust tests, 22.21% statement/line coverage, 62.73% branch coverage, and 27.85%
+  function coverage. Its unsigned local NSIS artifact and checksum remain provenance
+  for that older tree, not v1.10.4 assurance.
 
 Test counts are scope indicators, not a reliability score. Exact commands, dates,
 toolchain caveats, and missing gates live in [TEST_EVIDENCE.md](TEST_EVIDENCE.md).
@@ -54,9 +58,9 @@ toolchain caveats, and missing gates live in [TEST_EVIDENCE.md](TEST_EVIDENCE.md
    instead of guessing.
 4. **Separate evidence from assurance.** Local tests, scanning, and self-review are
    useful; they are not public CI, signing, independent assessment, or production use.
-5. **Keep residual risk visible.** Recovery, credential rotation, hosted final-SHA
-   smoke/public CI, signing, clean-machine upgrade evidence, and broader filesystem
-   review remain explicit work—not hidden footnotes.
+5. **Keep residual risk visible.** Recovery, credential rotation, final-SHA public CI,
+   protected signing, clean-machine upgrade evidence, and purpose-specific review of
+   remaining data/file workflows remain explicit work—not hidden footnotes.
 
 ## Best-fit discussion areas
 

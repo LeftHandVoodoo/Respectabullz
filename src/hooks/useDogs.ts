@@ -98,10 +98,17 @@ export function useDeleteDog() {
 
   return useMutation({
     mutationFn: (id: string) => db.deleteDog(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dogs'] });
-      queryClient.invalidateQueries({ queryKey: ['litters'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    onSuccess: (result) => {
+      if (typeof result === 'object') {
+        logger.warn('Dog was deleted but managed photo cleanup was incomplete', {
+          photoCleanupFailures: result.photoCleanupFailures,
+        });
+        toast({
+          title: 'Dog deleted with a cleanup warning',
+          description: `${result.photoCleanupFailures.length} photo file(s) could not be cleaned up. The dog record was deleted.`,
+        });
+        return;
+      }
       toast({
         title: 'Dog deleted',
         description: 'The dog has been removed successfully.',
@@ -114,6 +121,11 @@ export function useDeleteDog() {
         variant: 'destructive',
       });
       logger.error('Failed to delete dog', error as Error);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['dogs'] });
+      queryClient.invalidateQueries({ queryKey: ['litters'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }

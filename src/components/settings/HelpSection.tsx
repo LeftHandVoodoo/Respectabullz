@@ -32,7 +32,9 @@ function generateHeaderId(text: string): string {
  * Simple markdown renderer that converts markdown to HTML-like structure
  * This is a basic implementation - for production, consider using a proper markdown library
  */
-function renderMarkdown(markdown: string): string {
+// Exported for focused security regression tests.
+// eslint-disable-next-line react-refresh/only-export-components
+export function renderMarkdown(markdown: string): string {
   const lines = markdown.split('\n');
   const html: string[] = [];
   let inCodeBlock = false;
@@ -40,23 +42,47 @@ function renderMarkdown(markdown: string): string {
   let listItems: string[] = [];
 
   function processInlineMarkdown(text: string): string {
-    // Process bold first, then italic (to avoid conflicts)
-    let result = text
-      // Bold (must be processed before italic)
-      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>')
-      // Inline code (before other processing to avoid conflicts)
-      .replace(/`([^`]+)`/g, '<code class="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">$1</code>')
-      // Links - handle anchor links specially
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, linkText, linkUrl) => {
-        // If it's an anchor link (starts with #), add scroll behavior
-        if (linkUrl.startsWith('#')) {
-          return `<a href="${linkUrl}" class="text-primary hover:underline scroll-link" data-anchor="${linkUrl.substring(1)}">${linkText}</a>`;
+    const tokens: string[] = [];
+    const token = (html: string) => {
+      const index = tokens.push(html) - 1;
+      return `\uE000SAFE_MARKDOWN_TOKEN_${index}\uE001`;
+    };
+
+    // Convert only explicitly supported Markdown constructs to trusted tokens,
+    // then escape every remaining character before restoring those tokens.
+    let tokenized = text
+      .replace(/`([^`]+)`/g, (_match, code: string) => token(
+        `<code class="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">${escapeHtml(code)}</code>`
+      ))
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, linkText: string, linkUrl: string) => {
+        const label = escapeHtml(linkText);
+        if (/^#[a-z0-9_-]+$/i.test(linkUrl)) {
+          const anchor = linkUrl.substring(1);
+          return token(`<a href="#${anchor}" class="text-primary hover:underline scroll-link" data-anchor="${anchor}">${label}</a>`);
         }
-        return `<a href="${linkUrl}" class="text-primary hover:underline">${linkText}</a>`;
+        try {
+          const parsed = new URL(linkUrl);
+          if (parsed.protocol === 'https:') {
+            const href = escapeHtml(parsed.href);
+            return token(`<a href="${href}" target="_blank" rel="noopener noreferrer nofollow" class="text-primary hover:underline">${label}</a>`);
+          }
+        } catch {
+          // Unsupported relative or malformed URLs are rendered as text only.
+        }
+        return token(label);
       });
+
+    let result = escapeHtml(tokenized)
+      // Bold (must be processed before italic)
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>');
     
     // Italic (after bold, only match single asterisks not part of bold)
     result = result.replace(/(?<!\*)\*([^*<]+?)\*(?!\*)/g, '<em>$1</em>');
+
+    tokenized = result;
+    result = tokenized.replace(/\uE000SAFE_MARKDOWN_TOKEN_(\d+)\uE001/g, (_match, index: string) => (
+      tokens[Number(index)] ?? ''
+    ));
     
     return result;
   }
@@ -69,7 +95,7 @@ function renderMarkdown(markdown: string): string {
   }
 
   function flushCodeBlock() {
-    if (codeBlockContent.length > 0) {
+    if (inCodeBlock) {
       const code = codeBlockContent.join('\n');
       html.push(`<pre class="bg-muted p-4 rounded-md overflow-x-auto my-4 text-sm"><code>${escapeHtml(code)}</code></pre>`);
       codeBlockContent = [];

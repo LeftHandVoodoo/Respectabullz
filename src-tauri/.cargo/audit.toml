@@ -1,0 +1,11 @@
+[advisories]
+# sqlx-mysql is an unselected optional dependency in the lockfile. Respectabullz
+# disables SQLx default features and enables SQLite only; `cargo tree -e all -i
+# sqlx-mysql` returns no active path. RustSec provides no patched rsa release.
+ignore = ["RUSTSEC-2023-0071"]
+informational_warnings = ["unmaintained", "unsound", "notice"]
+
+[target]
+# Respectabullz is distributed only as a 64-bit Windows desktop application.
+arch = ["x86_64"]
+os = ["windows"]

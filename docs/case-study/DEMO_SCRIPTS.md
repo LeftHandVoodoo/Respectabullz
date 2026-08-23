@@ -7,14 +7,14 @@ recovery system.
 
 Demo only with synthetic records through the dedicated `com.respectabullz.demo`
 development configuration. Do not
-show real breeder, client, health, financial, filesystem, notification, or account
+show real breeder, client, health, financial, filesystem, or account
 data. Do not demonstrate restore: the historical restore path is withdrawn.
 
 ## 90-second version
 
 ### Slide 1 — Respectabullz: local-first product engineering under constraint (11s)
 
-“Respectabullz v1.10.3 is a Windows breeder-management app. This case study shows how
+“Respectabullz v1.10.4 is a Windows breeder-management app. This case study shows how
 I narrowed unsafe claims, redesigned failure-sensitive paths, and made the remaining
 evidence reproducible.”
 
@@ -40,17 +40,19 @@ startup reconciliation. Those are path-specific protections, not global atomicit
 import succeeded. Current JSON and ZIP outputs are partial exports; the complete
 recovery contract remains unimplemented.”
 
-### Slide 6 — Local exact-tree gates passed; release gates remain (20s)
+### Slide 6 — Local validation passed; public release evidence remains (20s)
 
-“Local exact-tree gates passed: 354 frontend tests, 39 Rust tests, and coverage of 22.21
-percent statements and lines, 62.73 percent branches, and 27.85 percent functions.
-The exact 29,413,927-byte NSIS installer has the SHA-256 shown here, but it is unsigned.
-Public final-SHA CI remains pending.”
+“The pinned v1.10.4 local gate passed 439 frontend and 68 Rust tests plus lint, type,
+coverage, Clippy, workflow, web, and Windows build checks. Ordinary CI requires
+database readiness from an ephemeral executable but publishes evidence, not unsigned
+binaries. Public final-SHA CI and a successful protected signed-release run remain
+pending.”
 
 ### Slide 7 — Residual risk stays visible (8s)
 
-“Recovery, credential rotation, hosted smoke, public CI, signing, five Cargo audit
-entries, and independent assessment remain explicit risks.”
+“Recovery, credential rotation, public CI, protected signing, one documented optional
+Rust dependency exception, informational Rust warnings, and independent assessment
+remain explicit risks.”
 
 ### Slide 8 — What this demonstrates (6s)
 
@@ -61,7 +63,7 @@ dated evidence.”
 
 ### Slide 1 — Respectabullz: local-first product engineering under constraint (20s)
 
-“Respectabullz v1.10.3 is a single-user Windows desktop application for breeder operations.
+“Respectabullz v1.10.4 is a single-user Windows desktop application for breeder operations.
 The stack is React, TypeScript, Tauri 2, Rust, and local SQLite. I am not presenting it
 as an AI product or as proof of customer adoption. I am presenting a remediation case
 study: how I inspected an inherited product surface, removed unsafe claims, and made
@@ -71,7 +73,8 @@ the remaining engineering evidence inspectable.”
 
 “Local-first is a product choice, not a shortcut. It gives the operator offline use
 and direct control of records, but it also concentrates responsibility on one Windows
-machine. The renderer crosses a Tauri boundary into SQLite, application-managed
+machine. The renderer crosses bounded native commands into SQLite and crosses
+operation-specific Tauri file permissions into application-managed
 photos and documents, and user-selected export locations. SQLite can protect database
 changes; it cannot undo a file rename or deletion. That means the difficult design
 question is not simply ‘did this function return success?’ It is ‘what durable state
@@ -106,6 +109,11 @@ under `BEGIN IMMEDIATE` and resolves staged, registered, tombstoned, and quarant
 states. Actual failures block operational routes behind a retry screen. The scan is
 bounded at 10,000 entries, so truncation warns but is not described as exhaustive.”
 
+“The renderer's generic database path is also constrained: Rust rejects stacked,
+schema, transaction, extension, filesystem, and unsupported SQL and applies resource
+limits. Sale creation, update, deletion, and interest conversion bypass generic writes
+in favor of typed native transactions that keep sale and puppy state together.”
+
 ### Slide 5 — Restore withdrawn / remediation in progress (40s)
 
 “Recovery is deliberately outside that claim. The historical restore implementation
@@ -117,33 +125,34 @@ backup-format contract covering a consistent SQLite snapshot, complete inventory
 hashes, staging, a pre-restore snapshot, rollback, compatibility, and interruption
 tests. None of that proposal is represented as implemented.”
 
-### Slide 6 — Local exact-tree gates passed; release gates remain (55s)
+### Slide 6 — Local validation passed; release evidence remains (55s)
 
-“The latest recorded v1.10.3 local checkpoint passed 354 of 354 frontend tests in 39
+“The historical v1.10.3 local checkpoint passed 354 of 354 frontend tests in 39
 files and 39 of 39 Rust tests. Focused tests cover the new migration, document-state,
 startup-gating, logging-ordering, redaction, and export boundaries. Coverage was 22.21
 percent statements and lines, 62.73 percent branches, and 27.85 percent functions;
 that meets the configured initial floors, but broad statement coverage remains low.
-Cargo audit still reported five vulnerability entries.
+Those numbers describe the older tree, not v1.10.4.”
 
-“The local exact-tree rehearsal passed tests, lint, type checks, Rust formatting and
-Clippy, builds, package generation, scans, and SBOM generation. The exact local NSIS
-installer is 29,413,927 bytes with SHA-256
-`3167be8a9a0b774a72bcc4b1af30fd00ac95e03215c4bc6dd4d79d74b020bd11`. It is unsigned.
-The exact final packaged executable was not launched again against the non-isolated
-development profile; hosted final-SHA smoke and a successful public CI URL remain
-pending. These are pre-release facts, not production assurance.”
+“The pinned v1.10.4 local gate passed 439 frontend tests in 50 files, 68 Rust tests,
+lint, type checking, coverage ratchets, strict Clippy, workflow lint, web build, and a
+Windows release-profile build. The lockfile has zero npm advisories and documents one
+Rust exception for an unselected SQLx MySQL/RSA path; 20 informational warnings stay
+visible. Ordinary CI requires database readiness from an ephemeral unsigned executable
+and retains evidence only. A distributable installer requires a successful exact-
+version-tag protected workflow with timestamped signature verification, checksums, and
+npm/Rust SBOMs. No such release run is yet claimed.”
 
 ### Slide 7 — Residual risk stays visible (35s)
 
 “The remaining gates are part of the deliverable. Any historically exposed credential
 must be revoked or rotated outside the repository. Recovery and verified reset remain
-unsupported. Hosted exact final-SHA Windows smoke/CI, published checksum and SBOM
-provenance, and code-signing evidence are open. Filesystem permissions and
-other mixed database/file workflows need continued path-by-path review. Cargo audit
-still reports five vulnerability entries. There has been no independent penetration
-test or production adoption study. Keeping those
-risks visible is how the case study avoids turning self-review into assurance.”
+unsupported. Public exact final-SHA Windows CI, protected signing, and clean-profile
+upgrade evidence are open. The generic renderer database boundary is not per-record
+authorization, and remaining mixed database/file workflows need continued path-by-path
+review. There has been no independent penetration test or production adoption study.
+Keeping those risks visible is how the case study avoids turning self-review into
+assurance.”
 
 ### Slide 8 — What this demonstrates (10s)
 
@@ -158,7 +167,8 @@ Use this sequence only after the exact final-SHA public Windows smoke gate passe
 
 1. Open the dedicated `com.respectabullz.demo` development build with its isolated
    synthetic application-data root.
-2. Show one synthetic record workflow without exposing host paths or notifications.
+2. Show one synthetic record workflow without exposing host paths. Do not imply that
+   the stored Notifications preference dispatches operating-system notifications.
 3. Show the restore control is absent and partial-export language is visible.
 4. Trigger one safe, synthetic validation failure and show that success is not
    reported.

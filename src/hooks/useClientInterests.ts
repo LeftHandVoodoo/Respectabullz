@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
+import { createSaleFromInterest } from '@/lib/db/sales';
 import type { CreateClientInterestInput, UpdateClientInterestInput, CreateSaleInput } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/errorTracking';
@@ -123,10 +124,11 @@ export function useConvertInterestToSale() {
 
   return useMutation({
     mutationFn: async ({ interestId, saleInput }: { interestId: string; saleInput: CreateSaleInput }) => {
-      // First create the sale
-      const sale = await db.createSale(saleInput);
-      // Then convert the interest to link it to the sale
-      return db.convertInterestToSale(interestId, sale.id);
+      const sale = await createSaleFromInterest(interestId, saleInput);
+      if (!sale.puppies?.length) {
+        throw new Error('The converted sale was not returned with its puppy assignments');
+      }
+      return sale;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clientInterests'] });

@@ -13,6 +13,8 @@ use tauri::Manager;
 use tauri_plugin_fs::FsExt;
 use tauri_plugin_sql::{DbInstances, DbPool};
 
+use crate::managed_paths::{ensure_managed_directory, ensure_managed_grandchild};
+
 const DATABASE_URL: &str = "sqlite:respectabullz.db";
 const SUPPORTED_EXTENSIONS: &[&str] = &[
     "jpg", "jpeg", "png", "gif", "webp", "pdf", "doc", "docx", "xls", "xlsx",
@@ -39,6 +41,33 @@ impl DocumentWorkflowError {
 
     fn with_residue(mut self, residue: String) -> Self {
         self.cleanup_residue = Some(residue);
+        self
+    }
+
+    fn for_ipc(mut self, operation: &str) -> Self {
+        eprintln!(
+            "{}",
+            serde_json::json!({
+                "level": "error",
+                "event": "document_workflow_failed",
+                "operation": operation,
+                "code": self.code,
+                "detail": self.message,
+                "cleanupResidue": self.cleanup_residue,
+            })
+        );
+
+        self.message = match self.code.as_str() {
+            "source_not_authorized" => {
+                "The document must be selected through the native file dialog before upload."
+            }
+            "unsupported_file" => "The selected file type is not supported.",
+            "signature_mismatch" => "The selected file contents do not match its extension.",
+            "document_not_found" => "The managed document could not be found.",
+            "invalid_filename" => "The stored document filename is invalid.",
+            _ => "The document operation could not be completed.",
+        }
+        .to_string();
         self
     }
 }
@@ -143,6 +172,13 @@ enum ReconcileFailpoint {
 
 fn workflow_error(code: &str, message: impl Into<String>) -> DocumentWorkflowError {
     DocumentWorkflowError::new(code, message)
+}
+
+fn ipc_result<T>(
+    operation: &str,
+    result: Result<T, DocumentWorkflowError>,
+) -> Result<T, DocumentWorkflowError> {
+    result.map_err(|error| error.for_ipc(operation))
 }
 
 fn log_residue(operation: &str, residue: &str) {
@@ -269,19 +305,22 @@ fn unique_tag_ids(tag_ids: &[String]) -> Vec<&str> {
 }
 
 fn document_directories(root: &Path) -> Result<(PathBuf, PathBuf, PathBuf), DocumentWorkflowError> {
-    let documents = root.join("documents");
-    let staging = documents.join(".staging");
-    let quarantine = documents.join(".quarantine");
-    fs::create_dir_all(&staging).map_err(|error| {
+    let documents = ensure_managed_directory(root, "documents").map_err(|error| {
         workflow_error(
             "file_prepare_failed",
-            format!("Could not prepare document staging: {error}"),
+            format!("Could not validate managed document storage: {error}"),
         )
     })?;
-    fs::create_dir_all(&quarantine).map_err(|error| {
+    let staging = ensure_managed_grandchild(&documents, ".staging").map_err(|error| {
         workflow_error(
             "file_prepare_failed",
-            format!("Could not prepare document quarantine: {error}"),
+            format!("Could not validate document staging: {error}"),
+        )
+    })?;
+    let quarantine = ensure_managed_grandchild(&documents, ".quarantine").map_err(|error| {
+        workflow_error(
+            "file_prepare_failed",
+            format!("Could not validate document quarantine: {error}"),
         )
     })?;
     Ok((documents, staging, quarantine))
@@ -1367,15 +1406,19 @@ pub async fn create_document_with_file(
     app: tauri::AppHandle,
     request: CreateDocumentRequest,
 ) -> Result<DocumentRecord, DocumentWorkflowError> {
-    if !source_is_authorized(&app, Path::new(&request.source_path)) {
-        return Err(workflow_error(
-            "source_not_authorized",
-            "The document must be selected through the native file dialog before upload.",
-        ));
+    let result = async {
+        if !source_is_authorized(&app, Path::new(&request.source_path)) {
+            return Err(workflow_error(
+                "source_not_authorized",
+                "The document must be selected through the native file dialog before upload.",
+            ));
+        }
+        let pool = app_pool(&app).await?;
+        let root = app_data_root(&app)?;
+        create_document_core(&pool, &root, &request, None).await
     }
-    let pool = app_pool(&app).await?;
-    let root = app_data_root(&app)?;
-    create_document_core(&pool, &root, &request, None).await
+    .await;
+    ipc_result("create", result)
 }
 
 #[tauri::command]
@@ -1383,8 +1426,12 @@ pub async fn update_document_metadata(
     app: tauri::AppHandle,
     request: UpdateDocumentRequest,
 ) -> Result<DocumentRecord, DocumentWorkflowError> {
-    let pool = app_pool(&app).await?;
-    update_document_core(&pool, &request, None).await
+    let result = async {
+        let pool = app_pool(&app).await?;
+        update_document_core(&pool, &request, None).await
+    }
+    .await;
+    ipc_result("update_metadata", result)
 }
 
 #[tauri::command]
@@ -1392,8 +1439,12 @@ pub async fn replace_document_tags(
     app: tauri::AppHandle,
     request: ReplaceDocumentTagsRequest,
 ) -> Result<(), DocumentWorkflowError> {
-    let pool = app_pool(&app).await?;
-    replace_document_tags_core(&pool, &request).await
+    let result = async {
+        let pool = app_pool(&app).await?;
+        replace_document_tags_core(&pool, &request).await
+    }
+    .await;
+    ipc_result("replace_tags", result)
 }
 
 #[tauri::command]
@@ -1401,9 +1452,13 @@ pub async fn delete_document_recoverable(
     app: tauri::AppHandle,
     document_id: String,
 ) -> Result<DeleteDocumentResult, DocumentWorkflowError> {
-    let pool = app_pool(&app).await?;
-    let root = app_data_root(&app)?;
-    delete_document_core(&pool, &root, &document_id, None).await
+    let result = async {
+        let pool = app_pool(&app).await?;
+        let root = app_data_root(&app)?;
+        delete_document_core(&pool, &root, &document_id, None).await
+    }
+    .await;
+    ipc_result("delete", result)
 }
 
 #[tauri::command]
@@ -1411,13 +1466,16 @@ pub async fn reconcile_document_storage(
     app: tauri::AppHandle,
 ) -> Result<ReconciliationReport, DocumentWorkflowError> {
     const STARTUP_SCAN_LIMIT: usize = 10_000;
-    let pool = app_pool(&app).await?;
-    let root = app_data_root(&app)?;
-    reconcile_document_storage_core(&pool, &root, STARTUP_SCAN_LIMIT, None).await
+    let result = async {
+        let pool = app_pool(&app).await?;
+        let root = app_data_root(&app)?;
+        reconcile_document_storage_core(&pool, &root, STARTUP_SCAN_LIMIT, None).await
+    }
+    .await;
+    ipc_result("reconcile", result)
 }
 
-#[tauri::command]
-pub async fn open_managed_document(
+async fn open_managed_document_inner(
     app: tauri::AppHandle,
     filename: String,
 ) -> Result<(), DocumentWorkflowError> {
@@ -1447,19 +1505,20 @@ pub async fn open_managed_document(
         ));
     }
 
-    let documents = app_data_root(&app)?.join("documents");
-    let canonical_documents = fs::canonicalize(&documents).map_err(|error| {
+    let root = app_data_root(&app)?;
+    let canonical_documents = ensure_managed_directory(&root, "documents").map_err(|error| {
         workflow_error(
             "document_file_missing",
-            format!("Could not access managed document storage: {error}"),
+            format!("Could not validate managed document storage: {error}"),
         )
     })?;
-    let canonical_file = fs::canonicalize(documents.join(&filename)).map_err(|error| {
-        workflow_error(
-            "document_file_missing",
-            format!("Could not access the managed document: {error}"),
-        )
-    })?;
+    let canonical_file =
+        fs::canonicalize(canonical_documents.join(&filename)).map_err(|error| {
+            workflow_error(
+                "document_file_missing",
+                format!("Could not access the managed document: {error}"),
+            )
+        })?;
     if canonical_file.parent() != Some(canonical_documents.as_path()) {
         return Err(workflow_error(
             "invalid_filename",
@@ -1468,7 +1527,7 @@ pub async fn open_managed_document(
     }
 
     #[cfg(target_os = "windows")]
-    let mut command = Command::new("explorer.exe");
+    let mut command = Command::new(r"C:\Windows\explorer.exe");
     #[cfg(target_os = "macos")]
     let mut command = Command::new("open");
     #[cfg(all(unix, not(target_os = "macos")))]
@@ -1483,10 +1542,35 @@ pub async fn open_managed_document(
     Ok(())
 }
 
+#[tauri::command]
+pub async fn open_managed_document(
+    app: tauri::AppHandle,
+    filename: String,
+) -> Result<(), DocumentWorkflowError> {
+    let result = open_managed_document_inner(app, filename).await;
+    ipc_result("open", result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use sqlx::sqlite::SqlitePoolOptions;
+
+    #[test]
+    fn ipc_errors_log_details_but_return_only_stable_public_messages() {
+        let error = workflow_error(
+            "database_read_failed",
+            r"SQLite failed at C:\Users\person\private\respectabullz.db",
+        )
+        .for_ipc("test");
+
+        assert_eq!(
+            error.message,
+            "The document operation could not be completed."
+        );
+        assert!(!error.message.contains("person"));
+        assert!(!error.message.contains("SQLite"));
+    }
 
     const TEST_SCHEMA: &str = r#"
         PRAGMA foreign_keys = ON;

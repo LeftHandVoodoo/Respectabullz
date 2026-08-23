@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DEFAULT_ROOT = path.resolve(path.dirname(SCRIPT_PATH), '..');
@@ -9,13 +10,64 @@ const DEMO_SEED_COMMAND_PATH = 'src-tauri/src/demo_seed.rs';
 const DEMO_CONFIG_PATH = 'src-tauri/tauri.demo.conf.json';
 const PRODUCTION_CONFIG_PATH = 'src-tauri/tauri.conf.json';
 const PRODUCTION_CAPABILITY_PATH = 'src-tauri/capabilities/default.json';
+const DATABASE_ACCESS_PATH = 'src-tauri/src/database_access.rs';
+const RENDERER_DATABASE_DIRECTORY = 'src/lib/db';
 const CONNECTION_PATH = 'src/lib/db/connection.ts';
 const SETTINGS_PATH = 'src/pages/SettingsPage.tsx';
 const PRODUCTION_IDENTIFIER = 'com.respectabullz.app';
 const DEMO_IDENTIFIER = 'com.respectabullz.demo';
 const FIXED_DATABASE_URL = 'sqlite:respectabullz.db';
-const REQUIRED_SQL_PERMISSIONS = ['sql:allow-execute', 'sql:allow-select'];
-const FORBIDDEN_SQL_PERMISSIONS = ['sql:default', 'sql:allow-load', 'sql:allow-close'];
+const MANAGED_DIRECTORIES = ['photos', 'contracts', 'documents', 'logs'];
+const managedRoots = MANAGED_DIRECTORIES.map(
+  (directory) => '$APPDATA/' + directory,
+);
+const managedDirectChildren = MANAGED_DIRECTORIES.map(
+  (directory) => '$APPDATA/' + directory + '/*',
+);
+const hiddenOrRecursiveManagedPaths = MANAGED_DIRECTORIES.flatMap((directory) => [
+  '$APPDATA/' + directory + '/.*',
+  '$APPDATA/' + directory + '/*/**',
+]);
+const protectedManagedPaths = MANAGED_DIRECTORIES.flatMap((directory) => [
+  '$APPDATA/' + directory,
+  '$APPDATA/' + directory + '/.*',
+  '$APPDATA/' + directory + '/*/**',
+]);
+const REQUIRED_FS_POLICIES = {
+  'fs:allow-exists': {
+    allow: [...managedRoots, ...managedDirectChildren],
+    deny: hiddenOrRecursiveManagedPaths,
+  },
+  'fs:allow-mkdir': {
+    allow: ['$APPDATA/photos', '$APPDATA/contracts', '$APPDATA/logs'],
+    deny: [],
+  },
+  'fs:allow-read-file': {
+    allow: [
+      '$APPDATA/photos/*',
+      '$APPDATA/documents/*',
+      '$APPDATA/logs/*',
+    ],
+    deny: protectedManagedPaths,
+  },
+  'fs:allow-stat': {
+    allow: ['$APPDATA/photos/*'],
+    deny: protectedManagedPaths,
+  },
+  'fs:allow-write-file': {
+    allow: ['$APPDATA/photos/*', '$APPDATA/contracts/*', '$APPDATA/logs/*'],
+    deny: protectedManagedPaths,
+  },
+  'fs:allow-remove': {
+    allow: ['$APPDATA/photos/*', '$APPDATA/contracts/*', '$APPDATA/logs/*'],
+    deny: protectedManagedPaths,
+  },
+  'fs:allow-rename': {
+    allow: ['$APPDATA/photos/*', '$APPDATA/contracts/*', '$APPDATA/logs/*'],
+    deny: protectedManagedPaths,
+  },
+};
+const REQUIRED_ASSET_SCOPES = ['$APPDATA/photos/*'];
 
 const REQUIRED_SAFETY_MARKERS = [
   "new Date('2026-07-14T12:00:00.000Z')",
@@ -53,10 +105,96 @@ const REQUIRED_UI_IDENTITY_MARKERS = [
   '{isSyntheticDemo && (',
 ];
 
+const REQUIRED_DATABASE_BOUNDARY_MARKERS = [
+  'QUERY_TIMEOUT',
+  'MAX_RESULT_ROWS',
+  'MAX_RESPONSE_BYTES',
+  'MAX_MUTATION_ROWS',
+  'set_progress_handler',
+  'max_result_rows.saturating_add(1)',
+  'transaction.rollback()',
+  'PROTECTED_GENERIC_MUTATION_TABLES',
+  'has_parameterized_where',
+  'insert and replace statements must use VALUES only',
+];
+
 function withoutComments(source) {
   return source
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/^\s*\/\/.*$/gm, '');
+}
+
+function rendererExecuteStatements(source, filePath) {
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  const statements = [];
+
+  function visit(node) {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 'execute' &&
+      node.arguments.length > 0
+    ) {
+      const argument = node.arguments[0];
+      let sql;
+      if (
+        ts.isStringLiteral(argument) ||
+        ts.isNoSubstitutionTemplateLiteral(argument)
+      ) {
+        sql = argument.text;
+      } else if (ts.isTemplateExpression(argument)) {
+        sql = argument.head.text + argument.templateSpans
+          .map((span) => ' __DYNAMIC_SQL_FRAGMENT__ ' + span.literal.text)
+          .join('');
+      }
+      const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+      statements.push({ filePath, line, sql });
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return statements;
+}
+
+export function inspectRendererDatabaseMutations(sources) {
+  const issues = [];
+  for (const { filePath, source } of sources) {
+    for (const statement of rendererExecuteStatements(source, filePath)) {
+      const location = statement.filePath + ':' + statement.line;
+      if (statement.sql === undefined) {
+        issues.push(location + ' passes a dynamic SQL expression to execute().');
+        continue;
+      }
+      const sql = statement.sql.replace(/\s+/gu, ' ').trim().toUpperCase();
+      if (!/^(?:INSERT|REPLACE|UPDATE|DELETE)\b/u.test(sql)) {
+        issues.push(location + ' uses a non-DML statement through execute().');
+        continue;
+      }
+      if (/^(?:INSERT|REPLACE)\b/u.test(sql)) {
+        if (!/\bVALUES\b/u.test(sql) || /\bSELECT\b/u.test(sql)) {
+          issues.push(location + ' must use a VALUES-only insert or replace.');
+        }
+      } else {
+        const whereIndex = sql.lastIndexOf(' WHERE ');
+        if (whereIndex < 0 || !sql.slice(whereIndex + 7).includes('?')) {
+          issues.push(location + ' must use a parameterized WHERE clause.');
+        }
+      }
+      if (
+        /\b(?:INTO|UPDATE|FROM)\s+(?:(?:MAIN|TEMP)\s*\.\s*)?["`\[]?(?:_SCHEMA_VERSION|SALES|SALE_PUPPIES|SQLITE_[A-Z0-9_]*)["`\]]?\b/u.test(sql)
+      ) {
+        issues.push(location + ' targets a native-workflow-protected table.');
+      }
+    }
+  }
+  return issues;
 }
 
 export function inspectSqlBoundary(config, permissions, connectionSource, label) {
@@ -71,29 +209,83 @@ export function inspectSqlBoundary(config, permissions, connectionSource, label)
     issues.push(label + ' must preload only ' + FIXED_DATABASE_URL + '.');
   }
 
-  for (const permission of REQUIRED_SQL_PERMISSIONS) {
-    if (!permissions.includes(permission)) {
-      issues.push(label + ' is missing required permission ' + permission + '.');
-    }
-  }
-
-  for (const permission of FORBIDDEN_SQL_PERMISSIONS) {
-    if (permissions.includes(permission)) {
-      issues.push(label + ' must not grant renderer permission ' + permission + '.');
+  for (const permission of permissions) {
+    if (typeof permission === 'string' && permission.startsWith('sql:')) {
+      issues.push(label + ' must not grant renderer SQL permission ' + permission + '.');
     }
   }
 
   if (connectionSource !== undefined) {
     const executableSource = withoutComments(connectionSource);
-    if (!executableSource.includes('Database.get(DB_NAME)')) {
-      issues.push('Renderer database access must retrieve the fixed pool with Database.get.');
+    if (!executableSource.includes("invoke<T>('database_select'")) {
+      issues.push('Renderer reads must use the native database_select command.');
     }
-    if (/\bDatabase\.load\s*\(/u.test(executableSource)) {
-      issues.push('Renderer database access must not load arbitrary SQLite pools.');
+    if (!executableSource.includes("invoke<DatabaseExecuteResult>('database_execute'")) {
+      issues.push('Renderer writes must use the native database_execute command.');
     }
-    if (/\bdatabase\.close\s*\(/u.test(executableSource)) {
-      issues.push('Renderer database access must not close the Rust-owned pool.');
+    if (
+      executableSource.includes('@tauri-apps/plugin-sql') ||
+      /\bDatabase\s*\./u.test(executableSource) ||
+      /\bdatabase\.close\s*\(/u.test(executableSource)
+    ) {
+      issues.push('Renderer database access must not call the SQL plugin directly.');
     }
+  }
+
+  return issues;
+}
+
+export function inspectFilesystemBoundary(config, permissions, label) {
+  const issues = [];
+  const stringPermissions = permissions.filter(
+    (permission) => typeof permission === 'string' && permission.startsWith('fs:'),
+  );
+  if (
+    stringPermissions.length !== 1 ||
+    stringPermissions[0] !== 'fs:deny-default'
+  ) {
+    issues.push(label + ' must keep default filesystem denials and scope every command.');
+  }
+
+  const operationPermissions = permissions.filter(
+    (permission) =>
+      typeof permission === 'object' && permission?.identifier?.startsWith('fs:'),
+  );
+  const operationNames = operationPermissions.map((permission) => permission.identifier);
+  const expectedOperationNames = Object.keys(REQUIRED_FS_POLICIES);
+  if (
+    operationPermissions.length !== expectedOperationNames.length ||
+    JSON.stringify([...operationNames].sort()) !==
+      JSON.stringify([...expectedOperationNames].sort())
+  ) {
+    issues.push(label + ' must grant only the reviewed operation-scoped filesystem commands.');
+  }
+
+  for (const [identifier, expected] of Object.entries(REQUIRED_FS_POLICIES)) {
+    const matches = operationPermissions.filter(
+      (permission) => permission.identifier === identifier,
+    );
+    const actual = matches[0];
+    const allow = (actual?.allow ?? []).map((entry) => entry.path).sort();
+    const deny = (actual?.deny ?? []).map((entry) => entry.path).sort();
+    if (
+      matches.length !== 1 ||
+      JSON.stringify(allow) !== JSON.stringify([...expected.allow].sort()) ||
+      JSON.stringify(deny) !== JSON.stringify([...expected.deny].sort())
+    ) {
+      issues.push(
+        label + ' filesystem permission ' + identifier +
+          ' must match its reviewed operation scope.',
+      );
+    }
+  }
+
+  const assetScopes = config.app?.security?.assetProtocol?.scope ?? [];
+  if (
+    JSON.stringify([...assetScopes].sort()) !==
+    JSON.stringify([...REQUIRED_ASSET_SCOPES].sort())
+  ) {
+    issues.push(label + ' asset scope must contain only direct managed photo files.');
   }
 
   return issues;
@@ -167,16 +359,8 @@ export function inspectDemoSeedSource(source) {
 export function inspectDemoConfig(config) {
   const issues = [];
   const windowTitle = config.app?.windows?.[0]?.title ?? '';
-  const assetScopes = config.app?.security?.assetProtocol?.scope ?? [];
   const capabilities = config.app?.security?.capabilities ?? [];
   const serializedCapabilities = JSON.stringify(capabilities);
-  const capabilityPaths = capabilities.flatMap((capability) =>
-    (capability?.permissions ?? []).flatMap((permission) =>
-      typeof permission === 'object'
-        ? (permission.allow ?? []).map((entry) => entry.path)
-        : []
-    )
-  );
 
   if (config.identifier !== DEMO_IDENTIFIER) {
     issues.push('Demo Tauri config must use the dedicated ' + DEMO_IDENTIFIER + ' identifier.');
@@ -194,25 +378,12 @@ export function inspectDemoConfig(config) {
     issues.push('Demo capabilities must not grant the production application-data directory.');
   }
 
-  if (
-    capabilityPaths.length !== 3 ||
-    capabilityPaths.some((scopePath) => scopePath !== '$APPDATA/**')
-  ) {
-    issues.push('Demo filesystem scopes must be limited to the identifier-resolved $APPDATA directory.');
-  }
-
-  if (
-    assetScopes.length !== 1 ||
-    assetScopes[0] !== '$APPDATA/**'
-  ) {
-    issues.push('Demo asset protocol scope must be limited to the identifier-resolved $APPDATA directory.');
-  }
-
   if (config.bundle?.active !== false) {
     issues.push('Demo Tauri config must disable bundling so it cannot be mistaken for a release artifact.');
   }
 
   const demoPermissions = capabilities[0]?.permissions ?? [];
+  issues.push(...inspectFilesystemBoundary(config, demoPermissions, 'Demo Tauri config'));
   issues.push(...inspectSqlBoundary(config, demoPermissions, undefined, 'Demo Tauri config'));
 
   return issues;
@@ -230,6 +401,12 @@ export function inspectDemoUiSource(source) {
     .map((marker) => 'Demo UI identity marker is missing: ' + marker + '.');
 }
 
+export function inspectDatabaseAccessSource(source) {
+  return REQUIRED_DATABASE_BOUNDARY_MARKERS
+    .filter((marker) => !source.includes(marker))
+    .map((marker) => 'Database boundary marker is missing: ' + marker + '.');
+}
+
 export function checkDemoData(root = DEFAULT_ROOT) {
   const sourcePath = path.join(root, SEED_PATH);
   const source = fs.readFileSync(sourcePath, 'utf8');
@@ -241,6 +418,28 @@ export function checkDemoData(root = DEFAULT_ROOT) {
   const productionConfig = JSON.parse(fs.readFileSync(productionConfigPath, 'utf8'));
   const productionCapabilityPath = path.join(root, PRODUCTION_CAPABILITY_PATH);
   const productionCapability = JSON.parse(fs.readFileSync(productionCapabilityPath, 'utf8'));
+  const databaseAccessPath = path.join(root, DATABASE_ACCESS_PATH);
+  const databaseAccessSource = fs.readFileSync(databaseAccessPath, 'utf8');
+  const rendererDatabaseDirectory = path.join(root, RENDERER_DATABASE_DIRECTORY);
+  const rendererDatabaseSources = fs.readdirSync(rendererDatabaseDirectory, {
+    withFileTypes: true,
+  })
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        entry.name.endsWith('.ts') &&
+        // legacy.ts only collects deterministic fixture statements for the
+        // typed, debug-only apply_demo_seed command; it does not invoke the
+        // generic database_execute boundary.
+        entry.name !== 'legacy.ts',
+    )
+    .map((entry) => {
+      const filePath = path.join(rendererDatabaseDirectory, entry.name);
+      return {
+        filePath: path.relative(root, filePath).replaceAll('\\', '/'),
+        source: fs.readFileSync(filePath, 'utf8'),
+      };
+    });
   const connectionPath = path.join(root, CONNECTION_PATH);
   const connectionSource = fs.readFileSync(connectionPath, 'utf8');
   const settingsPath = path.join(root, SETTINGS_PATH);
@@ -250,12 +449,19 @@ export function checkDemoData(root = DEFAULT_ROOT) {
     ...inspectDemoSeedCommandSource(demoSeedCommandSource),
     ...inspectDemoUiSource(settingsSource),
     ...inspectDemoConfig(demoConfig),
+    ...inspectFilesystemBoundary(
+      productionConfig,
+      productionCapability.permissions ?? [],
+      'Production Tauri config',
+    ),
     ...inspectSqlBoundary(
       productionConfig,
       productionCapability.permissions ?? [],
       connectionSource,
       'Production Tauri config',
     ),
+    ...inspectDatabaseAccessSource(databaseAccessSource),
+    ...inspectRendererDatabaseMutations(rendererDatabaseSources),
   ];
 
   return {
@@ -264,6 +470,7 @@ export function checkDemoData(root = DEFAULT_ROOT) {
     demoSeedCommandPath,
     productionConfigPath,
     productionCapabilityPath,
+    databaseAccessPath,
     connectionPath,
     settingsPath,
     issues,
@@ -285,7 +492,7 @@ function runCli() {
     }
 
     console.log(
-      'Demo-data check passed: deterministic fixtures use reserved contacts and synthetic animal IDs, refuse existing user-created records, run under a dedicated Tauri identity, and can access only the fixed Rust-preloaded SQLite pool.',
+      'Demo-data check passed: deterministic fixtures use reserved contacts and synthetic animal IDs, refuse existing user-created records, run under a dedicated Tauri identity, and access the fixed SQLite pool only through native Rust commands.',
     );
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

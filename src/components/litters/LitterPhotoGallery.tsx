@@ -3,6 +3,7 @@ import { Plus, Trash2, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/use-toast';
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,8 @@ import {
   useUpdateLitterPhoto,
   useDeleteLitterPhoto,
 } from '@/hooks/useLitterPhotos';
-import { selectAndCopyMultipleImages, getPhotoUrlSync, initPhotoBasePath } from '@/lib/photoUtils';
+import { getPhotoUrlSync, initPhotoBasePath, selectAndCopyMultipleImages } from '@/lib/photoUtils';
+import { deleteManagedPhotoIfUnreferenced } from '@/lib/photoStorage';
 import type { LitterPhoto } from '@/types';
 
 interface LitterPhotoGalleryProps {
@@ -34,6 +36,7 @@ interface LitterPhotoGalleryProps {
 }
 
 export function LitterPhotoGallery({ litterId }: LitterPhotoGalleryProps) {
+  const { toast } = useToast();
   const { data: photos, isLoading } = useLitterPhotos(litterId);
   const createPhoto = useCreateLitterPhoto();
   const updatePhoto = useUpdateLitterPhoto();
@@ -50,8 +53,9 @@ export function LitterPhotoGallery({ litterId }: LitterPhotoGalleryProps) {
 
   const handleUploadPhotos = async () => {
     setIsUploading(true);
+    let filenames: string[] = [];
     try {
-      const filenames = await selectAndCopyMultipleImages();
+      filenames = await selectAndCopyMultipleImages();
       
       // Create photo records for each uploaded file
       for (const filename of filenames) {
@@ -62,16 +66,45 @@ export function LitterPhotoGallery({ litterId }: LitterPhotoGalleryProps) {
           sortOrder: (photos?.length || 0) + filenames.indexOf(filename),
         });
       }
+      if (filenames.length > 0) {
+        toast({
+          title: 'Photos added',
+          description: `${filenames.length} validated photo${filenames.length === 1 ? '' : 's'} added.`,
+        });
+      }
     } catch (error) {
-      console.error('Failed to upload photos:', error);
+      // Records created before a database failure remain authoritative. This
+      // removes only copied files that are still unreferenced.
+      const cleanup = await Promise.allSettled(
+        filenames.map((filename) => deleteManagedPhotoIfUnreferenced(filename)),
+      );
+      const cleanupFailed = cleanup.some((result) => result.status === 'rejected');
+      toast({
+        title: 'Could not add every photo',
+        description: cleanupFailed
+          ? 'Some records may have been added, and an unreferenced local file could not be removed. Orphan files are excluded from exports.'
+          : error instanceof Error ? error.message : 'No unvalidated photo was added.',
+        variant: 'destructive',
+      });
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleDeletePhoto = async (photoId: string) => {
-    await deletePhoto.mutateAsync({ id: photoId, litterId });
-    setSelectedPhoto(null);
+    try {
+      const result = await deletePhoto.mutateAsync({ id: photoId, litterId });
+      setSelectedPhoto(null);
+      toast({
+        title: result.success ? 'Photo permanently removed' : 'Photo was already removed',
+      });
+    } catch (error) {
+      toast({
+        title: 'Photo cleanup failed',
+        description: error instanceof Error ? error.message : 'The photo could not be removed.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleSaveCaption = async () => {

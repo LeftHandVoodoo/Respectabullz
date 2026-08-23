@@ -5,26 +5,18 @@ import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
 // Mock Tauri APIs that aren't available in Node.js test environment
-vi.mock('@tauri-apps/plugin-sql', () => ({
-  default: {
-    get: vi.fn(() => ({
-      select: vi.fn(() => Promise.resolve([])),
-      execute: vi.fn(() => Promise.resolve({ lastInsertId: 0, rowsAffected: 0 })),
-    })),
-  },
-}));
-
 vi.mock('@tauri-apps/api', () => ({
   invoke: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
+  BaseDirectory: { AppData: 'AppData' },
   exists: vi.fn(() => Promise.resolve(false)),
+  readFile: vi.fn(() => Promise.resolve(new Uint8Array())),
   readTextFile: vi.fn(() => Promise.resolve('')),
   writeTextFile: vi.fn(() => Promise.resolve()),
   mkdir: vi.fn(() => Promise.resolve()),
   remove: vi.fn(() => Promise.resolve()),
-  readDir: vi.fn(() => Promise.resolve([])),
   stat: vi.fn(() => Promise.resolve({ size: 0, isFile: true, isDirectory: false })),
   copyFile: vi.fn(() => Promise.resolve()),
 }));
@@ -35,12 +27,6 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
   message: vi.fn(() => Promise.resolve()),
   ask: vi.fn(() => Promise.resolve(false)),
   confirm: vi.fn(() => Promise.resolve(false)),
-}));
-
-vi.mock('@tauri-apps/plugin-notification', () => ({
-  isPermissionGranted: vi.fn(() => Promise.resolve(true)),
-  requestPermission: vi.fn(() => Promise.resolve('granted')),
-  sendNotification: vi.fn(() => Promise.resolve()),
 }));
 
 // Mock localStorage for browser-like behavior

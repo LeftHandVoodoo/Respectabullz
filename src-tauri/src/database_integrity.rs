@@ -371,6 +371,18 @@ fn integrity_error(message: impl Into<String>) -> String {
     format!("Database integrity setup failed: {}", message.into())
 }
 
+fn integrity_ipc_error(detail: String) -> String {
+    eprintln!(
+        "{}",
+        serde_json::json!({
+            "level": "error",
+            "event": "database_integrity_setup_failed",
+            "detail": detail,
+        })
+    );
+    "Database setup could not be completed. Restart Respectabullz and try again.".to_string()
+}
+
 fn quote_sqlite_identifier(identifier: &str) -> String {
     format!("\"{}\"", identifier.replace('"', "\"\""))
 }
@@ -997,8 +1009,12 @@ fn setup_owned_pool(pool: SqlitePool) -> IntegrityFuture<'static, MigrationRepor
 
 #[tauri::command]
 pub async fn setup_integrity_database(app: tauri::AppHandle) -> Result<MigrationReport, String> {
-    let pool = loaded_sqlite_pool(app).await?;
-    setup_owned_pool(pool).await
+    let result = async {
+        let pool = loaded_sqlite_pool(app).await?;
+        setup_owned_pool(pool).await
+    }
+    .await;
+    result.map_err(integrity_ipc_error)
 }
 
 #[cfg(test)]
@@ -1006,6 +1022,15 @@ mod tests {
     use super::*;
     use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn ipc_error_does_not_expose_database_details() {
+        let error = integrity_ipc_error(
+            r"SQL error in C:\Users\person\private\respectabullz.db".to_string(),
+        );
+        assert!(!error.contains("person"));
+        assert!(!error.contains("SQL"));
+    }
 
     async fn test_pool() -> SqlitePool {
         SqlitePoolOptions::new()

@@ -1,11 +1,11 @@
 # Respectabullz User Manual
 
-**Version 1.10.3**
-**Last Updated: July 14, 2026**
+**Version 1.10.4**
+**Last Updated: August 22, 2026**
 
 Welcome to Respectabullz, a comprehensive desktop application designed to help dog breeders manage their entire breeding operation from heat cycles to puppy sales.
 
-> **Current capability notice (July 14, 2026):** This notice supersedes older
+> **Current capability notice (August 22, 2026):** This notice supersedes older
 > release-history text below. Restore/import is unavailable, both in-app exports
 > are partial, and no factory reset is exposed. Production builds do not provide
 > sample-data tools. Automatic legacy browser-storage import is withdrawn; detection
@@ -18,7 +18,22 @@ Welcome to Respectabullz, a comprehensive desktop application designed to help d
 
 ---
 
-## What's New in Version 1.10.3
+## What's New in Version 1.10.4
+
+- Renderer database operations now cross a bounded Rust command layer. Sale creation,
+  editing, deletion, and interest conversion use purpose-specific native transactions
+  so sale rows, puppy links/statuses, and conversion state commit together.
+- Native file permissions are limited by operation to direct managed files; managed
+  roots, hidden names, and nested paths are denied for renderer mutation.
+- Photo imports validate type, size, dimensions, and frame count. Partial ZIP exports
+  include only validated, database-referenced photos and exclude orphan files.
+- Native operating-system notifications are not dispatched. Use the dashboard and task
+  views for reminders; the Notifications toggle only records a preference.
+- Ordinary CI retains verification evidence only. Installers may be distributed only
+  after the protected signed-release workflow verifies their timestamped publisher
+  signature. No successful signed v1.10.4 release run is yet claimed.
+
+## Historical: What's New in Version 1.10.3
 
 - Incomplete restore/import and destructive reset controls are withdrawn. JSON and
   ZIP outputs are explicitly partial exports.
@@ -1091,12 +1106,12 @@ Configure your kennel details for contracts and documents:
 - **Pounds (lbs)**: Display weights in pounds
 - **Kilograms (kg)**: Display weights in kilograms
 
-**Notifications:**
-- Toggle to enable/disable reminders for:
-  - Upcoming vaccinations
-  - Due dates
-  - Follow-up reminders
-  - Puppy health tasks
+**Notifications preference:**
+
+- The toggle records a preference only. Version 1.10.4 does not dispatch native
+  operating-system notifications from the renderer.
+- Check the in-app dashboard and task views for upcoming vaccinations, due dates,
+  follow-ups, and puppy health tasks.
 
 #### Contracts Save Location
 
@@ -1111,11 +1126,13 @@ Configure your kennel details for contracts and documents:
 
 ### Application Updates
 
-Respectabullz has no in-app updater. Obtain a new installer manually from the
-repository owner's published release channel. Review the release evidence,
-checksum, and code-signing status before installation; do not assume an installer
-or migration preserves every historical record and file. Follow the independent
-copy and verification steps in [Upgrading from a Previous Version](#upgrading-from-a-previous-version).
+Respectabullz has no in-app updater. Obtain a new installer only from the repository
+owner's published release channel. A distributable installer must come from the
+protected signed-release workflow with retained timestamped signature verification,
+checksums, and npm/Rust SBOMs. No successful signed v1.10.4 run is yet recorded. Do not
+assume an installer or migration preserves every historical record and file. Follow
+the independent copy and verification steps in
+[Upgrading from a Previous Version](#upgrading-from-a-previous-version).
 
 ### Data Management
 
@@ -1125,9 +1142,10 @@ copy and verification steps in [Upgrading from a Previous Version](#upgrading-fr
 2. Under **Partial Data Export with Photos**, click **"Export Partial Data (ZIP)"**.
 3. Choose a destination for the ZIP file.
 
-The ZIP contains a partial JSON record export plus managed photos found by the
-exporter. It omits managed documents, generated contracts, logs, external file
-locations, and database domains that are outside the JSON export subset. It writes
+The ZIP contains a partial JSON record export plus validated photos referenced by
+database rows. Unreferenced files are excluded. It omits managed documents, generated
+contracts, logs, external file locations, and database domains that are outside the
+JSON export subset. It writes
 directly to the exact file selected in the native save dialog; it is not atomic, and
 an interrupted write can leave an incomplete file.
 
@@ -1274,6 +1292,10 @@ For issues or questions:
 These summaries describe historical changes, not current assurance or operating
 instructions. Current containment limits are stated at the top of this manual.
 
+- **v1.10.4**: Bounded native database commands, transactional sale workflows,
+  narrower native file scope, validated referenced-photo exports, no
+  renderer-dispatched operating-system notifications, dependency-policy updates, and
+  signed-only release automation
 - **v1.10.3**: Restore/reset containment, transactional schema/document controls, credential-free bug reports, Windows-aware CI, and a separately addressed synthetic demo fixture
 - **v1.10.1**: Historical legacy restore-notification changes (the restore path is now withdrawn), PDF photo warnings, and logging changes
 - **v1.10.0**: Scoped CSP, file-access, validation, rollback, filename, and PDF image-checking changes; not a blanket security or recovery guarantee
@@ -1297,6 +1319,6 @@ See [CHANGELOG.md](../CHANGELOG.md) for complete version history.
 
 ---
 
-#### Respectabullz User Manual v1.10.3
+#### Respectabullz User Manual v1.10.4
 
-*Last Updated: July 14, 2026*
+*Last Updated: August 22, 2026*

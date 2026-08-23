@@ -2,8 +2,9 @@
 // Handles clients, sales, sale puppies, client interests, and waitlist
 
 import { query, execute } from './connection';
-import { generateId, dateToSql, sqlToDate, nowIso, boolToSql, sqlToBool } from './utils';
+import { generateId, dateToSql, sqlToDate, nowIso, sqlToBool } from './utils';
 import { getDog } from './dogs';
+import { invoke } from '@tauri-apps/api/core';
 import type {
   Client,
   Sale,
@@ -188,6 +189,79 @@ function rowToSalePuppy(row: SalePuppyRow): SalePuppy {
   };
 }
 
+interface NativeSaleWriteRequest {
+  clientId: string;
+  saleDate: string;
+  price: number;
+  depositAmount: number | null;
+  depositDate: string | null;
+  contractPath: string | null;
+  shippedDate: string | null;
+  receivedDate: string | null;
+  isLocalPickup: boolean;
+  paymentStatus: Sale['paymentStatus'];
+  warrantyInfo: string | null;
+  registrationTransferDate: string | null;
+  transportId: string | null;
+  notes: string | null;
+  puppies: { dogId: string; price: number }[];
+}
+
+function requiredDateToSql(date: Date): string {
+  const sqlDate = dateToSql(date);
+  if (!sqlDate) {
+    throw new Error('Sale date is required');
+  }
+  return sqlDate;
+}
+
+function toNativeSaleRequest(input: CreateSaleInput): NativeSaleWriteRequest {
+  return {
+    clientId: input.clientId,
+    saleDate: requiredDateToSql(input.saleDate),
+    price: input.price,
+    depositAmount: input.depositAmount ?? null,
+    depositDate: dateToSql(input.depositDate),
+    contractPath: input.contractPath ?? null,
+    shippedDate: dateToSql(input.shippedDate),
+    receivedDate: dateToSql(input.receivedDate),
+    isLocalPickup: input.isLocalPickup ?? false,
+    paymentStatus: input.paymentStatus ?? 'deposit_only',
+    warrantyInfo: input.warrantyInfo ?? null,
+    registrationTransferDate: dateToSql(input.registrationTransferDate),
+    transportId: input.transportId ?? null,
+    notes: input.notes ?? null,
+    puppies: input.puppies.map((puppy) => ({ ...puppy })),
+  };
+}
+
+function mergeSaleUpdate(existing: Sale, input: UpdateSaleInput): CreateSaleInput {
+  const puppies = input.puppies
+    ?? existing.puppies?.map(({ dogId, price }) => ({ dogId, price }))
+    ?? [];
+  return {
+    clientId: input.clientId ?? existing.clientId,
+    saleDate: input.saleDate ?? existing.saleDate,
+    price: input.price ?? (input.puppies
+      ? input.puppies.reduce((total, puppy) => total + puppy.price, 0)
+      : existing.price),
+    depositAmount: input.depositAmount !== undefined ? input.depositAmount : existing.depositAmount,
+    depositDate: input.depositDate !== undefined ? input.depositDate : existing.depositDate,
+    contractPath: input.contractPath !== undefined ? input.contractPath : existing.contractPath,
+    shippedDate: input.shippedDate !== undefined ? input.shippedDate : existing.shippedDate,
+    receivedDate: input.receivedDate !== undefined ? input.receivedDate : existing.receivedDate,
+    isLocalPickup: input.isLocalPickup ?? existing.isLocalPickup,
+    paymentStatus: input.paymentStatus ?? existing.paymentStatus,
+    warrantyInfo: input.warrantyInfo !== undefined ? input.warrantyInfo : existing.warrantyInfo,
+    registrationTransferDate: input.registrationTransferDate !== undefined
+      ? input.registrationTransferDate
+      : existing.registrationTransferDate,
+    transportId: input.transportId !== undefined ? input.transportId : existing.transportId,
+    notes: input.notes !== undefined ? input.notes : existing.notes,
+    puppies,
+  };
+}
+
 export async function getSales(): Promise<Sale[]> {
   const rows = await query<SaleRow>('SELECT * FROM sales ORDER BY sale_date DESC');
   const sales = rows.map(rowToSale);
@@ -213,73 +287,40 @@ export async function getSale(id: string): Promise<Sale | null> {
 }
 
 export async function createSale(input: CreateSaleInput): Promise<Sale> {
-  const id = generateId();
-  const now = nowIso();
-  
-  await execute(
-    `INSERT INTO sales 
-     (id, client_id, sale_date, price, deposit_amount, deposit_date, contract_path,
-      shipped_date, received_date, is_local_pickup, payment_status, warranty_info,
-      registration_transfer_date, transport_id, notes, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      id,
-      input.clientId,
-      dateToSql(input.saleDate),
-      input.price,
-      input.depositAmount ?? null,
-      dateToSql(input.depositDate),
-      input.contractPath ?? null,
-      dateToSql(input.shippedDate),
-      dateToSql(input.receivedDate),
-      boolToSql(input.isLocalPickup ?? false),
-      input.paymentStatus ?? 'deposit_only',
-      input.warrantyInfo ?? null,
-      dateToSql(input.registrationTransferDate),
-      input.transportId ?? null,
-      input.notes ?? null,
-      now,
-      now,
-    ]
-  );
-  
+  const id = await invoke<string>('create_sale_atomic', {
+    request: toNativeSaleRequest(input),
+  });
   const sale = await getSale(id);
   if (!sale) throw new Error('Failed to create sale');
   return sale;
 }
 
 export async function updateSale(id: string, input: UpdateSaleInput): Promise<Sale | null> {
-  const updates: string[] = [];
-  const values: unknown[] = [];
-  
-  if (input.clientId !== undefined) { updates.push('client_id = ?'); values.push(input.clientId); }
-  if (input.saleDate !== undefined) { updates.push('sale_date = ?'); values.push(dateToSql(input.saleDate)); }
-  if (input.price !== undefined) { updates.push('price = ?'); values.push(input.price); }
-  if (input.depositAmount !== undefined) { updates.push('deposit_amount = ?'); values.push(input.depositAmount); }
-  if (input.depositDate !== undefined) { updates.push('deposit_date = ?'); values.push(dateToSql(input.depositDate)); }
-  if (input.contractPath !== undefined) { updates.push('contract_path = ?'); values.push(input.contractPath); }
-  if (input.shippedDate !== undefined) { updates.push('shipped_date = ?'); values.push(dateToSql(input.shippedDate)); }
-  if (input.receivedDate !== undefined) { updates.push('received_date = ?'); values.push(dateToSql(input.receivedDate)); }
-  if (input.isLocalPickup !== undefined) { updates.push('is_local_pickup = ?'); values.push(boolToSql(input.isLocalPickup)); }
-  if (input.paymentStatus !== undefined) { updates.push('payment_status = ?'); values.push(input.paymentStatus); }
-  if (input.warrantyInfo !== undefined) { updates.push('warranty_info = ?'); values.push(input.warrantyInfo); }
-  if (input.registrationTransferDate !== undefined) { updates.push('registration_transfer_date = ?'); values.push(dateToSql(input.registrationTransferDate)); }
-  if (input.transportId !== undefined) { updates.push('transport_id = ?'); values.push(input.transportId); }
-  if (input.notes !== undefined) { updates.push('notes = ?'); values.push(input.notes); }
-  
-  if (updates.length === 0) return getSale(id);
-  
-  updates.push('updated_at = ?');
-  values.push(nowIso());
-  values.push(id);
-  
-  await execute(`UPDATE sales SET ${updates.join(', ')} WHERE id = ?`, values);
+  const existing = await getSale(id);
+  if (!existing) return null;
+  const completeInput = mergeSaleUpdate(existing, input);
+  await invoke<string>('update_sale_atomic', {
+    saleId: id,
+    request: toNativeSaleRequest(completeInput),
+  });
   return getSale(id);
 }
 
 export async function deleteSale(id: string): Promise<boolean> {
-  const result = await execute('DELETE FROM sales WHERE id = ?', [id]);
-  return result.rowsAffected > 0;
+  return invoke<boolean>('delete_sale_atomic', { saleId: id });
+}
+
+export async function createSaleFromInterest(
+  interestId: string,
+  input: CreateSaleInput
+): Promise<Sale> {
+  const id = await invoke<string>('convert_interest_to_sale_atomic', {
+    interestId,
+    request: toNativeSaleRequest(input),
+  });
+  const sale = await getSale(id);
+  if (!sale) throw new Error('Failed to convert interest to sale');
+  return sale;
 }
 
 // ============================================
@@ -292,50 +333,6 @@ async function getSalePuppies(saleId: string): Promise<SalePuppy[]> {
     [saleId]
   );
   return rows.map(rowToSalePuppy);
-}
-
-export async function addPuppyToSale(saleId: string, dogId: string, price: number): Promise<SalePuppy | null> {
-  const id = generateId();
-  const now = nowIso();
-  
-  await execute(
-    `INSERT INTO sale_puppies (id, sale_id, dog_id, price, created_at)
-     VALUES (?, ?, ?, ?, ?)`,
-    [id, saleId, dogId, price, now]
-  );
-  
-  // Update dog status to sold
-  await execute('UPDATE dogs SET status = ? WHERE id = ?', ['sold', dogId]);
-  
-  const rows = await query<SalePuppyRow>('SELECT * FROM sale_puppies WHERE id = ?', [id]);
-  return rows.length > 0 ? rowToSalePuppy(rows[0]) : null;
-}
-
-export async function removePuppyFromSale(saleId: string, dogId: string): Promise<boolean> {
-  const result = await execute(
-    'DELETE FROM sale_puppies WHERE sale_id = ? AND dog_id = ?',
-    [saleId, dogId]
-  );
-  
-  // Update dog status back to active
-  if (result.rowsAffected > 0) {
-    await execute('UPDATE dogs SET status = ? WHERE id = ?', ['active', dogId]);
-  }
-  
-  return result.rowsAffected > 0;
-}
-
-export async function updatePuppyPrice(saleId: string, dogId: string, price: number): Promise<SalePuppy | null> {
-  await execute(
-    'UPDATE sale_puppies SET price = ? WHERE sale_id = ? AND dog_id = ?',
-    [price, saleId, dogId]
-  );
-  
-  const rows = await query<SalePuppyRow>(
-    'SELECT * FROM sale_puppies WHERE sale_id = ? AND dog_id = ?',
-    [saleId, dogId]
-  );
-  return rows.length > 0 ? rowToSalePuppy(rows[0]) : null;
 }
 
 // ============================================
@@ -488,14 +485,6 @@ export async function updateClientInterest(
 export async function deleteClientInterest(id: string): Promise<boolean> {
   const result = await execute('DELETE FROM client_interests WHERE id = ?', [id]);
   return result.rowsAffected > 0;
-}
-
-export async function convertInterestToSale(interestId: string, saleId: string): Promise<ClientInterest | null> {
-  await execute(
-    'UPDATE client_interests SET status = ?, converted_to_sale_id = ?, updated_at = ? WHERE id = ?',
-    ['converted', saleId, nowIso(), interestId]
-  );
-  return getClientInterest(interestId);
 }
 
 // ============================================

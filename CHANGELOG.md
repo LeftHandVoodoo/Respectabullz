@@ -9,6 +9,93 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 No unreleased changes.
 
+## [1.10.4] - 2026-08-22
+
+### Security
+
+- Removed renderer SQL plugin permissions and routed database access through a fixed,
+  validated Rust boundary. Schema, transaction, extension, filesystem, stacked, and
+  unsupported SQL are rejected; high-risk sale workflows use purpose-specific native
+  transactions with validation, rollback, and foreign-key checks.
+- Replaced broad filesystem and asset scopes with deny-by-default managed-directory
+  permissions and a photos-only asset origin. Native paths reject links/reparse points,
+  external navigation is allowlisted, and IPC errors no longer expose internal paths.
+- Added strict managed-photo names plus image signature, type, size, dimension,
+  per-frame, decoded-pixel, count, and aggregate limits. Every animated frame is
+  charged against the full canvas rather than only its changed rectangle. Photo URL
+  caching is bounded, cleanup is reference-safe, and export enumeration uses validated
+  database references.
+- Packet PDFs now embed validated data URLs instead of CSP-incompatible asset URLs,
+  with 8 MiB per-photo, 25-photo, and 48 MiB aggregate limits. Remote/custom image
+  schemes and arbitrary local paths are not fetched by PDF export.
+- Neutralized spreadsheet formulas in CSV output, validated stored document filenames
+  before preview/read/open, limited inline preview to bounded PDFs, delegated legacy
+  image documents to the system viewer, blocked PDF-driven external navigation, and
+  escaped raw Help Markdown HTML with allowlisted safe links.
+- Upgraded the complete JavaScript dependency graph to zero dated npm advisories,
+  removed the unused notification chain, and updated reachable Rust advisory paths.
+  The one unavailable-patch, unselected SQLx MySQL/RSA exception is documented in the
+  dependency policy.
+- Expanded built-artifact secret scanning and removed the broad `TAURI_` renderer
+  environment prefix and PATH/shell-based development launcher execution.
+
+### Added
+
+- Added an exact-version-tag-only protected Windows release workflow that imports a
+  PFX only on the hosted runner, requires timestamping, runs the complete application
+  gates, verifies Authenticode status and certificate thumbprints, scans artifacts,
+  generates npm/Rust CycloneDX SBOMs and checksums, then uploads only the verified
+  signed bundle.
+- Added an ephemeral Windows CI readiness probe that requires completed database
+  initialization and reconciliation, atomically publishes and validates the versioned
+  marker, checks process health and startup errors, then removes the probe evidence.
+- Added focused regression coverage for native database/sale/path/navigation
+  boundaries, photo validation/cleanup/PDF embedding, safe CSV/document/Markdown
+  rendering, and updated demo capability guards.
+
+### Changed
+
+- Ordinary CI now fails on all npm advisories and every unignored Rust vulnerability,
+  builds an unsigned executable only for an ephemeral database-readiness smoke test,
+  and does not retain an unsigned installer artifact.
+- Updated Vite, Vitest, React Router, PostCSS, Sharp, and related build tooling. The
+  Vite 8 build uses Rolldown-compatible manual chunking, Oxc transforms/minification,
+  and the current baseline browser target.
+- Rebased coverage ratchets on the measured Vitest 4/V8 instrumentation model; the
+  former Vitest 2 branch/function percentages are retained only as historical data
+  and are not treated as comparable metrics.
+- Removed unused direct puppy-assignment helpers; sale assignment changes now go
+  through the complete atomic sale update.
+
+### Fixed
+
+- Sale create/update and interest conversion now preserve the selected puppies and
+  commit sale rows, junction rows, dog statuses, and conversion state together.
+- Sale removal restores a dog to active only when its current state is `sold`, so a
+  later retired or deceased state cannot be revived by deleting or editing a sale.
+- Parameterized mutation checks count placeholders only in the top-level predicate,
+  before `RETURNING`, `ORDER`, or `LIMIT`, closing a trailing-clause mass-update bypass.
+- Deleting or replacing dog/litter photos now attempts physical cleanup without
+  deleting files still referenced elsewhere; cleanup failures are surfaced and
+  orphans are excluded from partial export.
+- Document preview, PDF annotations, and local Help rendering no longer provide the
+  identified path, navigation, or raw-HTML execution paths. Legacy image documents no
+  longer enter an inline renderer decoder.
+- PDF previews reject non-regular files and payloads above 20 MiB before reading, use
+  bounded base64 conversion, and ignore stale asynchronous preview results.
+- Sale contract paths remain inert references inside the renderer instead of opening
+  arbitrary child webviews, and both default-health-template resets now use bounded
+  parameterized predicates.
+
+### Known limitations
+
+- The signed workflow requires protected certificate/password/timestamp inputs and a
+  successful retained run before publisher identity is established.
+- Photo database changes and physical deletion are not one transaction; a reported
+  deletion failure can leave an export-excluded orphan.
+- Restore and verified factory reset remain unavailable. Local data remains plaintext
+  and the single-user application has no application-level authentication.
+
 ## [1.10.3] - 2026-07-14
 
 ### Security

@@ -10,7 +10,6 @@ export function useClients() {
     queryFn: db.getClients,
   });
 }
-
 export function useClient(id: string | undefined) {
   return useQuery({
     queryKey: ['clients', id],
@@ -132,7 +131,13 @@ export function useCreateSale() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: CreateSaleInput) => db.createSale(input),
+    mutationFn: async (input: CreateSaleInput) => {
+      const sale = await db.createSale(input);
+      if (!sale.puppies?.length) {
+        throw new Error('The sale was not returned with its puppy assignments');
+      }
+      return sale;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
@@ -158,8 +163,13 @@ export function useUpdateSale() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateSaleInput }) =>
-      db.updateSale(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: UpdateSaleInput }) => {
+      const sale = await db.updateSale(id, data);
+      if (!sale || !sale.puppies?.length) {
+        throw new Error('The sale update did not preserve its puppy assignments');
+      }
+      return sale;
+    },
     onMutate: async (variables) => {
       // Cancel any outgoing refetches to prevent overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: ['sales', variables.id] });
@@ -207,7 +217,11 @@ export function useDeleteSale() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => db.deleteSale(id),
+    mutationFn: async (id: string) => {
+      const deleted = await db.deleteSale(id);
+      if (!deleted) throw new Error('The sale no longer exists');
+      return true;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
@@ -225,81 +239,6 @@ export function useDeleteSale() {
         variant: 'destructive',
       });
       logger.error('Failed to delete sale', error as Error);
-    },
-  });
-}
-
-// Sale Puppy operations
-export function useAddPuppyToSale() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ saleId, dogId, price }: { saleId: string; dogId: string; price: number }) =>
-      db.addPuppyToSale(saleId, dogId, price),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sales'] });
-      queryClient.invalidateQueries({ queryKey: ['dogs'] });
-      toast({
-        title: 'Puppy added to sale',
-        description: 'The puppy has been added to the sale successfully.',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: 'Failed to add puppy to sale. Please try again.',
-        variant: 'destructive',
-      });
-      logger.error('Failed to add puppy to sale', error as Error);
-    },
-  });
-}
-
-export function useRemovePuppyFromSale() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ saleId, dogId }: { saleId: string; dogId: string }) =>
-      db.removePuppyFromSale(saleId, dogId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sales'] });
-      queryClient.invalidateQueries({ queryKey: ['dogs'] });
-      toast({
-        title: 'Puppy removed from sale',
-        description: 'The puppy has been removed from the sale successfully.',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: 'Failed to remove puppy from sale. Please try again.',
-        variant: 'destructive',
-      });
-      logger.error('Failed to remove puppy from sale', error as Error);
-    },
-  });
-}
-
-export function useUpdatePuppyPrice() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ saleId, dogId, price }: { saleId: string; dogId: string; price: number }) =>
-      db.updatePuppyPrice(saleId, dogId, price),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sales'] });
-      toast({
-        title: 'Price updated',
-        description: 'The puppy price has been updated successfully.',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: 'Failed to update price. Please try again.',
-        variant: 'destructive',
-      });
-      logger.error('Failed to update puppy price', error as Error);
     },
   });
 }

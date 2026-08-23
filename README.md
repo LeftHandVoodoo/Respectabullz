@@ -4,9 +4,9 @@
 
 Respectabullz brings animal and litter records, health workflows, inquiries, sales,
 documents, photos, expenses, and follow-up work into one desktop application. It is
-built with React, TypeScript, Tauri 2, and SQLite through `tauri-plugin-sql`.
+built with React, TypeScript, Tauri 2, and a Rust-owned SQLite boundary.
 
-> **Portfolio-remediation status (2026-07-14):** this source is being prepared as an
+> **Portfolio-remediation status (2026-08-22):** this source is being prepared as an
 > inspectable product-engineering case study. It is not represented as production
 > proven, independently security assessed, or ready for recovery-dependent use. The
 > historical restore path is withdrawn, and the existing export formats are partial
@@ -21,12 +21,13 @@ built with React, TypeScript, Tauri 2, and SQLite through `tauri-plugin-sql`.
 [Security](SECURITY.md) ·
 [Privacy](PRIVACY.md)
 
-Source version: **1.10.3**
+Source version: **1.10.4**
 
 ![Respectabullz synthetic portfolio dashboard](docs/case-study/screenshots/hero-dashboard.jpg)
 
-*Live Windows/Tauri capture from the isolated `com.respectabullz.demo` profile using
-deterministic synthetic records. It is not customer or production data.*
+*Historical v1.10.3 Windows/Tauri capture from the isolated
+`com.respectabullz.demo` profile using deterministic synthetic records. It is not
+customer, production, or v1.10.4 validation data.*
 
 ## The operational problem
 
@@ -65,16 +66,17 @@ flowchart LR
     U["Windows user"] --> R["React + TypeScript renderer"]
     R --> Q["Domain hooks + TanStack Query"]
     Q --> D["TypeScript database modules"]
-    D --> P["tauri-plugin-sql"]
-    P --> S["SQLite in application data"]
+    D --> T["Validated Tauri database commands"]
+    T --> S["Fixed SQLx/SQLite pool in application data"]
     R --> N["Tauri native plugin boundary"]
     N --> M["Managed photos, documents, contracts, and logs"]
     N --> E["User-selected import/export paths"]
 ```
 
-Most domain and UI logic lives in TypeScript. The Rust crate hosts Tauri and now owns
-the integrity-sensitive database setup/migration, managed-document, and fixed external
-support-link boundaries; it is not a separate service. Prisma files are
+Most domain and UI logic lives in TypeScript. The Rust crate hosts Tauri and owns the
+fixed database command boundary, integrity-sensitive setup/migration, atomic sale
+workflows, managed documents, path/link validation, and fixed external support-link
+boundary; it is not a separate service. Prisma files are
 schema/reference tooling and are not the runtime ORM. See
 [Architecture](docs/ARCHITECTURE.md) for data flow and trust boundaries.
 
@@ -142,10 +144,12 @@ schema/reference tooling and are not the runtime ORM. See
 ## Quality evidence
 
 The reviewed baseline commit predated repository CI. The remediation tree now defines
-a required GitHub Actions workflow with frontend checks, Windows Rust/Tauri build and
-packaged startup smoke on an ephemeral hosted runner, secret-history scanning, npm/Rust
-dependency evidence, npm CycloneDX SBOM and installer artifacts, checksums, plus weekly
-Dependabot review. There is not yet a successful public run URL for a frozen final commit. The following is the
+a required GitHub Actions workflow with frontend checks, a Windows Rust/Tauri
+`--no-bundle` build and database-readiness smoke on an ephemeral hosted runner,
+secret-history scanning, npm/Rust dependency evidence, npm and Rust CycloneDX SBOMs,
+checksums, plus weekly Dependabot review. Ordinary CI retains evidence only; it does
+not upload an unsigned executable or installer. There is not yet a successful public
+run URL for a frozen final commit. The following is the
 dated local baseline for commit
 `fd21363beae044f0649a1e03f3bb6bcc2249f970`, not an assertion about future commits:
 
@@ -158,19 +162,24 @@ dated local baseline for commit
 - No Windows installer smoke test, checksum, SBOM, signing verification, or required
   public CI evidence was established by that baseline.
 
-The later remediation tree was installed with pinned Node 22.23.1/npm 10.9.8. The
-latest local pre-release checkpoint passed 354 frontend tests in 39
-files and 39 Rust tests. The exact tree also passed lint/type/version/
-demo guards, web and NSIS builds, artifact scans, production audit, source/history
-secret scans, workflow lint, and npm SBOM generation. Production npm audit reported 0
-findings; the informative full graph retained 7. A native smoke exposed a Tokio
-nested-runtime startup panic. After correction, a rebuilt executable remained alive for
-eight seconds with empty stderr. That local launch was not isolated: Windows/Tauri ignored
-process-level `APPDATA` overrides and opened the real profile's SQLite sidecars while the
-main database file remained unchanged. The exact final-SHA smoke is therefore delegated to
-the ephemeral CI runner. None of this is public CI or release evidence. The latest
-frontend coverage checkpoint reported 22.21% statements/lines, 62.73% branches, and
-27.85% functions.
+The later **historical v1.10.3** pre-release checkpoint recorded 354 frontend tests in
+39 files, 39 Rust tests, and 22.21% statement/line coverage. Those exact counts remain
+provenance for that older tree; they do not describe v1.10.4.
+
+The pinned local v1.10.4 gate completed on 2026-08-22 with Node 22.23.1/npm 10.9.8:
+439 frontend tests in 50 files and 68 Rust tests passed; lint, TypeScript, Rust format,
+strict Clippy, version/demo guards, coverage ratchets, workflow lint, web build, and a
+Windows release-profile `--no-bundle` build passed. Coverage measured 26.40%
+statements, 20.06% branches, 17.52% functions, and 27.74% lines under Vitest 4/V8.
+The exact commands are recorded in the evidence document; the implementation commit
+is captured there by an adjacent evidence-only commit.
+
+The v1.10.4 lockfile currently has zero npm advisories. Rust audit policy has one
+documented exception for the unselected SQLx MySQL/RSA path and retains informational
+warnings for review. A distributable release additionally requires the protected
+signed-release workflow and its signature checks; no successful signing run is yet
+claimed. A successful public final-commit CI run and protected signed-release run
+remain explicit gates rather than local claims.
 
 Commands, dates, scope, and missing gates are recorded in
 [`TEST_EVIDENCE.md`](docs/case-study/TEST_EVIDENCE.md). A raw test count is not used
@@ -189,12 +198,16 @@ limits:
 - Tauri capabilities and the CSP reduce some exposure but are not a security audit;
   `http://asset.localhost` is allowed for Tauri `convertFileSrc` image URLs while
   connection sources remain self-only;
-- Rust preloads the single supported SQLite pool, and the renderer cannot load or
-  close alternate pools. It still has select/execute authority against the application
-  database, so this is pool-lifecycle containment rather than a query sandbox;
-- unsigned Windows builds can trigger SmartScreen and do not prove publisher
-  identity; and
-- dependency advisories and permission scope require continuing review.
+- Rust owns the single supported SQLite pool. Renderer requests cross a native guard
+  that rejects stacked, schema, transaction, extension, filesystem, and unsupported
+  SQL, but it is not per-record authorization for a compromised renderer;
+- filesystem capabilities are deny-by-default and limited to direct managed photo,
+  contract, document, and log files; a compromised renderer still has the listed
+  operations within those roots;
+- locally built or historical unsigned installers do not prove publisher identity;
+  only a successful signature-verifying release workflow is distributable; and
+- the dated Rust dependency policy contains one documented non-compiled SQLx MySQL/RSA
+  exception and continuing informational warnings.
 
 Read [PRIVACY.md](PRIVACY.md), [SECURITY.md](SECURITY.md), and
 [`THREAT_MODEL.md`](docs/THREAT_MODEL.md) before using real records.
@@ -221,7 +234,7 @@ The Vite-only command (`npm run dev`) can render frontend code but cannot valida
 native SQLite, dialog, or filesystem behavior.
 
 Do not add a GitHub personal access token to `.env`. `DATABASE_URL` is used only by
-Prisma reference tooling; runtime storage is opened by `tauri-plugin-sql`.
+Prisma reference tooling; runtime storage uses the one Rust-owned application pool.
 
 ### Local checks
 
@@ -236,6 +249,26 @@ npm run version:check
 `npm run version:check` now fails when the canonical `VERSION` value, package/lock
 metadata, Rust/Tauri metadata, frontend version, or `.env.example` display version
 drifts.
+
+### Signed release artifacts
+
+Ordinary CI builds the executable with `--no-bundle` for an ephemeral readiness smoke
+that requires completed database initialization and reconciliation, then uploads
+evidence only. It does not publish an unsigned installer.
+
+The `Signed Windows Release` workflow is the only distribution path. Its protected
+`release` environment must provide:
+
+- secret `WINDOWS_CERTIFICATE_BASE64` containing the PFX as base64;
+- secret `WINDOWS_CERTIFICATE_PASSWORD`; and
+- repository variable `WINDOWS_TIMESTAMP_URL` for an Authenticode timestamp service.
+
+The workflow imports the certificate only on the hosted runner, builds the NSIS
+installer, verifies a valid timestamped signature and expected thumbprint on every
+Windows executable/installer, scans artifacts, generates npm and Rust CycloneDX SBOMs
+and SHA-256 checksums, removes signing material, then uploads the verified bundle.
+`npm run tauri:build` outside that workflow can produce an unsigned local artifact and
+must not be distributed as a verified release.
 
 ## Current limitations
 
@@ -253,8 +286,10 @@ drifts.
   write lock, verifies foreign keys, and rolls back rejected fixtures. There is no
   automated teardown, and this development fixture is not a production feature.
 - Local data, logs, and exports are plaintext unless separately encrypted.
+- The settings preference for reminders does not dispatch native operating-system
+  notifications in v1.10.4; use the in-app dashboard and task views.
 - The declared schema-v4→v5 migration now has one-transaction and failpoint tests, but
-  final Windows build/upgrade evidence is pending and older schema versions are
+  clean-profile packaged upgrade evidence is pending and older schema versions are
   unsupported.
 - The managed-document create, tag/update, open, delete, and startup-reconciliation
   path now uses staged file operations, one-connection SQL transactions, recoverable
@@ -264,12 +299,12 @@ drifts.
   This is not a blanket atomicity claim for every application file flow.
 - The required CI workflow is present, but no successful public run is yet linked to
   the frozen displayed commit and branch-protection status is not evidenced here.
-- The production npm graph has 0 dated findings; 7 full-graph development findings are
-  triaged in the [dependency risk ledger](docs/case-study/DEPENDENCY_RISK.md). A pinned
-  Rust audit fell from 7 to 5 vulnerability entries after two patch updates and still
-  reports warning groups; target reachability and deferrals are recorded in that ledger.
-- The current Windows release process has no published SBOM or verified code-signing
-  evidence in this repository.
+- The complete npm graph has 0 dated findings. Rust policy has no unignored
+  vulnerability entries and one documented, non-compiled SQLx MySQL/RSA exception;
+  informational warnings and re-review triggers are in the
+  [dependency risk ledger](docs/case-study/DEPENDENCY_RISK.md).
+- Signed release automation is configured, but publisher identity is not established
+  until its protected inputs are configured and a successful run is retained.
 - No claim of independent security certification, production adoption, or
   production-grade reliability is made.
 

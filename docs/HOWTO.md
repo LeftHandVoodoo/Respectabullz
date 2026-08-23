@@ -1,7 +1,7 @@
 # Respectabullz How-To Guide
 
-**Version 1.10.3**
-**Last Updated: January 1, 2026**
+**Version 1.10.4**
+**Last Updated: August 22, 2026**
 
 This guide provides step-by-step instructions for common breeding operation workflows. For detailed feature documentation, see [USER_MANUAL.md](USER_MANUAL.md).
 
@@ -50,7 +50,9 @@ This guide provides step-by-step instructions for common breeding operation work
 **Step 2: Set Preferences**
 1. In **Settings** → **Preferences**:
    - Choose **Weight Unit** (lbs or kg)
-   - Enable **Notifications** for reminders
+   - Choose the **Notifications** preference if you want the setting recorded. Version
+     1.10.4 does not dispatch native operating-system notifications; check the in-app
+     dashboard and task views for reminders.
    - If you choose a custom contracts folder, use **Choose Folder** again after every
      app restart; the native folder grant lasts only for the current session
 
@@ -742,9 +744,10 @@ or supported round-trip transfer format.
 2. Under **Partial Data Export with Photos**, click **"Export Partial Data (ZIP)"**.
 3. Choose the destination for the ZIP file.
 
-The ZIP contains a partial JSON record export plus the managed photos found by the
-exporter. It omits managed documents, generated contracts, logs, externally stored
-files, and database domains not included by the JSON exporter. It is written directly
+The ZIP contains a partial JSON record export plus validated photos referenced by
+database rows. Unreferenced files are not added. It omits managed documents, generated
+contracts, logs, externally stored files, and database domains not included by the
+JSON exporter. It is written directly
 to the selected native-dialog target rather than through an atomic sibling-temp rename;
 an interruption can leave an incomplete file.
 
@@ -894,8 +897,8 @@ them for you.
 
 ---
 
-**Respectabullz How-To Guide v1.10.3**
-*Last Updated: July 14, 2026*
+**Respectabullz How-To Guide v1.10.4**
+*Last Updated: August 22, 2026*
 
 For detailed feature documentation, see [USER_MANUAL.md](USER_MANUAL.md).  
 For technical documentation, see [ARCHITECTURE.md](ARCHITECTURE.md) and [API.md](API.md).

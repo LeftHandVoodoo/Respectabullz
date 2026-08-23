@@ -19,6 +19,7 @@ import { useDogs } from '@/hooks/useDogs';
 import { HeatCycleFormDialog } from '@/components/heat-cycles/HeatCycleFormDialog';
 import { HeatCycleCalendar } from '@/components/heat-cycles/HeatCycleCalendar';
 import { formatDate } from '@/lib/utils';
+import { serializeCsv } from '@/lib/csvUtils';
 
 // Phase badge colors
 const phaseBadgeVariant: Record<HeatPhase, 'destructive' | 'success' | 'default' | 'secondary'> = {
@@ -40,17 +41,6 @@ function formatDateForCSV(date: Date | string | null | undefined): string {
   if (!date) return '';
   const d = new Date(date);
   return d.toISOString().split('T')[0];
-}
-
-// Helper to escape CSV values
-function escapeCSV(value: string | null | undefined): string {
-  if (value === null || value === undefined) return '';
-  const str = String(value);
-  // If the value contains comma, newline, or quote, wrap in quotes and escape existing quotes
-  if (str.includes(',') || str.includes('\n') || str.includes('"')) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
 }
 
 export function HeatCyclesPage() {
@@ -169,7 +159,7 @@ export function HeatCyclesPage() {
       const progesterone = getProgesteroneSummary(cycle);
       
       return [
-        escapeCSV(cycle.bitch?.name || 'Unknown'),
+        cycle.bitch?.name || 'Unknown',
         formatDateForCSV(cycle.startDate),
         formatDateForCSV(cycle.standingHeatStart),
         formatDateForCSV(cycle.standingHeatEnd),
@@ -179,24 +169,20 @@ export function HeatCyclesPage() {
         formatDateForCSV(cycle.endDate),
         formatDateForCSV(cycle.expectedDueDate),
         formatDateForCSV(cycle.nextHeatEstimate),
-        cycle.cycleLength?.toString() || '',
+        cycle.cycleLength ?? '',
         cycle.currentPhase ? phaseLabels[cycle.currentPhase] : '',
         cycle.isBred ? 'Yes' : 'No',
-        escapeCSV(breeding.sire),
-        escapeCSV(breeding.method),
-        escapeCSV(breeding.dates),
-        escapeCSV(progesterone.dates),
-        escapeCSV(progesterone.values),
-        escapeCSV(progesterone.clinics),
-        escapeCSV(cycle.notes),
+        breeding.sire,
+        breeding.method,
+        breeding.dates,
+        progesterone.dates,
+        progesterone.values,
+        progesterone.clinics,
+        cycle.notes,
       ];
     });
 
-    // Build CSV content
-    const csvContent = [
-      headers.join(','),
-      ...rows.map((row) => row.join(',')),
-    ].join('\n');
+    const csvContent = serializeCsv([headers, ...rows]);
 
     // Create and trigger download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
