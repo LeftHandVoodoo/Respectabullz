@@ -171,8 +171,8 @@ The pinned local v1.10.4 gate completed on 2026-08-22 with Node 22.23.1/npm 10.9
 strict Clippy, version/demo guards, coverage ratchets, workflow lint, web build, and a
 Windows release-profile `--no-bundle` build passed. Coverage measured 26.40%
 statements, 20.06% branches, 17.52% functions, and 27.74% lines under Vitest 4/V8.
-The exact commands are recorded in the evidence document; the implementation commit
-is captured there by an adjacent evidence-only commit.
+The exact commands and locally validated implementation commit are recorded in the
+evidence document.
 
 The v1.10.4 lockfile currently has zero npm advisories. Rust audit policy has one
 documented exception for the unselected SQLx MySQL/RSA path and retains informational

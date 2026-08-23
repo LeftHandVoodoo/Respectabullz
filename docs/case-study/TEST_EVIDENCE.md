@@ -48,7 +48,7 @@ npm/Rust SBOM generation. No successful signing run is yet recorded.
 
 | Gate | Result |
 | --- | --- |
-| Locally validated commit | `[PENDING LOCAL COMMIT CAPTURE]` |
+| Locally validated implementation commit | `2ac1470dbc23f0c7a6e39d93fcd8d54754366b1a` |
 | Version/demo guards, lint, and TypeScript | Pass: version 1.10.4 consistent across 9 sources; demo guard, ESLint, and no-emit TypeScript passed |
 | Frontend test count and coverage | Pass: 50 files, 439 tests; Vitest 4/V8 26.40% statements, 20.06% branches, 17.52% functions, 27.74% lines; configured integer ratchets passed |
 | Rust format, Clippy, and test count | Pass: format check; all-target/all-feature Clippy with warnings denied; 68 tests |

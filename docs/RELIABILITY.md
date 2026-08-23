@@ -1,7 +1,8 @@
 # Reliability Model
 
-Last reviewed: 2026-08-22 for source version 1.10.4. Final validation against a frozen
-commit is pending; the dated 1.10.3 checkpoint remains historical evidence only.
+Last reviewed: 2026-08-22 for source version 1.10.4. Local validation is bound to
+implementation commit `2ac1470dbc23f0c7a6e39d93fcd8d54754366b1a`; public CI and
+signed-release evidence remain pending. The dated 1.10.3 checkpoint is historical.
 
 ## Purpose
 
